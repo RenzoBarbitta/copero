@@ -1,0 +1,15 @@
+# Sistema operativo
+Thumbs.db
+Desktop.ini
+
+# Editor
+.vscode/
+.idea/
+
+# Dependencias / entorno
+node_modules/
+
+# Logs y temporales
+*.log
+verificacion-http.txt
+ver-camiseta*.js

@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Simulador de Carrera - PSO Uruguay</title>
+  <meta name="theme-color" content="#0d6efd">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Carrera PSO">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="imagenes/icon-192.png">
+  <link rel="apple-touch-icon" href="imagenes/icon-180.png">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="p-3 d-flex flex-column min-vh-100">
+
+  <div class="container flex-grow-1" style="max-width: 900px;">
+
+    <!-- PANTALLA INICIO -->
+    <div id="pantalla-inicio" class="card card-custom p-4 text-center mt-4">
+      <div>
+        <img src="imagenes/logo.png" alt="PSO Uruguay Logo" class="logo-principal">
+      </div>
+      <h1 class="mb-4 text-primary fw-bold" data-i18n="titulo">CARRERA PSO</h1>
+      <div class="mb-3 text-start">
+        <label class="form-label fw-bold" for="input-nombre" data-i18n="nombreJugador">Nombre del Jugador:</label>
+        <input type="text" id="input-nombre" class="form-control bg-light text-dark border-secondary" placeholder="Ej: Caseros" maxlength="30" autocomplete="off">
+      </div>
+      <div class="row g-3 mb-4 text-start justify-content-center">
+        <div class="col-12 col-md-6">
+          <div class="card-cancha h-100">
+            <h6 class="fw-bold text-center mb-3 card-cancha-titulo" data-i18n="posCancha">📍 Posición en cancha</h6>
+            <div class="cancha-selector" id="cancha-selector" role="radiogroup" aria-label="Posición en cancha (6v6)">
+              <svg class="cancha-lineas" viewBox="0 0 300 400" preserveAspectRatio="none" aria-hidden="true">
+                <rect x="8" y="8" width="284" height="384" rx="10" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2.5"/>
+                <line x1="8" y1="200" x2="292" y2="200" stroke="rgba(255,255,255,0.55)" stroke-width="2.5"/>
+                <circle cx="150" cy="200" r="42" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2.5"/>
+                <circle cx="150" cy="200" r="3" fill="rgba(255,255,255,0.75)"/>
+                <rect x="80" y="8" width="140" height="60" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2.5"/>
+                <path d="M118 68 Q150 96 182 68" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2.5"/>
+                <rect x="126" y="2" width="48" height="9" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="2.5"/>
+                <circle cx="150" cy="50" r="3" fill="rgba(255,255,255,0.75)"/>
+                <rect x="80" y="332" width="140" height="60" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2.5"/>
+                <path d="M118 332 Q150 304 182 332" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2.5"/>
+                <rect x="126" y="389" width="48" height="9" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="2.5"/>
+                <circle cx="150" cy="350" r="3" fill="rgba(255,255,255,0.75)"/>
+              </svg>
+              <button type="button" class="pos-badge pos-del-izq" data-pos="DEL" role="radio" aria-checked="false">DEL</button>
+              <button type="button" class="pos-badge pos-del-der" data-pos="DEL" role="radio" aria-checked="false">DEL</button>
+              <button type="button" class="pos-badge pos-cm" data-pos="CM" role="radio" aria-checked="false">CM</button>
+              <button type="button" class="pos-badge pos-def-izq" data-pos="DEF" role="radio" aria-checked="false">DEF</button>
+              <button type="button" class="pos-badge pos-def-der" data-pos="DEF" role="radio" aria-checked="false">DEF</button>
+              <button type="button" class="pos-badge pos-gk" data-pos="GK" role="radio" aria-checked="false">GK</button>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-md-6">
+          <div class="card-cancha h-100">
+            <h6 class="fw-bold text-center mb-3 card-cancha-titulo" data-i18n="tuCasaca">👕 Tu casaca</h6>
+            <div class="mb-3 px-2">
+              <label class="form-label fw-bold mb-1 text-light" for="input-dorsal" data-i18n="dorsal">🔢 Dorsal</label>
+              <input type="number" id="input-dorsal" class="form-control form-control-lg bg-light text-dark border-secondary fw-bold text-center dorsal-input" min="1" max="99" step="1" value="10" inputmode="numeric" autocomplete="off">
+            </div>
+            <div id="camiseta-preview" class="camiseta-preview" aria-live="polite"></div>
+          </div>
+        </div>
+      </div>
+      <select id="select-posicion" class="hidden" tabindex="-1" aria-hidden="true">
+        <option value="DEL" data-i18n="posDEL">Delantero (DEL)</option>
+        <option value="CM" data-i18n="posCM">Mediocampista (CM)</option>
+        <option value="DEF" data-i18n="posDEF">Defensa (DEF)</option>
+        <option value="GK" data-i18n="posGK">Arquero (GK)</option>
+      </select>
+      <button id="btn-iniciar" class="btn btn-warning btn-lg fw-bold px-5" onclick="iniciarCarrera()" data-i18n="iniciar">Iniciar Carrera</button>
+      <button id="btn-continuar" class="btn btn-outline-primary btn-lg fw-bold px-5 mt-3 hidden" onclick="continuarCarrera()" data-i18n="continuar">
+        ▶️ Continuar Carrera Guardada
+      </button>
+      <div class="d-flex justify-content-center gap-2 mt-3 flex-wrap">
+        <button id="btn-modo-desafio" class="btn btn-outline-secondary btn-sm fw-bold" data-i18n="modoDesafio">🎲 Modo Desafío</button>
+        <button id="btn-ranking" class="btn btn-outline-secondary btn-sm fw-bold" data-i18n="ranking">🏆 Ranking</button>
+        <button class="btn btn-outline-secondary btn-sm fw-bold" onclick="mostrarSlots()" data-i18n="slots">💾 Slots</button>
+        <select id="select-idioma" class="form-select form-select-sm" style="width:auto;">
+          <option value="es">🇺🇾 ES</option>
+          <option value="en">🇬🇧 EN</option>
+          <option value="pt">🇧🇷 PT</option>
+        </select>
+        <button id="btn-instalar" class="btn btn-outline-success btn-sm fw-bold hidden" data-i18n="btnInstalar">📥 Instalar App</button>
+        <button id="btn-modo-oscuro" class="btn btn-outline-secondary btn-sm fw-bold" title="Modo oscuro" data-i18n-title="modoOscuroTitulo">🌙</button>
+      </div>
+    </div>
+
+    <!-- PANTALLA JUEGO -->
+    <div id="pantalla-juego" class="hidden">
+      <!-- HEADER JUGADOR -->
+      <div class="card card-custom p-3 mb-3 d-flex flex-row align-items-center justify-content-between">
+        <div>
+          <h2 class="m-0 fw-bold text-dark"><span id="j-nombre"></span> (<span id="j-posicion"></span>)</h2>
+          <p class="m-0 text-secondary"><span data-i18n="edad">Edad:</span> <span id="j-edad"></span> <span data-i18n="anios">años</span> | <span data-i18n="media">Media:</span> <span id="j-media" class="text-primary fw-bold"></span> OVR</p>
+          <p class="m-0 text-info fw-bold"><span data-i18n="club">Club:</span> <span id="j-club"></span></p>
+          <p class="m-0 small"><span data-i18n="moral">Moral:</span> <span id="j-moral"></span></p>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+          <!-- MINI CASACA CON DORSAL -->
+          <div id="camiseta-badge" title="Tu dorsal"></div>
+          <!-- BADGE DE ROL -->
+          <div id="rol-badge" title="Tu rol actual" aria-label="Rol actual del jugador"></div>
+          <img id="club-img" src="" alt="Escudo del club" style="display: none;">
+        </div>
+      </div>
+
+      <div class="row">
+        <!-- ACCIONES -->
+        <div class="col-md-4 mb-3">
+          <div class="card card-custom p-3 text-center">
+            <h4 class="mb-3 text-dark fw-bold" data-i18n="acciones">Acciones</h4>
+            <button id="btn-entrenar" class="btn btn-outline-primary mb-2 w-100 fw-bold" onclick="entrenar()" data-i18n="entrenar">Entrenar Tradicional</button>
+            <button class="btn btn-outline-success mb-2 w-100 fw-bold btn-minijuego" onclick="iniciarMinijuegoDominios()" data-i18n="dominios">⚽ Desafío Dominios</button>
+            <button id="btn-minijuego-especifico" class="btn btn-outline-warning mb-2 w-100 fw-bold text-dark btn-minijuego" onclick="iniciarMinijuegoEntrenamiento()" data-i18n="entrenamiento">⚽ Entrenamiento</button>
+            <button class="btn btn-outline-info mb-2 w-100 fw-bold" onclick="abrirSelectorMinijuegos()" data-i18n="masMinijuegos">🎮 Más Minijuegos</button>
+
+            <hr class="border-secondary">
+
+            <div class="d-flex gap-1 mb-2">
+              <button class="btn btn-outline-dark btn-sm w-100 fw-bold" onclick="mostrarPanelLogros()" data-i18n="logros">🏅 Logros</button>
+              <button class="btn btn-outline-dark btn-sm w-100 fw-bold" onclick="mostrarEstadisticas()" data-i18n="stats">📊 Stats</button>
+            </div>
+
+            <div id="mensaje-espera-eventos" class="alert alert-light border p-2 small text-muted" data-i18n="sinEventos">No hay eventos sociales esta temporada.</div>
+            <button id="btn-evento-unico" class="btn btn-warning mb-2 w-100 hidden fw-bold" onclick="abrirModalEvento()"></button>
+
+            <button id="btn-simular" class="btn btn-primary btn-lg w-100 mt-2 fw-bold" onclick="simularTemporada()" data-i18n="simular">Simular Temporada</button>
+            <button class="btn btn-outline-danger btn-sm w-100 mt-3 fw-bold" onclick="reiniciarCarrera()" data-i18n="reiniciar">Reiniciar Carrera</button>
+          </div>
+        </div>
+
+        <!-- TABLA TEMPORADAS -->
+        <div class="col-md-8 mb-3">
+          <div class="card card-custom p-3">
+            <h4 class="mb-3 text-dark fw-bold" data-i18n="historial">Historial de Carrera</h4>
+            <div class="table-responsive">
+              <table class="table table-hover align-middle text-center m-0 border tabla-historial">
+                <thead class="table-dark">
+                  <tr>
+                    <th scope="col" data-i18n="thTemp">Temp</th>
+                    <th scope="col" data-i18n="thClub">Club</th>
+                    <th scope="col" data-i18n="thPJ">PJ</th>
+                    <th scope="col" data-i18n="thGoles">Goles</th>
+                    <th scope="col" data-i18n="thAsist">Asist.</th>
+                    <th scope="col" data-i18n="thTitulos">Títulos / Logros</th>
+                  </tr>
+                </thead>
+                <tbody id="tabla-temporadas-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANTALLA RESUMEN FINAL -->
+    <div id="pantalla-resumen" class="hidden">
+      <div class="card card-custom p-4 text-center">
+        <h2 class="text-primary mb-3 fw-bold" data-i18n="retiro">🏁 Retiro Profesional</h2>
+        <div id="resumen-final" class="mb-3"></div>
+        <h3><span id="resumen-nombre"></span> (<span id="resumen-posicion"></span>)</h3>
+        <p><span data-i18n="partidos">Partidos:</span> <strong id="resumen-pj"></strong> | <span data-i18n="goles">Goles:</span> <strong id="resumen-goles"></strong> | <span data-i18n="asistencias">Asistencias:</span> <strong id="resumen-asist"></strong></p>
+        <p id="resumen-rol" class="fs-5"></p>
+        <div class="table-responsive my-3">
+          <table class="table table-bordered align-middle">
+            <thead class="table-dark">
+              <tr>
+                <th scope="col" data-i18n="thTemp">Temp</th>
+                <th scope="col" data-i18n="thClub">Club</th>
+                <th scope="col" data-i18n="thPJ">PJ</th>
+                <th scope="col" data-i18n="thGoles">Goles</th>
+                <th scope="col" data-i18n="thAsist">Asist.</th>
+                <th scope="col">OVR</th>
+                <th scope="col" data-i18n="thTitulos">Títulos</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-resumen-body"></tbody>
+          </table>
+        </div>
+        <button class="btn btn-warning fw-bold px-4" onclick="reiniciarCarrera()" data-i18n="jugarDeNuevo">Jugar de Nuevo</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="text-center py-3 text-muted mt-4">
+    <p class="mb-0"><strong data-i18n="desarrollado">Desarrollado por:</strong> Caseros</p>
+    <p class="mb-0"><strong data-i18n="colaboracion">Colaboración:</strong> Nasty</p>
+  </footer>
+
+  <!-- MODALES -->
+  <div class="modal fade" id="infoModal" tabindex="-1" aria-hidden="true" aria-labelledby="infoModalTitulo">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-secondary">
+        <div class="modal-header border-bottom-0"><h5 class="modal-title fw-bold" id="infoModalTitulo"></h5></div>
+        <div class="modal-body" id="infoModalCuerpo"></div>
+        <div class="modal-footer border-top-0"><button class="btn btn-primary" data-bs-dismiss="modal">Entendido</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="decisionModal" tabindex="-1" aria-hidden="true" aria-labelledby="decisionModalTitulo">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-warning">
+        <div class="modal-header border-bottom-0"><h5 class="modal-title text-warning fw-bold" id="decisionModalTitulo"></h5></div>
+        <div class="modal-body" id="decisionModalCuerpo"></div>
+        <div class="modal-footer border-top-0">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Rechazar</button>
+          <button class="btn btn-warning fw-bold" id="btn-aceptar-evento">Aceptar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modal-fichajes" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-primary">
+        <div class="modal-header border-bottom-0"><h5 class="modal-title text-primary fw-bold">Mercado de Pases (Temp. <span id="fichajes-temp"></span>)</h5></div>
+        <div class="modal-body"><div id="contenedor-ofertas"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modalPenal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content text-center border-warning">
+        <div class="modal-header border-bottom-0"><h5 class="modal-title w-100 fw-bold text-warning">⚽ ¡FINAL DRAMÁTICA!</h5></div>
+        <div class="modal-body">
+          <p>El partido está empatado. Tienes en tus pies el penal para definir el título.</p>
+          <div class="d-inline-block p-2 border border-secondary rounded mb-3 bg-light">
+            <div class="row g-1 mb-1">
+              <div class="col-4"><button type="button" class="btn btn-outline-dark w-100" aria-label="Arriba izquierda" onclick="patearPenal('Arriba-Izquierda')">↖️</button></div>
+              <div class="col-4"><button type="button" class="btn btn-outline-dark w-100" aria-label="Arriba centro" onclick="patearPenal('Arriba-Centro')">⬆️</button></div>
+              <div class="col-4"><button type="button" class="btn btn-outline-dark w-100" aria-label="Arriba derecha" onclick="patearPenal('Arriba-Derecha')">↗️</button></div>
+            </div>
+            <div class="row g-1">
+              <div class="col-4"><button type="button" class="btn btn-outline-dark w-100" aria-label="Abajo izquierda" onclick="patearPenal('Abajo-Izquierda')">↙️</button></div>
+              <div class="col-4"><button type="button" class="btn btn-outline-dark w-100" aria-label="Abajo centro" onclick="patearPenal('Abajo-Centro')">⬇️</button></div>
+              <div class="col-4"><button type="button" class="btn btn-outline-dark w-100" aria-label="Abajo derecha" onclick="patearPenal('Abajo-Derecha')">↘️</button></div>
+            </div>
+          </div>
+          <div id="penalResultado" role="status" aria-live="polite"></div>
+        </div>
+        <div class="modal-footer border-top-0 justify-content-center" id="penalFooter" style="display: none;">
+          <button type="button" class="btn btn-warning fw-bold px-4" onclick="cerrarModalPenal()">Continuar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL TIRO LIBRE / BARRIDA (reutilizable) -->
+  <div class="modal fade" id="modalTiroLibre" tabindex="-1" data-bs-backdrop="static" aria-hidden="true" aria-labelledby="modalTLTitulo">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content text-center border-warning">
+        <div class="modal-header border-bottom-0">
+          <h5 class="modal-title w-100 fw-bold text-primary" id="modalTLTitulo">🎯 Tiro Libre de Precisión</h5>
+        </div>
+        <div class="modal-body">
+          <p id="instruccionTL">Presiona <strong>¡DISPARAR!</strong> cuando la barra esté en el centro.</p>
+          <div class="zona-gol my-4" style="position:relative;height:25px;background:#e9ecef;border-radius:8px;overflow:hidden;">
+            <div class="zona-gol-marker"></div>
+            <div id="barraTL" class="progress-bar bg-warning" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="width: 0%;height:100%;transition:none;"></div>
+          </div>
+          <button id="btnPatearTL" class="btn btn-success btn-lg fw-bold px-4" onclick="detenerTiroLibre()">¡DISPARAR!</button>
+          <div id="resultadoTL" class="mt-3" role="status" aria-live="polite"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DOMINIOS / MINIJUEGOS (reutilizable) -->
+  <div class="modal fade" id="modalDominios" tabindex="-1" data-bs-backdrop="static" aria-hidden="true" aria-labelledby="modalDominiosTitulo">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content text-center border-success">
+        <div class="modal-header border-bottom-0">
+          <h5 class="modal-title w-100 fw-bold text-success" id="modalDominiosTitulo">⚽ Desafío de Dominios</h5>
+        </div>
+        <div class="modal-body">
+          <p class="mb-3">Presiona las <strong>Flechas del Teclado</strong> en el orden correcto:</p>
+          <div id="secuenciaObjetivo" class="fs-1 fw-bold my-4 text-primary">---</div>
+          <p id="tiempoDominiosRow" class="m-0 fs-5">Tiempo restante: <span id="tiempoDominios" class="text-danger fw-bold">3.0</span>s</p>
+          <div id="resultadoDominios" role="status" aria-live="polite"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modalSS" tabindex="-1" data-bs-backdrop="static" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content text-center border-danger">
+        <div class="modal-header border-bottom-0"><h5 class="modal-title w-100 fw-bold text-danger">🔍 REVISIÓN EN VIVO (SS)</h5></div>
+        <div class="modal-body">
+          <div id="escaneoSSAnim" class="spinner-border text-danger my-3" role="status"></div>
+          <div id="resultadoSS" class="fw-bold fs-5 text-dark" role="status" aria-live="polite">Revisando carpetas y archivos sospechosos...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE ROL DESBLOQUEADO -->
+  <div class="modal fade" id="modalRol" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content">
+        <div class="modal-header border-0 pb-0 justify-content-center">
+          <p class="rol-unlock-title mb-0">🔓 ROL DESBLOQUEADO</p>
+        </div>
+        <div class="modal-body pt-2">
+          <div id="rolModalEmoji" class="my-2"></div>
+          <div id="rolModalNombre" class="mb-1"></div>
+          <div id="rolModalDescripcion" class="mb-2"></div>
+          <div id="rolModalOVR" class="mb-3"></div>
+        </div>
+        <div class="modal-footer border-0 justify-content-center pt-0">
+          <button class="btn btn-warning fw-bold px-4" data-bs-dismiss="modal">¡Entendido!</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL RANKING (online + local) -->
+  <div class="modal fade" id="modalRanking" tabindex="-1" aria-hidden="true" aria-labelledby="modalRankingTitulo">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+      <div class="modal-content card-custom border-warning">
+        <div class="modal-header border-bottom-0">
+          <h5 class="modal-title w-100 fw-bold text-warning" id="modalRankingTitulo"><span data-i18n="rankTitulo">🏆 Ranking</span></h5>
+        </div>
+        <div class="modal-body">
+          <ul class="nav nav-pills justify-content-center mb-3" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active fw-bold" data-bs-toggle="pill" data-bs-target="#tab-ranking-online" type="button" role="tab" aria-selected="true">
+                🌍 <span data-i18n="rankTabGlobal">Global (Online)</span>
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link fw-bold" data-bs-toggle="pill" data-bs-target="#tab-ranking-local" type="button" role="tab" aria-selected="false">
+                📱 <span data-i18n="rankTabLocal">Este dispositivo</span>
+              </button>
+            </li>
+          </ul>
+          <div class="tab-content">
+            <div class="tab-pane fade show active" id="tab-ranking-online" role="tabpanel">
+              <div id="ranking-online-contenido"></div>
+            </div>
+            <div class="tab-pane fade" id="tab-ranking-local" role="tabpanel">
+              <div id="ranking-local-contenido"></div>
+            </div>
+          </div>
+          <div id="ranking-online-estado" class="text-center mt-2"></div>
+        </div>
+        <div class="modal-footer border-top-0 justify-content-center pt-0">
+          <button type="button" id="btn-ranking-actualizar" class="btn btn-outline-secondary btn-sm fw-bold" data-i18n="rankActualizar">🔄 Actualizar</button>
+          <button type="button" class="btn btn-warning fw-bold px-4" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+  <script src="features.js"></script>
+  <script src="camiseta.js"></script>
+  <script src="touch-controls.js"></script>
+  <script src="ranking-online.js"></script>
+  <script src="pwa.js"></script>
+</body>
+</html>

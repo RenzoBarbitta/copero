@@ -1,0 +1,527 @@
+/* ==== BASE ==== */
+body {
+  background-color: #f8f9fa;
+  color: #212529;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ==== TARJETAS ==== */
+.card-custom {
+  background-color: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* ==== LOGO PRINCIPAL ==== */
+.logo-principal {
+  max-width: 220px;
+  width: 100%;
+  height: auto;
+  margin-bottom: 15px;
+  border-radius: 10px;
+}
+
+/* ==== TABLAS ==== */
+.table {
+  color: #212529;
+}
+
+.table-dark {
+  background-color: #1a252f;
+  color: #ffffff;
+}
+
+.table-hover tbody tr:hover {
+  background-color: #f1f5f9;
+}
+
+/* Historial de carrera: sin animaciones de recarga, columnas bien ajustadas */
+.tabla-historial {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.tabla-historial th,
+.tabla-historial td {
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.tabla-historial th {
+  white-space: nowrap;
+}
+
+.tabla-historial th:nth-child(1), .tabla-historial td:nth-child(1) { width: 12%; }
+.tabla-historial th:nth-child(2), .tabla-historial td:nth-child(2) { width: 28%; }
+.tabla-historial th:nth-child(3), .tabla-historial td:nth-child(3) { width: 9%; }
+.tabla-historial th:nth-child(4), .tabla-historial td:nth-child(4) { width: 10%; }
+.tabla-historial th:nth-child(5), .tabla-historial td:nth-child(5) { width: 10%; }
+.tabla-historial th:nth-child(6), .tabla-historial td:nth-child(6) { width: 31%; }
+
+/* ==== BOTONES Y CONTROLES ==== */
+.btn-pso {
+  background-color: #0d6efd;
+  color: #ffffff;
+  font-weight: bold;
+}
+
+.btn-pso:hover {
+  background-color: #0b5ed7;
+  color: #ffffff;
+}
+
+.btn:focus-visible {
+  outline: 3px solid #ffd43b;
+  outline-offset: 2px;
+}
+
+/* ==== ROL BADGE en el header ==== */
+#rol-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 70px;
+}
+
+/* ==== MODAL DE ROL ==== */
+#modalRol .modal-content {
+  border: 2px solid #ffd43b;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: #fff;
+  text-align: center;
+}
+
+#rolModalNombre {
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  text-shadow: 0 0 20px currentColor;
+}
+
+#rolModalDescripcion {
+  font-size: 1rem;
+  color: #adb5bd;
+}
+
+#rolModalOVR {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ffd43b;
+}
+
+.rol-unlock-title {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  color: #6c757d;
+  margin-bottom: 8px;
+}
+
+/* ==== BARRA DE TIRO LIBRE / BARRIDA ==== */
+.zona-gol {
+  position: relative;
+}
+
+.zona-gol-marker {
+  position: absolute;
+  top: 0;
+  left: 40%;
+  width: 20%;
+  height: 100%;
+  background: rgba(25, 200, 25, 0.25);
+  border-left: 2px solid #19c819;
+  border-right: 2px solid #19c819;
+  pointer-events: none;
+  border-radius: 4px;
+}
+
+/* ==== ESCUDO DEL CLUB ==== */
+#club-img {
+  max-height: 85px;
+  width: auto;
+  max-width: 100px;
+  object-fit: contain;
+  filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.15));
+}
+
+/* ==== BOTONES TÁCTILES DE MINIJUEGOS ==== */
+.dpad-btn {
+  min-width: 64px;
+  min-height: 56px;
+  font-size: 1.5rem;
+  line-height: 1;
+  touch-action: manipulation;
+}
+
+@media (max-width: 576px) {
+  .dpad-btn {
+    min-width: 56px;
+    min-height: 52px;
+  }
+}
+
+/* ==== FOOTER ==== */
+footer {
+  border-top: 1px solid #dee2e6;
+  font-size: 0.9rem;
+}
+
+/* ==== GRÁFICO DE EVOLUCIÓN ==== */
+#grafico-evolucion {
+  width: 100%;
+  height: 160px;
+  display: block;
+}
+
+/* ==== CONFETI ==== */
+.confeti {
+  position: fixed;
+  top: -10px;
+  width: 10px;
+  height: 10px;
+  z-index: 9999;
+  pointer-events: none;
+  border-radius: 2px;
+  animation-name: caerConfeti;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@keyframes caerConfeti {
+  0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+/* ==== MODO OSCURO (fondo oscuro, botones claros) ==== */
+body.modo-oscuro {
+  background-color: #12141a;
+  color: #e9ecef;
+}
+
+body.modo-oscuro .card-custom {
+  background-color: #1c1f27;
+  border-color: #2b2f3a;
+  color: #e9ecef;
+}
+
+body.modo-oscuro .text-dark,
+body.modo-oscuro h1,
+body.modo-oscuro h2,
+body.modo-oscuro h3,
+body.modo-oscuro h4,
+body.modo-oscuro h5 {
+  color: #f1f3f5 !important;
+}
+
+body.modo-oscuro .text-secondary {
+  color: #adb5bd !important;
+}
+
+body.modo-oscuro .text-muted {
+  color: #8b93a1 !important;
+}
+
+body.modo-oscuro .table {
+  color: #e9ecef;
+}
+
+body.modo-oscuro .table-hover tbody tr:hover {
+  background-color: #262a33;
+}
+
+body.modo-oscuro .modal-content {
+  background-color: #1c1f27;
+  color: #e9ecef;
+}
+
+body.modo-oscuro .form-control,
+body.modo-oscuro .form-select {
+  background-color: #262a33 !important;
+  color: #e9ecef !important;
+  border-color: #3a3f4b !important;
+}
+
+body.modo-oscuro .alert-light {
+  background-color: #262a33;
+  border-color: #3a3f4b;
+  color: #ced4da;
+}
+
+/* Botones mas claros y visibles en modo oscuro */
+body.modo-oscuro .btn-outline-secondary {
+  color: #f8f9fa;
+  border-color: #e9ecef;
+}
+body.modo-oscuro .btn-outline-secondary:hover,
+body.modo-oscuro .btn-outline-secondary:focus {
+  background-color: #e9ecef;
+  color: #12141a;
+}
+
+body.modo-oscuro .btn-outline-dark {
+  color: #f8f9fa;
+  border-color: #ced4da;
+}
+body.modo-oscuro .btn-outline-dark:hover,
+body.modo-oscuro .btn-outline-dark:focus {
+  background-color: #ced4da;
+  color: #12141a;
+}
+
+body.modo-oscuro .btn-outline-primary { color: #8ab4ff; border-color: #8ab4ff; }
+body.modo-oscuro .btn-outline-success { color: #8ce99a; border-color: #8ce99a; }
+body.modo-oscuro .btn-outline-warning { color: #ffe066; border-color: #ffe066; }
+body.modo-oscuro .btn-outline-danger  { color: #ffa8a8; border-color: #ffa8a8; }
+body.modo-oscuro .btn-outline-info    { color: #99e9f2; border-color: #99e9f2; }
+
+body.modo-oscuro .btn-primary   { background-color: #4dabf7; border-color: #4dabf7; color: #10131a; }
+body.modo-oscuro .btn-warning   { background-color: #ffe066; border-color: #ffe066; color: #10131a; }
+body.modo-oscuro .btn-secondary { background-color: #adb5bd; border-color: #adb5bd; color: #10131a; }
+
+body.modo-oscuro footer {
+  border-top-color: #2b2f3a;
+}
+
+/* ============================================================
+   MOVIL / TACTIL (PWA)
+   ============================================================ */
+html, body {
+  overscroll-behavior: none; /* evita el pull-to-refresh en pleno minijuego */
+}
+
+body {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body, .btn, .form-control, .form-select, .nav-link, .modal-content {
+  touch-action: manipulation; /* sin retardo ni zoom por doble toque */
+}
+
+/* Respetar notch / bordes redondeados (viewport-fit=cover) */
+@supports (padding: max(0px)) {
+  body.p-3 {
+    padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right))
+             max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left)) !important;
+  }
+}
+
+/* ==== GAMEPAD TACTIL (minijuegos) ==== */
+#gamepad-tactil {
+  position: fixed;
+  right: max(10px, env(safe-area-inset-right));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 2000; /* por encima de los modales de Bootstrap */
+  display: none;
+  align-items: flex-end;
+  gap: 12px;
+  opacity: 0.95;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#gamepad-tactil.visible { display: flex; }
+
+.gamepad-flechas {
+  display: grid;
+  grid-template-columns: repeat(3, 56px);
+  grid-template-rows: repeat(2, 56px);
+  gap: 6px;
+}
+
+.gp-flecha-up    { grid-column: 2; grid-row: 1; }
+.gp-flecha-left  { grid-column: 1; grid-row: 2; }
+.gp-flecha-down  { grid-column: 2; grid-row: 2; }
+.gp-flecha-right { grid-column: 3; grid-row: 2; }
+
+.gp-btn {
+  background-color: rgba(20, 24, 32, 0.72);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  color: #ffffff;
+  border-radius: 14px;
+  font-size: 1.3rem;
+  line-height: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.gp-btn small {
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+.gp-btn:active {
+  background-color: rgba(255, 212, 59, 0.92);
+  border-color: #ffd43b;
+  color: #10131a;
+}
+
+.gp-accion {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background-color: rgba(220, 53, 69, 0.88);
+  border: 3px solid rgba(255, 255, 255, 0.45);
+  font-weight: 800;
+}
+
+/* ==== MODAL RANKING (online + local) ==== */
+.tabla-ranking-wrap {
+  max-height: 46vh;
+  overflow-y: auto;
+}
+
+.tabla-ranking td { vertical-align: middle; }
+
+.ranking-fila-propia { background-color: rgba(255, 212, 59, 0.18); }
+
+body.modo-oscuro .ranking-fila-propia { background-color: rgba(255, 212, 59, 0.12); }
+
+/* ==== AJUSTES EN PANTALLAS CHICAS ==== */
+@media (max-width: 576px) {
+  .logo-principal { max-width: 150px; }
+  h1 { font-size: 1.6rem; }
+  #pantalla-juego h2 { font-size: 1.15rem; }
+  .card-custom.p-3, .card-custom.p-4 { padding: 0.75rem !important; }
+  .tabla-historial { font-size: 0.78rem; }
+  .tabla-historial th, .tabla-historial td { padding: 3px 2px; }
+  .modal-dialog { margin: 0.5rem; }
+  .btn-lg { font-size: 1.05rem; }
+  .gp-btn { font-size: 1.1rem; }
+  .gamepad-flechas { grid-template-columns: repeat(3, 50px); grid-template-rows: repeat(2, 50px); }
+  .gp-accion { width: 78px; height: 78px; }
+}
+
+/* ============================================================
+   SELECTOR DE POSICION EN CANCHA (6v6) + CASACA CON DORSAL
+   ============================================================ */
+.card-cancha {
+  background: linear-gradient(180deg, #0f2f1c 0%, #0b2416 100%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  padding: 14px;
+  height: 100%;
+}
+
+.card-cancha-titulo {
+  color: #f1f3f5 !important;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+}
+
+/* ---- cancha ---- */
+.cancha-selector {
+  position: relative;
+  width: 100%;
+  max-width: 280px;
+  aspect-ratio: 3 / 4;
+  margin: 0 auto;
+  border-radius: 12px;
+  overflow: hidden;
+  background:
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0 12.5%, rgba(0, 0, 0, 0) 12.5% 25%),
+    linear-gradient(180deg, #17843f 0%, #0f5f2e 100%);
+  border: 3px solid #07301a;
+  box-shadow: inset 0 0 34px rgba(0, 0, 0, 0.35);
+}
+
+.cancha-lineas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.pos-badge {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  min-width: 48px;
+  padding: 7px 12px;
+  background: rgba(6, 26, 15, 0.85);
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
+  border-radius: 999px;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  transition: transform 0.08s ease, background-color 0.12s ease, color 0.12s ease;
+}
+
+.pos-badge:active { transform: translate(-50%, -50%) scale(0.92); }
+
+.pos-badge:focus-visible {
+  outline: 3px solid #ffd43b;
+  outline-offset: 2px;
+}
+
+.pos-badge.pos-seleccionada {
+  background: #ffd43b;
+  border-color: #ffffff;
+  color: #10131a;
+}
+
+/* 6v6: DEL-DEL arriba, CM al medio, DEF-DEF abajo, GK en el area */
+.pos-del-izq { left: 29%; top: 16%; }
+.pos-del-der { left: 71%; top: 16%; }
+.pos-cm      { left: 50%; top: 50%; }
+.pos-def-izq { left: 29%; top: 75%; }
+.pos-def-der { left: 71%; top: 75%; }
+.pos-gk      { left: 50%; top: 90.5%; }
+
+/* ---- casaca con dorsal ---- */
+.dorsal-input { max-width: 130px; }
+
+.camiseta-preview {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 215px;
+  background: radial-gradient(circle at 50% 25%, #1d2935 0%, #10161d 75%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.camiseta-preview svg {
+  width: 175px;
+  height: 175px;
+  filter: drop-shadow(0 7px 10px rgba(0, 0, 0, 0.5));
+}
+
+#camiseta-badge {
+  display: flex;
+  align-items: center;
+}
+
+#camiseta-badge svg {
+  width: 44px;
+  height: 44px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+}
+
+@media (max-width: 576px) {
+  .camiseta-preview { min-height: 190px; }
+  .camiseta-preview svg { width: 150px; height: 150px; }
+  #camiseta-badge svg { width: 38px; height: 38px; }
+}
