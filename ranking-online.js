@@ -44,6 +44,12 @@ const RANKING_CACHE_MS = 60000;
 
 let RANKING_ENVIANDO = false;
 let _modalRankingBs = null;
+let rankingAbierto = false;
+let rankingTimer = null;
+let rankingCarga = null;
+let rankingUltimaLectura = 0;
+let rankingErrorLectura = false;
+const RANKING_REFRESH_MS = 10000;
 
 // ------------------- UTILIDADES -------------------
 
@@ -288,26 +294,59 @@ function renderizarRankingLocal() {
   cont.innerHTML = tablaRankingHtml(ranking, true);
 }
 
-async function cargarRankingOnlineUI(forzar) {
+function cargarRankingOnlineUI(forzar) {
+  if (rankingCarga) return rankingCarga;
   const cont = document.getElementById("ranking-online-contenido");
-  if (!cont) return;
-  cont.innerHTML = "<div class='text-center my-4'>" +
-    "<div class='spinner-border text-primary' role='status'></div>" +
-    "<p class='mt-2 mb-0 text-secondary'>" + tRanking("rankCargando", "Cargando ranking online...") + "</p></div>";
-  try {
-    const lista = await obtenerRankingOnline(!!forzar);
-    cont.innerHTML = lista.length
-      ? tablaRankingHtml(lista, false)
-      : "<p class='text-secondary text-center my-4 mb-0'>" +
-        tRanking("rankVacioOnline", "Todavía no hay carreras en el ranking global. ¡Terminá una carrera y sé el primero!") + "</p>";
-  } catch (e) {
-    cont.innerHTML = "<div class='text-center my-4'>" +
-      "<p class='text-danger fw-bold mb-2'>❌ " +
-      tRanking("rankErrorOnline", "No se pudo conectar con el ranking online. Revisá tu conexión.") + "</p>" +
-      "<button class='btn btn-outline-warning btn-sm fw-bold' onclick='cargarRankingOnlineUI(true)'>" +
-      tRanking("rankReintentar", "🔄 Reintentar") + "</button></div>";
+  if (!cont) return Promise.resolve();
+  const cache = leerCacheOnline();
+  if (!rankingUltimaLectura && cache && Array.isArray(cache.lista) && cache.lista.length) {
+    cont.innerHTML = tablaRankingHtml(cache.lista, false);
   }
-  actualizarEstadoSync();
+  if (!cont.innerHTML.trim()) {
+    cont.innerHTML = "<p class='text-center my-4'>" +
+      tRanking("rankCargando", "Cargando ranking online...") + "</p>";
+  }
+  rankingCarga = (async function() {
+    try {
+      const lista = await obtenerRankingOnline(!!forzar);
+      cont.innerHTML = lista.length
+        ? tablaRankingHtml(lista, false)
+        : "<p class='text-secondary text-center my-4 mb-0'>" +
+          tRanking("rankVacioOnline", "Todavía no hay carreras en el ranking global. ¡Terminá una carrera y sé el primero!") + "</p>";
+      rankingUltimaLectura = Date.now();
+      rankingErrorLectura = false;
+    } catch (e) {
+      // Mantener los resultados anteriores: no reemplazar la tabla por un error.
+      rankingErrorLectura = true;
+      if (!rankingUltimaLectura && !(cache && Array.isArray(cache.lista) && cache.lista.length)) {
+        cont.textContent = tRanking("rankErrorOnline", "No se pudo conectar con el ranking online. Revisá tu conexión.");
+      }
+    } finally {
+      rankingCarga = null;
+      actualizarEstadoSync();
+    }
+  })();
+  return rankingCarga;
+}
+
+function refrescarRankingVisible() {
+  if (rankingAbierto && document.visibilityState === "visible") {
+    return cargarRankingOnlineUI(true);
+  }
+  return Promise.resolve();
+}
+
+function iniciarRefrescoRanking() {
+  rankingAbierto = true;
+  if (rankingTimer !== null) clearInterval(rankingTimer);
+  rankingTimer = setInterval(refrescarRankingVisible, RANKING_REFRESH_MS);
+  return refrescarRankingVisible();
+}
+
+function detenerRefrescoRanking() {
+  rankingAbierto = false;
+  if (rankingTimer !== null) clearInterval(rankingTimer);
+  rankingTimer = null;
 }
 
 function horaCorta(ts) {
@@ -321,6 +360,16 @@ function actualizarEstadoSync() {
   if (!el) return;
   const pendiente = leerOutbox();
   const ultimo = leerJSONLS(RANKING_SYNC_KEY, null);
+  if (rankingErrorLectura) {
+    el.textContent = "⚠️ No se pudo actualizar. Los datos visibles pueden estar desactualizados. Reintentamos cada 10 s mientras esté abierto.";
+    if (pendiente) el.textContent += " Tu carrera sigue pendiente de envío.";
+    return;
+  }
+  if (rankingUltimaLectura) {
+    el.textContent = "🟢 Consultado a las " + horaCorta(rankingUltimaLectura) + " · Actualización automática cada 10 s" +
+      (pendiente ? " · 📤 Carrera pendiente de envío" : "");
+    return;
+  }
   if (pendiente) {
     el.innerHTML = "<span class='small text-warning fw-bold'>" +
       tRanking("rankPendiente", "📤 Tu carrera quedó guardada y se enviará cuando haya internet") + "</span>";
@@ -346,7 +395,6 @@ guardarEnRanking = function() {
 mostrarRanking = function() {
   renderizarRankingLocal();
   instanciaModalRanking().show();
-  cargarRankingOnlineUI(false);
 };
 
 // ------------------- INICIALIZACION -------------------
@@ -356,7 +404,14 @@ document.addEventListener("DOMContentLoaded", function() {
   if (modalEl) {
     modalEl.addEventListener("shown.bs.modal", function() {
       renderizarRankingLocal();
-      cargarRankingOnlineUI(false);
+      iniciarRefrescoRanking();
+    });
+    modalEl.addEventListener("hidden.bs.modal", detenerRefrescoRanking);
+    // Bootstrap propaga el evento de la pestaña: consultar al volver a Global.
+    modalEl.addEventListener("shown.bs.tab", function(evento) {
+      if (evento.target.getAttribute("data-bs-target") === "#tab-ranking-online") {
+        refrescarRankingVisible();
+      }
     });
   }
 
@@ -369,7 +424,12 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   // Reintentos automaticos
-  window.addEventListener("online", function() { vaciarOutbox(); });
+  window.addEventListener("online", async function() {
+    await vaciarOutbox();
+    refrescarRankingVisible();
+  });
+  document.addEventListener("visibilitychange", refrescarRankingVisible);
+  window.addEventListener("focus", refrescarRankingVisible);
   setInterval(function() {
     if (document.visibilityState === "visible" && leerOutbox()) vaciarOutbox();
   }, 45000);

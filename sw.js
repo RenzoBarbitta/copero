@@ -6,11 +6,12 @@
 //  Para publicar una version nueva, subir CACHE_NOMBRE (v1->v2).
 // ============================================================
 
-const CACHE_NOMBRE = "pso-carrera-v4";
+const CACHE_NOMBRE = "pso-carrera-v11";
 
 const ARCHIVOS_BASE = [
   "./",
   "./index.html",
+  "./privacidad.html",
   "./styles.css",
   "./app.js",
   "./data.js",
@@ -18,6 +19,9 @@ const ARCHIVOS_BASE = [
   "./camiseta.js",
   "./touch-controls.js",
   "./ranking-online.js",
+  "./supabase-config.js",
+  "./cuenta-api.js",
+  "./cuenta-ui.js",
   "./pwa.js",
   "./manifest.webmanifest",
   "./imagenes/logo.png",
@@ -54,7 +58,12 @@ self.addEventListener("fetch", (evento) => {
 
   const url = new URL(req.url);
 
-  // CDN externo (Bootstrap): cache-first
+  // Las consultas de datos nunca pasan por la cache del juego.
+  if (req.cache === "no-store") return;
+  if (url.origin !== self.location.origin &&
+      !(url.hostname === "cdn.jsdelivr.net" && url.pathname.startsWith("/npm/bootstrap@"))) return;
+
+  // Solo Bootstrap: cache-first
   if (url.origin !== self.location.origin) {
     evento.respondWith(
       caches.match(req).then((cacheado) => {

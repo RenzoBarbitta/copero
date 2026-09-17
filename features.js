@@ -274,6 +274,7 @@ function mostrarEstadisticas() {
 //  MODAL DE MINIJUEGOS (selector)
 // ------------------------------------------------------------
 function abrirSelectorMinijuegos() {
+  if (!puedeJugarMinijuegoExtra()) return;
   const botones = [
     { nombre: "Regate en Zigzag", emoji: "🏃", fn: "iniciarMinijuegoRegate()" },
     { nombre: "Pase Filtrado",    emoji: "🎯", fn: "iniciarMinijuegoPase()" },
@@ -440,36 +441,60 @@ function finalizarPase() {
 function iniciarMinijuegoChilena() {
   if (!puedeJugarMinijuegoExtra()) return;
   document.getElementById("modalDominiosTitulo").innerText = "🤸 Chilena";
-  document.getElementById("secuenciaObjetivo").innerText = "¡Presioná CLIC 2 veces rápido para conectar la chilena!";
-  document.getElementById("resultadoDominios").innerHTML = "<div id='chilenaContador' class='fs-3 fw-bold text-primary'>0 / " + CONFIG.CHILENA.TAPS + "</div>";
+  document.getElementById("secuenciaObjetivo").innerText = "Tocá el botón o presioná ESPACIO 2 veces rápido.";
+  document.getElementById("resultadoDominios").innerHTML =
+    "<div id='chilenaContador' class='fs-3 fw-bold text-primary'>0 / " + CONFIG.CHILENA.TAPS + "</div>" +
+    "<button type='button' id='btn-chilena-toque' class='btn btn-primary btn-lg mt-2' disabled>🤸 ¡Conectar!</button>";
   document.getElementById("tiempoDominiosRow").style.display = "none";
-  modalDominiosInstance.show();
 
+  const modal = document.getElementById("modalDominios");
+  const boton = document.getElementById("btn-chilena-toque");
   let taps = 0;
   let ultimoTap = 0;
+  let activo = false;
+  let terminado = false;
+  let timer = null;
 
-  const manejar = function(e) {
-    if (e.type === "keydown" && e.code !== "Space") return;
+  function limpiar() {
+    activo = false;
+    clearTimeout(timer);
+    window.removeEventListener("keydown", manejar);
+    boton.removeEventListener("click", manejar);
+    modal.removeEventListener("shown.bs.modal", empezar);
+    modal.removeEventListener("hide.bs.modal", cancelar);
+    boton.disabled = true;
+  }
+  function terminar(exito) {
+    if (terminado) return;
+    terminado = true;
+    limpiar();
+    finalizarChilena(exito);
+  }
+  function cancelar() { terminar(false); }
+  function manejar(e) {
+    if (!activo) return;
+    if (e.type === "keydown") {
+      if (e.code !== "Space") return;
+      e.preventDefault(); // Evita que ESPACIO genere además un clic en el botón.
+      if (e.repeat) return;
+    }
     const now = performance.now();
     if (taps > 0 && (now - ultimoTap) > CONFIG.CHILENA.VENTANA_MS) taps = 0;
     taps++;
     ultimoTap = now;
-    const cont = document.getElementById("chilenaContador");
-    if (cont) cont.innerText = taps + " / " + CONFIG.CHILENA.TAPS;
-    if (taps >= CONFIG.CHILENA.TAPS) {
-      window.removeEventListener("keydown", manejar);
-      window.removeEventListener("click", manejar);
-      finalizarChilena(true);
-    }
-  };
-  window.addEventListener("keydown", manejar);
-  window.addEventListener("click", manejar);
-
-  setTimeout(function() {
-    window.removeEventListener("keydown", manejar);
-    window.removeEventListener("click", manejar);
-    if (taps < CONFIG.CHILENA.TAPS) finalizarChilena(false);
-  }, CONFIG.CHILENA.VENTANA_MS * 2);
+    document.getElementById("chilenaContador").innerText = taps + " / " + CONFIG.CHILENA.TAPS;
+    if (taps >= CONFIG.CHILENA.TAPS) terminar(true);
+  }
+  function empezar() {
+    activo = true;
+    boton.disabled = false;
+    window.addEventListener("keydown", manejar);
+    boton.addEventListener("click", manejar);
+    timer = setTimeout(function() { terminar(false); }, CONFIG.CHILENA.VENTANA_MS * 2);
+  }
+  modal.addEventListener("shown.bs.modal", empezar, { once: true });
+  modal.addEventListener("hide.bs.modal", cancelar);
+  modalDominiosInstance.show();
 }
 
 function finalizarChilena(exito) {
@@ -548,7 +573,7 @@ function finalizarCabezazo(exito) {
 function iniciarMinijuegoUnoVsUno() {
   if (!puedeJugarMinijuegoExtra()) return;
   document.getElementById("modalDominiosTitulo").innerText = "⚔️ 1 vs 1 con el Arquero";
-  document.getElementById("secuenciaObjetivo").innerText = "El arquero espera... ¿Qué hacés?";
+  document.getElementById("secuenciaObjetivo").innerText = "El arquero espera. Elegí un botón: Amagar, Tirar o Pasarla.";
   document.getElementById("resultadoDominios").innerHTML =
     "<div class='d-grid gap-2 col-8 mx-auto mt-3'>" +
     "<button class='btn btn-outline-primary' onclick=\"resolverUnoVsUno('Amagar')\">🎭 Amagar</button>" +
@@ -582,6 +607,7 @@ function resolverUnoVsUno(accion) {
 //  MINIJUEGO: TANDA DE PENALES
 // ------------------------------------------------------------
 function iniciarMinijuegoPenales() {
+  if (!puedeJugarMinijuegoExtra()) return;
   document.getElementById("modalDominiosTitulo").innerText = "🥅 Tanda de Penales";
   document.getElementById("secuenciaObjetivo").innerText = "Elegí a dónde patear (el arquero se tira a una zona):";
   document.getElementById("resultadoDominios").innerHTML =
@@ -607,6 +633,7 @@ function resolverPenal(zona) {
     sonidoError();
   }
   document.querySelectorAll("#modalDominios .modal-body button").forEach(function(b) { b.disabled = true; });
+  jugador.minijuegosUsadosEstaTemporada = 1;
   guardarPartida();
   setTimeout(function() { modalDominiosInstance.hide(); actualizarInterfaz(); }, CONFIG.TIMING.RESULTADO_MINIJUEGO_MS);
 }

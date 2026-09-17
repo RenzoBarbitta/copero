@@ -138,6 +138,7 @@ const sonidoGol   = () => { reproducirTono(660, 0.12); setTimeout(() => reproduc
 //  PERSISTENCIA
 // ============================================================
 function guardarPartida() {
+  actualizarBloqueoMinijuegos();
   try {
     localStorage.setItem(CLAVE_GUARDADO, JSON.stringify(jugador));
   } catch (e) {
@@ -1710,6 +1711,15 @@ function obtenerEtiquetaMinijuego(posicion) {
 // ============================================================
 //  ACTUALIZACIÓN DE INTERFAZ
 // ============================================================
+function actualizarBloqueoMinijuegos() {
+  const usado = jugador.minijuegosUsadosEstaTemporada >= CONFIG.MINIJUEGOS_POR_TEMPORADA;
+  document.querySelectorAll(".btn-minijuego").forEach(function(btn) {
+    btn.disabled = usado;
+  });
+  const aviso = document.getElementById("aviso-minijuego-usado");
+  if (aviso) aviso.classList.toggle("hidden", !usado);
+}
+
 function actualizarInterfaz() {
   document.getElementById("j-nombre").innerText = jugador.nombre;
   document.getElementById("j-posicion").innerText = jugador.posicion;
@@ -1760,10 +1770,7 @@ function actualizarInterfaz() {
     }
   }
 
-  const btnsMinijuegos = document.querySelectorAll(".btn-minijuego");
-  btnsMinijuegos.forEach(btn => {
-    btn.disabled = jugador.minijuegosUsadosEstaTemporada >= CONFIG.MINIJUEGOS_POR_TEMPORADA;
-  });
+  actualizarBloqueoMinijuegos();
 
   const btnEvento = document.getElementById("btn-evento-unico");
   const msgEspera = document.getElementById("mensaje-espera-eventos");

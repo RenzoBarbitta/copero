@@ -31,6 +31,37 @@
 
   <div class="container flex-grow-1" style="max-width: 900px;">
 
+    <details class="card card-custom p-3 mt-3" id="cuenta-panel">
+      <summary class="fw-bold">👤 Mi cuenta (opcional)</summary>
+      <p class="small mt-2">Tu carrera sigue guardada en este dispositivo. Supabase gestiona tu correo, autenticación y apodo. Al recargar la página tendrás que iniciar sesión otra vez.</p>
+      <form id="cuenta-form">
+        <label for="cuenta-email" class="form-label">Correo electrónico</label>
+        <input id="cuenta-email" type="email" class="form-control mb-2" autocomplete="username" required maxlength="254">
+        <label for="cuenta-pass" class="form-label">Contraseña</label>
+        <input id="cuenta-pass" type="password" class="form-control mb-3" autocomplete="current-password" required>
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="cuenta-privacidad" aria-describedby="cuenta-privacidad-ayuda">
+          <label class="form-check-label" for="cuenta-privacidad">Leí y acepto la <a href="privacidad.html" target="_blank" rel="noopener">Política de privacidad (abre otra pestaña)</a> para crear mi cuenta.</label>
+        </div>
+        <p class="small" id="cuenta-privacidad-ayuda">Obligatorio solo al registrarse. Usamos el correo y la autenticación para gestionar tu cuenta y el apodo para tu perfil. Esta aceptación no autoriza publicidad ni medición opcional.</p>
+        <div class="d-flex gap-2 flex-wrap">
+          <button class="btn btn-primary" type="submit">Iniciar sesión</button>
+          <button class="btn btn-outline-primary" type="submit" value="registrar">Crear cuenta</button>
+        </div>
+        <p class="small mt-2">Para registrarte, usá al menos 8 caracteres. Confirmá el correo recibido antes de iniciar sesión.</p>
+      </form>
+      <form id="cuenta-perfil" hidden>
+        <label for="cuenta-apodo" class="form-label">Apodo del perfil</label>
+        <input id="cuenta-apodo" class="form-control mb-3" minlength="2" maxlength="30" required autocomplete="nickname">
+        <div class="d-flex gap-2 flex-wrap">
+          <button class="btn btn-primary" type="submit">Guardar apodo</button>
+          <button id="cuenta-leer" class="btn btn-outline-primary" type="button">Volver a leer perfil</button>
+          <button id="cuenta-salir" class="btn btn-outline-secondary" type="button">Cerrar sesión</button>
+        </div>
+      </form>
+      <p id="cuenta-estado" class="small mt-3 mb-0" role="status" aria-live="polite"></p>
+    </details>
+
     <!-- PANTALLA INICIO -->
     <div id="pantalla-inicio" class="card card-custom p-4 text-center mt-4">
       <div>
@@ -128,10 +159,11 @@
         <div class="col-md-4 mb-3">
           <div class="card card-custom p-3 text-center">
             <h4 class="mb-3 text-dark fw-bold" data-i18n="acciones">Acciones</h4>
+            <div id="aviso-minijuego-usado" class="alert alert-info small hidden" role="status">Ya jugaste el minijuego de esta temporada. Solo se puede jugar <strong>1 minijuego por temporada</strong>, además del entrenamiento tradicional. Avanzá a la próxima temporada para jugar otro.</div>
             <button id="btn-entrenar" class="btn btn-outline-primary mb-2 w-100 fw-bold" onclick="entrenar()" data-i18n="entrenar">Entrenar Tradicional</button>
             <button class="btn btn-outline-success mb-2 w-100 fw-bold btn-minijuego" onclick="iniciarMinijuegoDominios()" data-i18n="dominios">⚽ Desafío Dominios</button>
             <button id="btn-minijuego-especifico" class="btn btn-outline-warning mb-2 w-100 fw-bold text-dark btn-minijuego" onclick="iniciarMinijuegoEntrenamiento()" data-i18n="entrenamiento">⚽ Entrenamiento</button>
-            <button class="btn btn-outline-info mb-2 w-100 fw-bold" onclick="abrirSelectorMinijuegos()" data-i18n="masMinijuegos">🎮 Más Minijuegos</button>
+            <button class="btn btn-outline-info mb-2 w-100 fw-bold btn-minijuego" onclick="abrirSelectorMinijuegos()" data-i18n="masMinijuegos">🎮 Más Minijuegos</button>
 
             <hr class="border-secondary">
 
@@ -206,6 +238,7 @@
   <footer class="text-center py-3 text-muted mt-4">
     <p class="mb-0"><strong data-i18n="desarrollado">Desarrollado por:</strong> Caseros</p>
     <p class="mb-0"><strong data-i18n="colaboracion">Colaboración:</strong> Nasty</p>
+    <p class="mt-2 mb-0"><a href="privacidad.html" target="_blank" rel="noopener">Política de privacidad</a></p>
   </footer>
 
   <!-- MODALES -->
@@ -296,7 +329,7 @@
           <h5 class="modal-title w-100 fw-bold text-success" id="modalDominiosTitulo">⚽ Desafío de Dominios</h5>
         </div>
         <div class="modal-body">
-          <p class="mb-3">Presiona las <strong>Flechas del Teclado</strong> en el orden correcto:</p>
+          <p class="mb-3">Seguí la indicación de este minijuego:</p>
           <div id="secuenciaObjetivo" class="fs-1 fw-bold my-4 text-primary">---</div>
           <p id="tiempoDominiosRow" class="m-0 fs-5">Tiempo restante: <span id="tiempoDominios" class="text-danger fw-bold">3.0</span>s</p>
           <div id="resultadoDominios" role="status" aria-live="polite"></div>
@@ -382,6 +415,9 @@
   <script src="camiseta.js"></script>
   <script src="touch-controls.js"></script>
   <script src="ranking-online.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="cuenta-api.js"></script>
+  <script src="cuenta-ui.js"></script>
   <script src="pwa.js"></script>
 </body>
 </html>
