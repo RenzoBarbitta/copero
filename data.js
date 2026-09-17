@@ -1,7 +1,7 @@
 const CLUBES = [
     { nombre: "Agropecuario", reputacion: 7, imagen: "imagenes/agropecuario.png" },
     { nombre: "Alessandria", reputacion: 7, imagen: "imagenes/alessandria.png" },
-    { nombre: "Alumni", reputacion: 2, imagen: "imagenes/alum#U00f1i.png" },
+    { nombre: "Alumni", reputacion: 2, imagen: "imagenes/alumni.png" },
     { nombre: "Aerolíneas Splinter", reputacion: 5, imagen: "imagenes/areolineasplinter.png" },
     { nombre: "Arsenal", reputacion: 5, imagen: "imagenes/arsenal.png" },
     { nombre: "Argentinos Juniors", reputacion: 4, imagen: "imagenes/argentinosjrs.png" },
@@ -35,7 +35,7 @@ const CLUBES = [
     { nombre: "Parma", reputacion: 4, imagen: "imagenes/parma.png" },
     { nombre: "Pastel de Papa", reputacion: 4, imagen: "imagenes/pasteldepapa.png" },
     { nombre: "Patos Feos", reputacion: 2, imagen: "imagenes/patosfeos.png" },
-    { nombre: "Peñarol", reputacion: 7, imagen: "imagenes/peñarol.png" },
+    { nombre: "Peñarol", reputacion: 7, imagen: "imagenes/penarol.png" },
     { nombre: "Prodigy", reputacion: 4, imagen: "imagenes/prodigy.png" },
     { nombre: "River Plate", reputacion: 8, imagen: "imagenes/riverplate.png" },
     { nombre: "Riverpool", reputacion: 6, imagen: "imagenes/riverpool.png" },
