@@ -839,7 +839,7 @@
     pantalla.innerHTML =
       '<div class="card card-custom p-4 mt-3">' +
       '<h4 class="fw-bold text-warning text-center">⚔️ Duelo 1v1 Online — Duelo de Carreras</h4>' +
-      '<p class="small text-secondary text-center mt-2">Carrera profesional de <strong>10 temporadas</strong> en tiempo real contra otro usuario. Al final de cada temporada se juega <strong>El Clásico de penales</strong> y al retirarse se declara al <strong>Campeón del Duelo</strong>.</p>' +
+      '<p class="small text-secondary text-center mt-2">Carrera profesional de <strong>10 temporadas</strong> en tiempo real contra otro usuario. Al final de cada temporada se juega <strong>un minijuego que alterna 1 y 1</strong>: Duelo de Reflejos o Tanda de Penales, y al retirarse se declara al <strong>Campeón del Duelo</strong>.</p>' +
       '<div class="text-center my-3">' + avatarIniciales(apodo) +
       '<div class="fw-bold mt-1">👤 ' + escaparDuelo(apodo) + '</div>' +
       '<div class="small text-secondary">Sesión verificada ✔️</div></div>' +
@@ -1135,11 +1135,11 @@
     if (fase === "entreno") { d.fase = "mercado"; faseMercadoDuelo(); }
     else if (fase === "mercado") { d.fase = "evento"; enTarea(function() { faseEventoDuelo(); }, 600); }
     else if (fase === "evento") { enTarea(function() {
-      // Minijuego de la temporada. Se elige de forma determinista con la
-      // semilla de la sala (misma para ambos clientes) para que los dos
-      // jueguen EXACTAMENTE el mismo minijuego: Duelo de Reflejos o el
-      // Clásico de penales.
-      const jugarReflejos = (semillaDeterministaDuelo(dSesion.topic, d.temporada) % 2) === 0;
+      // Minijuego de la temporada. Alterna 1 y 1 entre temporadas para que
+      // ambos jugadores jueguen EXACTAMENTE el mismo minijuego y toquen las
+      // dos variedades: temporadas impares -> Duelo de Reflejos, pares ->
+      // Tanda de Penales (El Clásico).
+      const jugarReflejos = (d.temporada % 2) === 1;
       d.fase = jugarReflejos ? "reflejos" : "clasico";
       if (jugarReflejos) faseReflejosDuelo();
       else faseClasicoDuelo();
@@ -1343,15 +1343,15 @@
     d.reflejo = { ya: false, miMs: null, miFoul: false, rivMs: null, rivFoul: false, resuelto: false };
     enviarStatsDuelo("Duelo de reflejos...");
     var esperaS = (esperaMs / 1000).toFixed(1);
-    
+
     abrirModalDuelo(
       "⚡ DUELO DE REFLEJOS — Temporada " + d.temporada,
       "<p class='fs-5'>🆚 <strong>" + escaparDuelo(d.yo.apodo) + "</strong> vs <strong>" + escaparDuelo(d.rival.apodo) + "</strong></p>" +
-      "<p>Esperá la señal <strong class='text-success'>¡YA!</strong> (" + esperaS + "s aprox) y tocá el botón lo más rápido que puedas.</p>" +
-      "<p class='small text-danger'>⚠️ Si tocás antes del ¡YA! cometés FOUL y perdés el duelo.</p>" +
+      "<p>Esperá la señal <strong class='text-success'>¡YA!</strong> (" + esperaS + "s aprox). El botón se habilita recién cuando aparece el ¡YA!, así que no podés tocarlo antes.</p>" +
+      "<p class='small text-danger'>⚠️ Tocá apenas veas el ¡YA!: tenés <strong>3 segundos</strong> para reaccionar.</p>" +
       "<p class='small text-secondary'>El ganador se lleva: <strong>+1 OVR</strong> en la temporada siguiente, <strong>+20 de Moral</strong> y <strong>+150 Puntos de Rivalidad</strong>.</p>" +
       "<div id='duelo-reflejo-estado' class='display-6 fw-bold my-3 text-warning'>⏳ Esperá...</div>" +
-      "<button class='btn btn-success btn-lg fw-bold px-5' onclick='clickReflejoDuelo()'>⚡ ¡TOCAR!</button>",
+      "<button id='btn-duelo-reflejo' class='btn btn-success btn-lg fw-bold px-5' onclick='clickReflejoDuelo()' disabled>⚡ ¡TOCAR!</button>",
       ""
     );
     if (typeof lanzarConfeti === "function") lanzarConfeti(30);
@@ -1361,6 +1361,8 @@
       d.reflejo.tYa = Date.now();
       var est = document.getElementById("duelo-reflejo-estado");
       if (est) { est.innerHTML = "🟢 ¡YA!"; est.className = "display-6 fw-bold my-3 text-success"; }
+      var btn = document.getElementById("btn-duelo-reflejo");
+      if (btn) btn.disabled = false;
       if (typeof sonidoGol === "function") sonidoGol();
       iniciarTimerDuelo(3, function() { enviarReflejoDuelo(9999, false, true); });
     }, esperaMs);
@@ -1989,6 +1991,7 @@
   window.entrenarDuelo = entrenarDuelo;
   window.elegirClubDuelo = elegirClubDuelo;
   window.elegirOpcionEventoDuelo = elegirOpcionEventoDuelo;
+  window.clickReflejoDuelo = clickReflejoDuelo;
   window.arrancarClasicoDuelo = arrancarClasicoDuelo;
   window.elegirZonaPenalDuelo = elegirZonaPenalDuelo;
   window.detenerBarraDuelo = detenerBarraDuelo;

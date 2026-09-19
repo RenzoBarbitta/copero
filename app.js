@@ -16,6 +16,7 @@ function crearJugadorInicial() {
     clubActual: null,
     temporadaActual: 1,
     temporadasForzadoSegunda: 0,
+    division: 2,
     loroOcurrio: false,
     eventoRankedsJugado: false,
     carreraTerminada: false,
@@ -176,6 +177,9 @@ function cargarPartida() {
       data.clubActual = encontrado || data.clubActual;
     }
     jugador = Object.assign(crearJugadorInicial(), data);
+    if (typeof jugador.division !== "number") {
+      sincronizarDivision();
+    }
     return true;
   } catch (e) {
     return false;
@@ -885,7 +889,7 @@ function generarPartidoInteractivo() {
   const club = jugador.clubActual || CLUBES[0];
   const rivales = CLUBES.filter(c => c && c.nombre !== club.nombre);
   const rival = rivales[Math.floor(Math.random() * rivales.length)] || CLUBES[0];
-  const esPrimera = club.reputacion > CONFIG.UMBRAL_PRIMERA && jugador.temporadasForzadoSegunda === 0;
+  const esPrimera = jugador.division === 1 && jugador.temporadasForzadoSegunda === 0;
   const importancia = esPrimera ? (jugador.temporadaActual % 3 === 0 ? "Copa de Campeones" : "Primera División") : "Segunda División";
   const local = Math.random() < 0.5;
   const titular = jugador.media >= (club.reputacion * 10 - 5) || jugador.edad < 22;
@@ -1021,21 +1025,27 @@ function resolverDecisionPartido(accion) {
   const dificultad = evento.titulo === "Ataque rival" || evento.titulo === "Último ataque" ? 0.08 : 0;
   const probabilidad = Math.max(0.18, Math.min(0.90, 0.25 + datos / 180 + ventajaPosicion - dificultad));
   const exito = Math.random() < probabilidad;
-  let consecuencia = "No generaste una ocasión clara.";
-  if (exito && !partido.aporteTipo && (accion.id === "remata" || accion.id === "subir" || accion.id === "encara")) {
+  let consecuencia = "La jugada no terminó en gol.";
+  if (exito && (accion.id === "remata" || accion.id === "subir" || accion.id === "encara")) {
     partido.goles++;
-    partido.aporteTipo = "gol";
     partido.marcador.club++;
     consecuencia = "¡Oportunidad de gol y definición!";
-  } else if (exito && !partido.aporteTipo && (accion.id === "pase" || accion.id === "pared" || accion.id === "desmarque")) {
+  } else if (exito && (accion.id === "pase" || accion.id === "pared" || accion.id === "desmarque")) {
     partido.asistencias++;
-    partido.aporteTipo = "asistencia";
-    consecuencia = "Encontraste una mejor posición y generaste una asistencia.";
-  } else if (exito && (accion.id === "remata" || accion.id === "subir" || accion.id === "encara" || accion.id === "pase" || accion.id === "pared" || accion.id === "desmarque")) {
-    consecuencia = "La jugada fue correcta, pero ya habías registrado tu aporte ofensivo del partido.";
-  } else if (!exito && (evento.titulo === "Ataque rival" || evento.titulo === "Último ataque")) {
+    partido.marcador.club++;
+    consecuencia = "Encontraste una mejor posición, generaste una asistencia y el equipo convirtió.";
+  } else if (exito && (partido.posicion === "GK" || partido.posicion === "DEF")) {
+    consecuencia = "¡Buena intervención! El equipo se mantuvo firme.";
+  } else if (!exito && (partido.posicion === "GK" || evento.titulo === "Ataque rival" || evento.titulo === "Último ataque")) {
     partido.marcador.rival++;
     consecuencia = "El rival aprovechó el espacio y convirtió.";
+  }
+  if (exito && (partido.posicion === "GK" || partido.posicion === "DEF")) {
+    const probContra = Math.max(0.2, Math.min(0.55, 0.30 + (partido.ovr - 70) / 100));
+    if (Math.random() < probContra) {
+      partido.marcador.club++;
+      consecuencia += " ¡Excelente trabajo defensivo, el equipo salió de contra y convirtió!";
+    }
   }
   partido.acciones.push({ minuto: evento.minuto, accion: accion.id, exito, consecuencia });
   partido.indiceEvento++;
@@ -1049,19 +1059,22 @@ function resolverDecisionPartido(accion) {
     partidos: 1,
     gol: partido.goles
   };
-  const ajusteMoral = partido.goles + partido.asistencias > 0 ? 5 : -3;
+  const rendioBien = partido.goles + partido.asistencias > 0
+    || ((partido.posicion === "GK" || partido.posicion === "DEF") && partido.marcador.club >= partido.marcador.rival);
+  const ajusteMoral = rendioBien ? 5 : -3;
   jugador.moral = Math.max(CONFIG.MORAL_MIN, Math.min(CONFIG.MORAL_MAX, (jugador.moral || 60) + ajusteMoral));
   jugador.rachaSinPerder = partido.marcador.club >= partido.marcador.rival
     ? (jugador.rachaSinPerder || 0) + 1
     : 0;
   const resumen = `FINAL<br><br><strong>${partido.club.nombre} ${partido.marcador.club} - ${partido.marcador.rival} ${partido.rival.nombre}</strong><br><br>` +
     `👤 Tu actuación<br>⚽ ${partido.goles} gol(es)<br>🎯 ${partido.asistencias} asistencia(s)<br>⏱️ ${partido.minutos} minutos<br>📈 ${exito ? "+forma" : "Forma estable"}` +
+    ((partido.posicion === "GK" || partido.posicion === "DEF") && partido.marcador.club > 0 ? `<br>⚽ El equipo convirtió ${partido.marcador.club} gol(es)` : "") +
     (jugador.rachaSinPerder > 1 ? "<br>🔥 Nueva racha" : "");
   const callback = estado.callback;
   if (modalMomentosClaveInstance) modalMomentosClaveInstance.hide();
   mostrarNotificacion("FINAL", resumen, function() {
     estadoPartidoEspecial = null;
-    if (typeof callback === "function") callback({ exito: true, bonus, texto: resumen, decision: "interactivo" });
+    if (typeof callback === "function") callback({ exito: true, bonus, texto: resumen, decision: "interactivo", marcador: partido.marcador });
   });
 }
 
@@ -1284,6 +1297,22 @@ function mostrarNotificacion(titulo, texto, callbackCierre = null) {
 // ============================================================
 //  INICIO / CONTINUAR / REINICIAR
 // ============================================================
+// ============================================================
+//  2 DIVISIONES: Primera (1) y Segunda (2)
+//  La división sigue al club: reputacion > UMBRAL_PRIMERA = Primera.
+//  Se mantiene en jugador.division para que ascenso/descenso sean
+//  coherentes aunque el club no cambie de reputación.
+// ============================================================
+function divisionSegunReputacion(rep) {
+  return rep > CONFIG.UMBRAL_PRIMERA ? 1 : 2;
+}
+
+function sincronizarDivision() {
+  if (jugador && jugador.clubActual) {
+    jugador.division = divisionSegunReputacion(jugador.clubActual.reputacion);
+  }
+}
+
 function iniciarCarrera() {
   const nombreInput = document.getElementById("input-nombre").value.trim();
   const posicionInput = document.getElementById("select-posicion").value;
@@ -1311,6 +1340,7 @@ function iniciarCarrera() {
   jugador.clubActual = nacePromesa && poolClubesPromesa.length > 0
     ? poolClubesPromesa[0]
     : CLUBES[Math.floor(Math.random() * CLUBES.length)];
+  sincronizarDivision();
   if (nacePromesa) {
     jugador.media = CONFIG.PROMESA.OVR_INICIAL;
     mostrarNotificacion(
@@ -1406,15 +1436,8 @@ function simularTemporada() {
     jugador.media = Math.max(CONFIG.OVR_MIN, jugador.media - bajaEdad);
   }
 
-  const esPrimera = rep > CONFIG.UMBRAL_PRIMERA && jugador.temporadasForzadoSegunda === 0;
+  const esPrimera = jugador.division === 1 && jugador.temporadasForzadoSegunda === 0;
   let trofeosGanadosEstaTemp = [];
-
-  if (jugador.clubCampeonAnterior && jugador.clubActual.nombre === jugador.clubCampeonAnterior) {
-    if (Math.random() < ((rep / 10) * CONFIG.SIM.PROB_CRUCE_CAMPEONES + (jugador.media / 100) * 0.10)) {
-      jugador.trofeos.copaDeCampeones++;
-      trofeosGanadosEstaTemp.push("👑 Copa de Campeones");
-    }
-  }
 
   if (goles >= 25 && Math.random() < 0.35) {
     jugador.trofeos.botaDeOro++;
@@ -1434,14 +1457,16 @@ function simularTemporada() {
   if (partidoEspecial) {
     abrirModalPartidoInteractivo(partidoEspecial, (resultado = {}) => {
       const bonus = resultado.bonus || { goles: 0, asistencias: 0, partidos: 0 };
-      finalizarResumenTemporada(
+      const ganastePartido = !!(resultado.marcador && resultado.marcador.club > resultado.marcador.rival);
+      resolverCierreTemporada(
         partidos + (bonus.partidos || 0),
         goles + (bonus.goles || 0),
         asistencias + (bonus.asistencias || 0),
         subidaRendimiento,
         trofeosGanadosEstaTemp,
         esPrimera,
-        bajaEdad
+        bajaEdad,
+        ganastePartido
       );
     });
   } else if (requiereMinijuegoTitulo) {
@@ -1500,8 +1525,143 @@ function simularTemporada() {
   }
 }
 
+// ============================================================
+//  SISTEMA DE TÍTULOS (por temporada)
+//  - Primera:  Campeonato de Primera División, Copa Argentina y
+//    Copa de Campeones (si ganaste una de las otras dos).
+//  - Segunda:  Campeonato de Segunda División (+ ascenso), Copa
+//    Apa y Copa de Campeones (si ganaste una de las otras dos).
+//  - Se puede ganar más de un título en la misma temporada.
+//  El campeonato se puede definir jugando la final según tu
+//  posición (penales, arquero atajando, defensa en el último
+//  córner) o de forma probabilística según la reputación del club.
+// ============================================================
+function concederCampeonatoLiga(trofeos, esPrimera, textoTorneo) {
+  if (esPrimera) {
+    jugador.trofeos.primeraDivision++;
+    trofeos.push(textoTorneo || "🏆 Primera División");
+  } else {
+    jugador.trofeos.segundaDivision++;
+    trofeos.push(textoTorneo || "🏆 Segunda División");
+  }
+  jugador.clubCampeonAnterior = jugador.clubActual.nombre;
+}
+
+function resolverCopasDeTemporada(trofeos, esPrimera) {
+  const rep = jugador.clubActual.reputacion;
+
+  // Copa nacional: siempre puede ganarse (multitítulo con la liga)
+  if (!esPrimera) {
+    if (Math.random() < Math.min(0.5, 0.10 + (jugador.media / 100) * 0.08)) {
+      jugador.trofeos.copaApa++;
+      trofeos.push("🍷 Copa Apa");
+    }
+  } else {
+    if (Math.random() < Math.min(0.5, 0.06 + (rep / 10) * 0.14 + (jugador.media / 100) * 0.04)) {
+      jugador.trofeos.copaArgentina++;
+      trofeos.push("🇦🇷 Copa Argentina");
+    }
+  }
+
+  // Copa de Campeones: SOLO si ganaste alguna de las otras dos competencias
+  const ganoTituloDomestico = trofeos.some(t =>
+    t.indexOf("Primera División") !== -1 || t.indexOf("Segunda División") !== -1 ||
+    t.indexOf("Copa Apa") !== -1 || t.indexOf("Copa Argentina") !== -1);
+  if (ganoTituloDomestico && Math.random() < Math.max(0.05, Math.min(0.5, 0.12 + (rep / 10) * 0.15 + (jugador.media / 100) * 0.05))) {
+    jugador.trofeos.copaDeCampeones++;
+    trofeos.push("👑 Copa de Campeones");
+  }
+}
+
+function resolverCierreTemporada(partidos, goles, asistencias, subidaRendimiento, trofeosBase, esPrimera, bajaEdad = 0, ganastePartido = false) {
+  const esDelOcentrocampista = (jugador.posicion === "DEL" || jugador.posicion === "CM");
+  const rep = jugador.clubActual.reputacion;
+  const requiereMinijuegoDescenso = esDelOcentrocampista && rep <= 3 && Math.random() < CONFIG.SIM.PROB_MINIJUEGO_DESCENSO;
+  const requiereMinijuegoTitulo = esDelOcentrocampista && Math.random() < CONFIG.SIM.PROB_MINIJUEGO_TITULO;
+
+  const trofeos = trofeosBase.slice();
+
+  // Las copas se resuelven al final de TODOS los caminos: permiten sumar
+  // liga + copa nacional + copa de campeones en la misma temporada.
+  const cerrarConCopas = () => {
+    resolverCopasDeTemporada(trofeos, esPrimera);
+    finalizarResumenTemporada(partidos, goles, asistencias, subidaRendimiento, trofeos, esPrimera, bajaEdad);
+  };
+
+  if (requiereMinijuegoDescenso) {
+    iniciarMinijuegoDecisivoTemporada("DESCENSO", (salvo) => {
+      if (!salvo) jugador.temporadasForzadoSegunda = 2;
+      cerrarConCopas();
+    });
+    return;
+  }
+
+  if (requiereMinijuegoTitulo) {
+    iniciarMinijuegoDecisivoTemporada("TITULO", (gano) => {
+      if (gano) concederCampeonatoLiga(trofeos, esPrimera);
+      cerrarConCopas();
+    });
+    return;
+  }
+
+  // Definir el campeonato: final según la posición (ganar el partido
+  // importante sube la chance) o campeón por reputación sin jugarlo.
+  const probFinal = Math.min(0.8, CONFIG.SIM.PROB_FINAL_TORNEO + (ganastePartido ? 0.20 : 0));
+  if (Math.random() < probFinal) {
+    resolverFinalSegunPosicion(esPrimera, (ganoFinal, torneo) => {
+      if (ganoFinal) concederCampeonatoLiga(trofeos, esPrimera, `🏆 ${torneo}`);
+      cerrarConCopas();
+    });
+    return;
+  }
+
+  // Campeón de liga según la reputación, al azar pero con lógica
+  const probCampeonato = !esPrimera
+    ? (0.03 + (rep / CONFIG.UMBRAL_PRIMERA) * 0.17 + (jugador.media / 100) * 0.06)
+    : (((rep - CONFIG.UMBRAL_PRIMERA) / 5) * 0.28 + (jugador.media / 100) * 0.05);
+  if (Math.random() < probCampeonato) {
+    concederCampeonatoLiga(trofeos, esPrimera);
+  }
+
+  cerrarConCopas();
+}
+
 function finalizarResumenTemporada(partidos, goles, asistencias, subidaRendimiento, trofeosGanadosEstaTemp, esPrimera, bajaEdad = 0) {
   const divTexto = esPrimera ? "Primera" : "Segunda";
+
+  // ---- MOVIMIENTOS DE DIVISIÓN (2 ascienden de Segunda, 2 descienden de Primera) ----
+  const rep = jugador.clubActual.reputacion;
+  const esCampeonSegunda = trofeosGanadosEstaTemp.some(t => t.includes("Segunda División"));
+  const esCampeonPrimera = trofeosGanadosEstaTemp.some(t => t.includes("Primera División"));
+  let causoAscenso = false;
+  let causoDescenso = false;
+
+  if (!esPrimera) {
+    // En Segunda: el campeón asciende siempre. Si no sos campeón, podés ser uno
+    // de los 2 que suben según cuán fuerte es el club (reputación + tu nivel).
+    if (esCampeonSegunda) {
+      causoAscenso = true;
+    } else {
+      const probAscenso = Math.max(0.05, Math.min(0.45,
+        (rep / CONFIG.UMBRAL_PRIMERA) * 0.14 + (jugador.media / 100) * 0.12 + (partidos >= CONFIG.SIM.PARTIDOS_MAX ? 0.04 : 0)));
+      if (Math.random() < probAscenso) causoAscenso = true;
+    }
+    if (causoAscenso) {
+      jugador.division = 1;
+      if (!esCampeonSegunda) {
+        trofeosGanadosEstaTemp.push("🆙 Ascenso obtenido");
+      }
+    }
+  } else if (!esCampeonPrimera) {
+    // En Primera: si no salís campeón, hay riesgo de ser uno de los 2 que baja.
+    const probDescenso = Math.max(0.02, Math.min(0.38,
+      ((CONFIG.UMBRAL_PRIMERA + 1 - rep) / 5) * 0.28 + (1 - jugador.media / 100) * 0.14));
+    if (Math.random() < probDescenso) {
+      causoDescenso = true;
+      jugador.division = 2;
+      jugador.temporadasForzadoSegunda = 2;
+    }
+  }
 
   jugador.historialTemporadas.push({
     temporada: jugador.temporadaActual,
@@ -1533,6 +1693,13 @@ function finalizarResumenTemporada(partidos, goles, asistencias, subidaRendimien
     textoResumen += `<span class="text-secondary">Sin títulos esta temporada.</span><br><br>`;
   }
 
+  if (causoAscenso) {
+    textoResumen += `<span class="text-success fw-bold">🆙 ¡Ascenso a Primera División!</span><br>`;
+  }
+  if (causoDescenso) {
+    textoResumen += `<span class="text-danger fw-bold">⬇️ Descendiste a Segunda División.</span><br>`;
+  }
+
   if (subidaRendimiento > 0) {
     textoResumen += `<span class="text-success fw-bold">¡Destacado! +${subidaRendimiento} OVR</span><br>`;
   }
@@ -1540,32 +1707,30 @@ function finalizarResumenTemporada(partidos, goles, asistencias, subidaRendimien
     textoResumen += `<span class="text-danger fw-bold">📉 Declive físico por edad: -${bajaEdad} OVR</span><br>`;
   }
 
-  if (jugador.temporadasForzadoSegunda > 0) {
+  if (jugador.temporadasForzadoSegunda > 0 && !causoDescenso) {
     jugador.temporadasForzadoSegunda--;
   }
-
-  const esCampeonSegunda = trofeosGanadosEstaTemp.some(t => t.includes("Segunda División"));
 
   guardarPartida();
   mostrarNotificacion(`Resumen Temp. ${jugador.temporadaActual}`, textoResumen, () => {
     verificarCambioRol();
-    generarOfertasDeFichaje(esCampeonSegunda);
+    generarOfertasDeFichaje(causoAscenso);
   });
 }
 
-function generarOfertasDeFichaje(ascendioPorTitulo = false) {
+function generarOfertasDeFichaje(ascendio = false) {
   let candidatos = CLUBES.filter(c => c.nombre !== jugador.clubActual.nombre);
 
   if (jugador.temporadasForzadoSegunda > 0) {
-    // Sanción Loro: solo clubes de Segunda División (reputacion <= 5)
+    // Descenso o Sanción Loro: solo clubes de Segunda División
     candidatos = candidatos.filter(c => c.reputacion <= CONFIG.UMBRAL_PRIMERA);
     ofertasActuales = [
       jugador.clubActual,
       candidatos[0] || CLUBES[0],
       candidatos[1] || CLUBES[1]
     ];
-  } else if (ascendioPorTitulo) {
-    // Ascendió por título: solo clubes de Primera División (reputacion > 5)
+  } else if (ascendio) {
+    // Ascendió (por título o por clasificación): solo clubes de Primera División
     candidatos = candidatos.filter(c => c.reputacion > CONFIG.UMBRAL_PRIMERA);
     ofertasActuales = [
       jugador.clubActual,
@@ -1592,7 +1757,12 @@ function generarOfertasDeFichaje(ascendioPorTitulo = false) {
   if (jugador.temporadasForzadoSegunda > 0) {
     const alerta = document.createElement("div");
     alerta.className = "alert alert-danger p-2 small mb-3";
-    alerta.innerHTML = `⚠️ <strong>Sanción Activa de Loro:</strong> Obligado a jugar en Segunda. No puedes renovar si estás en Primera.`;
+    alerta.innerHTML = `⚠️ <strong>Obligado en Segunda:</strong> por descenso o sanción solo podés renovar en Segunda o fichar en clubes de Segunda.`;
+    contenedor.appendChild(alerta);
+  } else if (ascendio) {
+    const alerta = document.createElement("div");
+    alerta.className = "alert alert-success p-2 small mb-3";
+    alerta.innerHTML = `🆙 <strong>¡Ascendiste a Primera!</strong> Solo podés renovar o fichar en clubes de Primera División.`;
     contenedor.appendChild(alerta);
   }
 
@@ -1607,7 +1777,8 @@ function generarOfertasDeFichaje(ascendioPorTitulo = false) {
   contenedor.appendChild(nota);
 
   ofertasActuales.forEach((club) => {
-    const esClubPrimera = club.reputacion > CONFIG.UMBRAL_PRIMERA;
+    const esClubPrimera = club.reputacion > CONFIG.UMBRAL_PRIMERA
+      || (club.nombre === jugador.clubActual.nombre && jugador.division === 1);
     const etiquetaDiv = esClubPrimera ? " [Primera]" : " [Segunda]";
     const esRenovacion = (club.nombre === jugador.clubActual.nombre && jugador.temporadasForzadoSegunda === 0);
 
@@ -1627,6 +1798,7 @@ function generarOfertasDeFichaje(ascendioPorTitulo = false) {
 
 function seleccionarOferta(clubElegido) {
   jugador.clubActual = clubElegido;
+  sincronizarDivision();
   modalFichajes.hide();
   jugador.temporadaActual++;
 
@@ -1880,6 +2052,7 @@ function resolverEvento(acepta) {
           const argentinos = CLUBES.find(c => c.nombre === "Argentinos Juniors");
           if (argentinos) jugador.clubActual = argentinos;
         }
+        sincronizarDivision();
         resultadoTxt = "🔴⚪ ¡Te vas a jugar a Argentinos Juniors con Bareiro! Cambio de club inmediato.";
         break;
       }
@@ -1920,6 +2093,7 @@ function resolverEvento(acepta) {
           const chaco = CLUBES.find(c => c.nombre === "Chaco For Ever");
           if (chaco) jugador.clubActual = chaco;
         }
+        sincronizarDivision();
         resultadoTxt = "🌰 Vas a jugar a Chaco For Ever. Equipo donde salieron grandes jugadores.";
         break;
       }
@@ -1927,6 +2101,7 @@ function resolverEvento(acepta) {
       case "KROSTY": {
         const hasbulitah = CLUBES.find(c => c.nombre === "Hasbullitah");
         if (hasbulitah) jugador.clubActual = hasbulitah;
+        sincronizarDivision();
         resultadoTxt = "🧔 Aceptaste la invitación rara: cambiaste de equipo a Hasbullitah.";
         break;
       }
@@ -1938,6 +2113,7 @@ function resolverEvento(acepta) {
           const laferrere = CLUBES.find(c => c.nombre === "Laferrere");
           if (laferrere) jugador.clubActual = laferrere;
         }
+        sincronizarDivision();
         sumarMedia(-3);
         resultadoTxt = "💰 Te fuiste por la guita: -3 OVR. Cambiaste a Laferrere.";
         break;
@@ -2049,6 +2225,7 @@ function resolverEventoDosOpciones(id, opcion) {
         // Aceptás: te fuiste a BODO a jugar.
         const bodo = CLUBES.find(c => c.nombre === "Bodo Glimt");
         if (bodo) jugador.clubActual = bodo;
+        sincronizarDivision();
         resultadoTxt = "🧑‍🤝‍🧑 Te hiciste tan amigo que te fuiste a BODO a jugar. ¡Cambio de club inmediato a Bodo Glimt!";
       }
       break;
