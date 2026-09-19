@@ -159,11 +159,22 @@
 
   // Evento cruzado: MISMO evento para ambos, deterministico por semilla
   // (nombre de sala + temporada), sin depender del anfitrion.
-  function elegirEventoDeterminista(semillaStr, usados) {
+    function elegirEventoDeterminista(semillaStr, usados) {
     let pool = DUELO_EVENTOS_POOL.filter(function(e) { return (usados || []).indexOf(e) === -1; });
     if (pool.length === 0) pool = DUELO_EVENTOS_POOL.slice();
     return pool[hashSemilla(semillaStr) % pool.length];
   }
+
+  function semillaDeterministaDuelo(topic, temporada) {
+    return hashSemilla(topic + "-remate-" + temporada);
+  }
+
+  function hashSemilla(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    return Math.abs(hash);
+  }
+
 
   // ============================================================
   //  EVENTOS CRUZADOS DEL DUELO
@@ -633,6 +644,19 @@
           resolverPenalSiListo(msg.p);
         }
         break;
+      case "remate_sel":
+        if (d.remate) {
+          d.remate.zonaRival = msg.zona;
+          d.remate.potenciaRival = msg.potencia;
+          resolverRemateSiListo();
+        }
+        break;
+      case "remate_pot":
+        if (d.remate) {
+          d.remate.potenciaRival = msg.potencia;
+          resolverRemateSiListo();
+        }
+        break;
       case "fin":
         d.resumenRival = msg.resumen;
         mostrarFinalDuelo();
@@ -758,7 +782,11 @@
     if (!d || !d.activo) return;
     if (fase === "entreno") { d.fase = "mercado"; faseMercadoDuelo(); }
     else if (fase === "mercado") { d.fase = "evento"; enTarea(function() { faseEventoDuelo(); }, 600); }
-    else if (fase === "evento") { d.fase = "clasico"; enTarea(function() { faseClasicoDuelo(); }, 1500); }
+    else if (fase === "evento") { d.fase = "clasico"; enTarea(function() { 
+      const usarRemate = (semillaDeterministaDuelo(dSesion.topic, d.temporada) % 2) === 0;
+      if (usarRemate) faseRemateDuelo(); 
+      else faseClasicoDuelo(); 
+    }, 1500); }
     else if (fase === "tempo") {
       if (d.temporada >= DUELO_CFG.TEMPORADAS) { d.fase = "retiro"; faseRetiroDuelo(); }
       else { d.fase = "preparando"; enTarea(function() { iniciarTemporadaDuelo(); }, 800); }
@@ -948,6 +976,169 @@
     marcarListo("mercado");
   }
 
+  // ============================================================
+  //  REMATE DECISIVO (alternativa al Clásico: minijuego de timing
+  //  y estrategia - ambos eligen a ciegas angulo y potencia)
+  // ============================================================
+  function faseRemateDuelo() {
+    if (!d || !d.activo) return;
+    d.remate = { 
+      zonaLocal: null, potenciaLocal: null,
+      zonaRival: null, potenciaRival: null,
+      barra: null
+    };
+    enviarStatsDuelo("Preparando remate decisivo...");
+    
+    abrirModalDuelo(
+      "🎯 REMATE DECISIVO — Temporada " + d.temporada,
+      "<p class='fs-5'>¡Momento clave! Ambos jugadores deben ajustar su remate a ciegas.</p>" +
+      "<p class='small text-secondary'>1) Elegí la zona del arco rival.</p>" +
+      "<p class='small text-secondary'>2) Ajustá la potencia del remate (ideal ~65).</p>" +
+      "<p class='small text-secondary'>Tu OVR (<strong>" + d.yo.ovr + "</strong>) afecta la velocidad de la barra.</p>" +
+      "<div class='duelo-arco mb-3'>" + htmlZonasArcoDuelo("elegirZonaRemate") + "</div>",
+      ""
+    );
+    
+    iniciarTimerDuelo(15, function() { 
+      const zonaDefault = DUELO_ZONAS[Math.floor(Math.random() * 6)];
+      elegirZonaRemate(zonaDefault);
+    });
+  }
+
+  function elegirZonaRemate(zona, porTimer) {
+    if (!d || !d.remate) return;
+    if (d.remate.zonaLocal) return;
+    
+    d.remate.zonaLocal = zona;
+    enviarDuelo({ t: "remate_sel", zona: zona });
+    
+    actualizarModalDuelo(
+      "<p class='mt-2'>🎯 Zona elegida: <strong>" + DUELO_ZONA_TXT[zona] + "</strong></p>" +
+      "<p>Ajustá la potencia del remate (presioná ESPACIO o clickeá la barra):</p>" +
+      "<div class='zona-gol duelo-barra' style='height:22px;' id='duelo-barra-zona-remate' onclick='detenerBarraRemate()'>" +
+      "<div id='duelo-barra-fill-remate' class='progress-bar bg-info' style='width:0%;height:100%;'></div></div>" +
+      "<p class='small text-secondary'>Tu OVR: " + d.yo.ovr + " | OVR rival: " + d.rival.ovr + "</p>",
+      ""
+    );
+    
+    iniciarTimingRemate();
+  }
+  
+  function iniciarTimingRemate() {
+    enviarStatsDuelo("Timing de potencia...");
+    const vel = velocidadBarraDuelo(d.yo.ovr);
+    const estado = d.remate;
+    
+    estado.barra = { pos: 0, dir: 1, corriendo: true };
+    
+    estado.barra.intervalo = enIntervalo(function() {
+      if (!d || !d.remate || !d.remate.barra || !d.remate.barra.corriendo) return;
+      const b = d.remate.barra;
+      b.pos += b.dir * vel / 60;
+      if (b.pos >= 100) { b.pos = 100; b.dir = -1; }
+      if (b.pos <= 0) { b.pos = 0; b.dir = 1; }
+      const fill = document.getElementById("duelo-barra-fill-remate");
+      if (fill) fill.style.width = b.pos + "%";
+    }, 16);
+    
+    document.addEventListener("keydown", manejarEspacioRemate);
+  }
+  
+  function detenerBarraRemate() {
+    const rem = d.remate;
+    if (!rem || !rem.barra || !rem.barra.corriendo) return;
+    
+    rem.barra.corriendo = false;
+    document.removeEventListener("keydown", manejarEspacioRemate);
+    
+    const potenciaFinal = Math.round(rem.barra.pos);
+    rem.potenciaLocal = potenciaFinal;
+    enviarDuelo({ t: "remate_pot", potencia: potenciaFinal });
+    
+    actualizarModalDuelo(
+      "<p class='mt-2'>🎯 Remate enviado: potencia <strong>" + potenciaFinal + "</strong></p>" +
+      "<p class='text-warning'>Esperando al rival...</p>",
+      ""
+    );
+    
+    resolverRemateSiListo();
+  }
+  
+  function manejarEspacioRemate(e) {
+    if (e.code === "Space") {
+      e.preventDefault();
+      detenerBarraRemate();
+    }
+  }
+  
+  function resolverRemateSiListo() {
+    if (!d || !d.remate) return;
+    if (d.remate.zonaLocal === null || d.remate.potenciaLocal === null) return;
+    if (d.remate.zonaRival === null || d.remate.potenciaRival === null) return;
+    
+    const res = resolverRemateDecisivo(
+      d.remate.zonaLocal, d.remate.potenciaLocal,
+      d.remate.zonaRival, d.remate.potenciaRival,
+      d.yo.ovr, d.rival.ovr
+    );
+    
+    let titulo, html;
+    if (res.ganaste) {
+      titulo = "🎯 ¡REMATE DECISIVO GANADO!";
+      d.yo.rivalidad += 30;
+      html = "<h4 class='text-success mt-3'>⚽ " + (res.tipo === "gol" ? "GOL DE ORO!" : "Definición perfecta!") + "</h4>" +
+        "<p>Tu remate en <strong>" + DUELO_ZONA_TXT[d.remate.zonaLocal] + "</strong> con potencia <strong>" + d.remate.potenciaLocal + "</strong> superó al arquero rival.</p>" +
+        "<p class='small'>➕ <strong>+30 Puntos de Rivalidad</strong></p>";
+      if (typeof sonidoExito === "function") sonidoExito();
+    } else {
+      titulo = "😞 ¡REMATE ATAJADO!";
+      html = "<h4 class='text-danger mt-3'>" + (res.tipo === "atajado" ? "¡ATAJADO!" : "¡Fuera!") + "</h4>" +
+        "<p>Tu remate en <strong>" + DUELO_ZONA_TXT[d.remate.zonaLocal] + "</strong> fue <strong>" + res.mensaje + "</strong> por el arquero rival.</p>";
+      if (typeof sonidoError === "function") sonidoError();
+    }
+    
+    actualizarModalDuelo(html, "");
+    limpiarTimerRemate();
+    
+    enTarea(function() {
+      cerrarModalDuelo();
+      simularTemporadaDueloUI();
+    }, 2500);
+  }
+  
+  function limpiarTimerRemate() {
+    if (d && d.remate && d.remate.barra) {
+      if (d.remate.barra.intervalo) clearInterval(d.remate.barra.intervalo);
+      d.remate.barra = null;
+    }
+    document.removeEventListener("keydown", manejarEspacioRemate);
+  }
+  
+  function resolverRemateDecisivo(zonaYo, potenciaYo, zonaRiv, potenciaRiv, ovrYo, ovrRiv) {
+    const potenciaIdeal = 65;
+    const errorYo = Math.abs(potenciaYo - potenciaIdeal);
+    const errorRiv = Math.abs(potenciaRiv - potenciaIdeal);
+    
+    const idxZonaRiv = DUELO_ZONAS.indexOf(zonaRiv);
+    const idxZonaYo = DUELO_ZONAS.indexOf(zonaYo);
+    const cobertura = Math.max(1, Math.floor(ovrRiv / 25));
+    const zonasCubiertas = [];
+    for (let i = -cobertura; i <= cobertura; i++) {
+      const idx = (idxZonaRiv + i + DUELO_ZONAS.length) % DUELO_ZONAS.length;
+      zonasCubiertas.push(DUELO_ZONAS[idx]);
+    }
+    const zonaAdivinada = zonasCubiertas.includes(zonaYo);
+    const potenciaPrecisa = errorYo < 15;
+    
+    const gol = (potenciaPrecisa && !zonaAdivinada) || (potenciaPrecisa && zonaAdivinada && Math.random() < 0.3);
+    const atajado = zonaAdivinada && !gol;
+    const afuera = !potenciaPrecisa && !atajado;
+    
+    if (gol) return { ganaste: true, tipo: "gol", mensaje: "un gran remate" };
+    if (atajado) return { ganaste: false, tipo: "atajado", mensaje: "el arquero lo atajó" };
+    return { ganaste: false, tipo: "afuera", mensaje: "afuera del arco" };
+  }
+  
   // ============================================================
   //  EVENTO CRUZADO / SINCRONIZADO (eleccion a ciegas + timer 10s)
   // ============================================================
@@ -1377,27 +1568,65 @@
 
     const arena = document.getElementById("duelo-arena");
     arena.innerHTML =
-      "<h4 class='fw-bold text-center mt-2'>🏁 RETIRO — Duelo Final</h4>" +
-      "<div class='row text-center mt-3 align-items-center'>" +
-      "<div class='col-5'>" + avatarIniciales(mio.apodo) +
-      "<div class='fw-bold mt-1'>" + escaparDuelo(mio.apodo) + "</div>" +
-      "<div class='duelo-puntaje fw-bold " + (gane ? "text-success" : "") + "'>" + puntajeMio + "</div>" +
-      "<div class='small text-secondary'>Puntaje Final</div></div>" +
-      "<div class='col-2'><div class='duelo-vs fw-bold'>VS</div></div>" +
-      "<div class='col-5'>" + avatarIniciales(riv.apodo) +
-      "<div class='fw-bold mt-1'>" + escaparDuelo(riv.apodo) + "</div>" +
-      "<div class='duelo-puntaje fw-bold " + (!gane && !empate ? "text-success" : "") + "'>" + puntajeRiv + "</div>" +
-      "<div class='small text-secondary'>Puntaje Final</div></div>" +
+      "<div class='duelo-final-container'>" +
+      // Título principal del campeón
+      "<div class='duelo-campeon-banner " + (gane ? "text-success" : empate ? "text-warning" : "text-danger") + "'>" +
+      (gane
+        ? "<div class='duelo-campeon-titulo'>🏆 ¡CAMPEÓN DEL DUELO!</div>"
+        : empate
+        ? "<div class='duelo-campeon-titulo'>⚖️ DUELO LEGENDARIO</div>"
+        : "<div class='duelo-campeon-titulo'>💀 CAMPEÓN DEL DUELO</div>") +
+      "<div class='duelo-campeon-apodo'>" + escaparDuelo(gane ? mio.apodo : riv.apodo) + "</div>" +
+      "<div class='duelo-campeon-puntaje'>" + (gane ? puntajeMio : puntajeRiv) + " PUNTOS</div>" +
       "</div>" +
-      '<div class="row mt-4">' + htmlTablaComparacion(mio, riv) + "</div>" +
-      "<div class='text-center mt-4'>" + (empate
-        ? "<h4 class='text-warning'>⚖️ ¡EMPATE TOTAL! Duelo legendario</h4>"
-        : (gane
-          ? "<h3 class='text-success fw-bold'>🏆 ¡SOS EL CAMPEÓN DEL DUELO!</h3>"
-          : "<h3 class='text-danger fw-bold'>💀 Tu rival es el Campeón del Duelo</h3>")) + "</div>" +
-      "<div class='text-center mt-3'><button class='btn btn-warning fw-bold px-4' onclick='volverInicioDuelo()'>← Volver al inicio</button></div>";
+
+      // Tabla comparativa
+      "<div class='row mt-4'>" + htmlTablaComparacion(mio, riv) + "</div>" +
+
+      // Sección de trofeos/títulos del campeón
+      "<div class='duelo-trophies-section mt-4'>" +
+      "<h5 class='fw-bold mb-3'>" + (gane ? "🏆 Tu Vitrina de Campeón" : empate ? "🏆 Vitrinas de Campeones" : "🏆 Vitrina del Campeón") + "</h5>" +
+      "<div class='duelo-trophies-grid'>" +
+      (gane ? renderTrophyGrid(mio) : empate ? renderTrophyGrid(mio) + renderTrophyGrid(riv) : renderTrophyGrid(riv)) +
+      "</div>" +
+      "</div>" +
+
+      // Stats resumidas
+      "<div class='duelo-stats-final row text-center mt-3'>" +
+      "<div class='col-4'><div class='duelo-stat-box'><div class='fw-bold fs-4'>" + puntajeMio + "</div><div class='small text-secondary'>Tu Puntaje</div></div></div>" +
+      "<div class='col-4'><div class='duelo-stat-box'><div class='duelo-vs fw-bold'>VS</div><div class='small text-secondary'>Final</div></div></div>" +
+      "<div class='col-4'><div class='duelo-stat-box'><div class='fw-bold fs-4'>" + puntajeRiv + "</div><div class='small text-secondary'>Rival</div></div></div>" +
+      "</div>" +
+
+      "<div class='text-center mt-4'>" +
+      "<button class='btn btn-warning fw-bold px-4' onclick='volverInicioDuelo()'>← Volver al inicio</button>" +
+      "</div>" +
+      "</div>";
 
     if (!empate && gane && typeof lanzarConfeti === "function") lanzarConfeti(120);
+  }
+
+  function renderTrophyGrid(r) {
+    const dt = r.detalleTrofeos || {};
+    const trofeos = [
+      { key: "primera", label: "👑 Primera División", count: dt.primera || 0 },
+      { key: "segunda", label: "🥈 Segunda División", count: dt.segunda || 0 },
+      { key: "copaAr", label: "🏆 Copa Argentina", count: dt.copaAr || 0 },
+      { key: "copaApa", label: "🏆 Copa Apa", count: dt.copaApa || 0 },
+      { key: "copaCam", label: "🏆 Copa de Campeones", count: dt.copaCam || 0 }
+    ];
+    let html = "";
+    trofeos.forEach(function(t) {
+      if (t.count > 0) {
+        html += "<div class='duelo-trophy-item text-center'>" +
+          "<div class='duelo-trophy-icon fs-3'>" + t.label.split(" ")[0] + "</div>" +
+          "<div class='duelo-trophy-name small'>" + t.label.replace(/^[^\s]+ /, "") + "</div>" +
+          "<div class='duelo-trophy-count fw-bold text-warning'>" + t.count + "x</div>" +
+          "</div>";
+      }
+    });
+    if (!html) html = "<div class='text-secondary text-center p-3'>Sin títulos en la vitrina</div>";
+    return html;
   }
 
   function htmlTablaComparacion(mio, riv) {
@@ -1449,6 +1678,8 @@
   window.arrancarClasicoDuelo = arrancarClasicoDuelo;
   window.elegirZonaPenalDuelo = elegirZonaPenalDuelo;
   window.detenerBarraDuelo = detenerBarraDuelo;
+  window.elegirZonaRemate = elegirZonaRemate;
+  window.detenerBarraRemate = detenerBarraRemate;
   window.abandonarDuelo = abandonarDuelo;
 
   window.addEventListener("beforeunload", function() {

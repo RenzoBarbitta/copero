@@ -668,3 +668,112 @@ body.modo-oscuro .duelo-arco {
 #duelo-barra-fill {
   transition: width 0.05s linear;
 }
+
+/* ==== DUELO FINAL SCREEN ==== */
+.duelo-final-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.duelo-campeon-banner {
+  background: linear-gradient(135deg, #ffd700 0%, #ff8c00 50%, #dc143c 100%);
+  border-radius: 16px;
+  padding: 30px 20px;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(255, 215, 0, 0.4);
+  margin-bottom: 20px;
+  border: 3px solid #fff;
+}
+
+.duelo-campeon-banner.text-success {
+  background: linear-gradient(135deg, #ffd700 0%, #ffd700 50%, #ff8c00 100%);
+  box-shadow: 0 8px 32px rgba(255, 215, 0, 0.5);
+}
+
+.duelo-campeon-banner.text-warning {
+  background: linear-gradient(135deg, #ffd700 0%, #ffa500 50%, #ffd700 100%);
+  box-shadow: 0 8px 32px rgba(255, 215, 0, 0.5);
+}
+
+.duelo-campeon-titulo {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 10px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.duelo-campeon-apodo {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+.duelo-campeon-puntaje {
+  font-size: 2.2rem;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+  letter-spacing: 2px;
+}
+
+.duelo-trophies-section {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #e9ecef;
+}
+
+.duelo-trophies-section h5 {
+  color: #495057;
+  border-bottom: 2px solid #dee2e6;
+  padding-bottom: 10px;
+}
+
+.duelo-trophies-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.duelo-trophy-item {
+  background: #fff;
+  border-radius: 10px;
+  padding: 15px 10px;
+  border: 2px solid #e9ecef;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.duelo-trophy-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  border-color: #ffd700;
+}
+
+.duelo-trophy-icon {
+  font-size: 1.8rem;
+  margin-bottom: 5px;
+}
+
+.duelo-trophy-name {
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.duelo-trophy-count {
+  color: #ffd700 !important;
+  font-size: 1.1rem;
+}
+
+.duelo-stats-final .duelo-stat-box {
+  background: #fff;
+  border-radius: 10px;
+  padding: 15px;
+  border: 1px solid #e9ecef;
+}
+
+.duelo-stats-final .duelo-vs {
+  font-size: 2rem;
+}
