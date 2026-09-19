@@ -1,6 +1,10 @@
 // REST nativo: sin SDK ni claves administrativas. Sesión solo en memoria.
 (function() {
   "use strict";
+  function textoConta(clave, fallback) {
+    const valor = typeof t === "function" ? t(clave) : clave;
+    return valor === clave ? fallback : valor;
+  }
   let sesion = null;
   let renovacion = null;
   let generacion = 0;
@@ -19,10 +23,10 @@
       });
       if (!res.ok) {
         const error = new Error(res.status === 429
-          ? "Demasiados intentos. Esperá unos minutos antes de reintentar."
+          ? textoConta("cuentaError429", "Demasiados intentos. Esperá unos minutos antes de reintentar.")
           : res.status === 401 || res.status === 403
-            ? "No se autorizó la operación. Revisá tu sesión y la confirmación del correo."
-            : "No se pudo completar la operación. Revisá los datos o intentá más tarde.");
+            ? textoConta("cuentaErrorAuth", "No se autorizó la operación. Revisá tu sesión y la confirmación del correo.")
+            : textoConta("cuentaErrorGeneral", "No se pudo completar la operación. Revisá los datos o intentá más tarde."));
         error.status = res.status;
         throw error;
       }
@@ -30,7 +34,7 @@
       return texto ? JSON.parse(texto) : null;
     } catch (error) {
       if (error.status) throw error;
-      throw new Error("No se pudo conectar con las cuentas. Revisá internet e intentá otra vez.");
+      throw new Error(textoConta("cuentaErrorConexion", "No se pudo conectar con las cuentas. Revisá internet e intentá otra vez."));
     } finally {
       clearTimeout(timer);
     }
@@ -38,7 +42,7 @@
 
   function aceptarSesion(datos) {
     if (!datos || !datos.access_token || !datos.refresh_token || !datos.user || !datos.user.id) {
-      throw new Error("El servidor no devolvió una sesión válida.");
+      throw new Error(textoConta("cuentaErrorSesion", "El servidor no devolvió una sesión válida."));
     }
     sesion = {
       token: datos.access_token, refresh: datos.refresh_token, user: datos.user.id,
@@ -47,7 +51,7 @@
   }
 
   async function tokenActual() {
-    if (!sesion) throw new Error("Iniciá sesión para usar tu perfil.");
+    if (!sesion) throw new Error(textoConta("cuentaErrorIniciar", "Iniciá sesión para usar tu perfil."));
     if (sesion.vence > Date.now() + 60000) return sesion.token;
     if (!renovacion) {
       const version = generacion;

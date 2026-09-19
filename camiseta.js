@@ -14,6 +14,10 @@
   "use strict";
 
   const DORSAL_DEFAULT = 10;
+  const PALETA_CAMISETA_DEFAULT = Object.freeze({ principal: "#75aadb", sombra: "#0d2b45", texto: "#0d2b45" });
+  let paletaCamiseta = Object.assign({}, PALETA_CAMISETA_DEFAULT);
+  let imagenClubAnalizada = "";
+  let tokenAnalisisPaleta = 0;
 
   function tCam(clave, fallback) {
     try {
@@ -45,7 +49,8 @@
   // Remera celeste lisa con nombre y numero en la espalda.
   // El nombre se auto-ajusta (tamano de fuente + textLength) para que
   // NUNCA se desborde de la casaca ni quede desfasado del torso.
-  function camisetaSVG(nombre, dorsal, mostrarNombre) {
+  function camisetaSVG(nombre, dorsal, mostrarNombre, paleta) {
+    paleta = paleta || PALETA_CAMISETA_DEFAULT;
     const num = clampDorsal(dorsal);
     const textoNombre = String(nombre || "").trim().toUpperCase();
     const nombreCorto = textoNombre ? escaparCam(textoNombre.slice(0, 12)) : "···";
@@ -62,14 +67,92 @@
     const fsNumero = mostrarNombre ? 24 : 40; // mini casaca sin nombre: conservar legibilidad
     const cuerpo =
       '<path d="M30 14 L48 6 Q60 18 72 6 L90 14 L104 26 L96 44 L84 38 L84 104 Q60 110 36 104 L36 38 L24 44 L16 26 Z" ' +
-      'fill="#75aadb" stroke="#0d2b45" stroke-width="2.5" stroke-linejoin="round"/>' +
-      '<path d="M46 8 Q60 22 74 8" fill="none" stroke="#0d2b45" stroke-width="3" stroke-linecap="round"/>';
+      'fill="' + paleta.principal + '" stroke="' + paleta.sombra + '" stroke-width="2.5" stroke-linejoin="round"/>' +
+      '<path d="M46 8 Q60 22 74 8" fill="none" stroke="' + paleta.sombra + '" stroke-width="3" stroke-linecap="round"/>';
     const etiqueta = mostrarNombre
-      ? '<text x="60" y="' + yNombre + '" text-anchor="middle" font-size="' + fsNombre.toFixed(1) + '" font-weight="700" letter-spacing="0.5" fill="#0d2b45"' + compresion + '>' + nombreCorto + '</text>'
+      ? '<text x="60" y="' + yNombre + '" text-anchor="middle" font-size="' + fsNombre.toFixed(1) + '" font-weight="700" letter-spacing="0.5" fill="' + paleta.texto + '"' + compresion + '>' + nombreCorto + '</text>'
       : "";
-    const numero = '<text x="60" y="' + yNumero + '" text-anchor="middle" font-size="' + fsNumero + '" font-weight="800" fill="#0d2b45">' + num + '</text>';
+    const numero = '<text x="60" y="' + yNumero + '" text-anchor="middle" font-size="' + fsNumero + '" font-weight="800" fill="' + paleta.texto + '">' + num + '</text>';
     return '<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Casaca número ' + num + '">' +
       cuerpo + etiqueta + numero + '</svg>';
+  }
+
+  function colorHex(r, g, b) {
+    return "#" + [r, g, b].map(function(v) { return Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0"); }).join("");
+  }
+
+  function colorLuminancia(r, g, b) {
+    return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  }
+
+  function paletaDesdePixeles(pixeles) {
+    const cubetas = {};
+    for (let i = 0; i < pixeles.length; i += 4) {
+      const alpha = pixeles[i + 3];
+      if (alpha < 100) continue;
+      const r = pixeles[i], g = pixeles[i + 1], b = pixeles[i + 2];
+      const maximo = Math.max(r, g, b), minimo = Math.min(r, g, b);
+      const saturacion = maximo === 0 ? 0 : (maximo - minimo) / maximo;
+      const brillo = (r + g + b) / 3;
+      if ((brillo > 238 && saturacion < 0.18) || brillo < 18) continue;
+      const qr = Math.round(r / 24) * 24, qg = Math.round(g / 24) * 24, qb = Math.round(b / 24) * 24;
+      const clave = qr + "," + qg + "," + qb;
+      if (!cubetas[clave]) cubetas[clave] = { r: qr, g: qg, b: qb, cantidad: 0, saturacion: 0 };
+      cubetas[clave].cantidad++;
+      cubetas[clave].saturacion += saturacion;
+    }
+    const candidatos = Object.keys(cubetas).map(function(k) { return cubetas[k]; });
+    if (!candidatos.length) return Object.assign({}, PALETA_CAMISETA_DEFAULT);
+    candidatos.sort(function(a, b) {
+      return (b.cantidad * (1 + b.saturacion / b.cantidad)) - (a.cantidad * (1 + a.saturacion / a.cantidad));
+    });
+    const dominante = candidatos[0];
+    const principal = { r: dominante.r, g: dominante.g, b: dominante.b };
+    const sombra = { r: principal.r * 0.42, g: principal.g * 0.42, b: principal.b * 0.42 };
+    const luminancia = colorLuminancia(principal.r, principal.g, principal.b);
+    return {
+      principal: colorHex(principal.r, principal.g, principal.b),
+      sombra: colorHex(sombra.r, sombra.g, sombra.b),
+      texto: luminancia > 0.58 ? "#102030" : "#ffffff"
+    };
+  }
+
+  function actualizarPaletaCamiseta(club) {
+    const imagen = club && club.imagen;
+    if (!imagen || typeof Image === "undefined") {
+      paletaCamiseta = Object.assign({}, PALETA_CAMISETA_DEFAULT);
+      imagenClubAnalizada = "";
+      refrescarCamisetaHeader();
+      return;
+    }
+    if (imagen === imagenClubAnalizada) return;
+    const token = ++tokenAnalisisPaleta;
+    const imagenEscudo = new Image();
+    imagenEscudo.onload = function() {
+      if (token !== tokenAnalisisPaleta) return;
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = 32;
+        canvas.height = 32;
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        ctx.clearRect(0, 0, 32, 32);
+        ctx.drawImage(imagenEscudo, 0, 0, 32, 32);
+        paletaCamiseta = paletaDesdePixeles(ctx.getImageData(0, 0, 32, 32).data);
+        imagenClubAnalizada = imagen;
+        refrescarCamisetaHeader();
+      } catch (e) {
+        paletaCamiseta = Object.assign({}, PALETA_CAMISETA_DEFAULT);
+        imagenClubAnalizada = imagen;
+        refrescarCamisetaHeader();
+      }
+    };
+    imagenEscudo.onerror = function() {
+      if (token !== tokenAnalisisPaleta) return;
+      paletaCamiseta = Object.assign({}, PALETA_CAMISETA_DEFAULT);
+      imagenClubAnalizada = imagen;
+      refrescarCamisetaHeader();
+    };
+    imagenEscudo.src = imagen;
   }
 
   function dorsalActual() {
@@ -80,7 +163,10 @@
   function refrescarCamisetaHeader() {
     const cont = document.getElementById("camiseta-badge");
     if (!cont) return;
-    cont.innerHTML = camisetaSVG("", dorsalActual(), false);
+    const nombre = (typeof jugador !== "undefined" && jugador && jugador.nombre) ? jugador.nombre : "";
+    cont.innerHTML = camisetaSVG(nombre, dorsalActual(), !!nombre, paletaCamiseta);
+    cont.style.setProperty("--camiseta-color", paletaCamiseta.principal);
+    cont.style.setProperty("--camiseta-sombra", paletaCamiseta.sombra);
   }
 
   function renderizarCamisetaPreview() {
@@ -90,7 +176,7 @@
     const inputDorsal = document.getElementById("input-dorsal");
     const nombre = inputNombre ? inputNombre.value : "";
     const dorsal = inputDorsal ? inputDorsal.value : DORSAL_DEFAULT;
-    cont.innerHTML = camisetaSVG(nombre, dorsal, true);
+    cont.innerHTML = camisetaSVG(nombre, dorsal, true, PALETA_CAMISETA_DEFAULT);
   }
 
   // ---------------- SELECTOR DE POSICION (cancha 6v6) ----------------
@@ -163,6 +249,7 @@
       if (arranco && typeof jugador !== "undefined" && jugador && jugador.nombre) {
         jugador.dorsal = dorsal;
         if (typeof guardarPartida === "function") guardarPartida();
+        actualizarPaletaCamiseta(jugador.clubActual);
         refrescarCamisetaHeader();
       }
     } catch (e) { /* ignorar */ }
@@ -172,7 +259,10 @@
   const _actualizarInterfazBaseCam = actualizarInterfaz;
   actualizarInterfaz = function() {
     _actualizarInterfazBaseCam();
-    try { refrescarCamisetaHeader(); } catch (e) { /* ignorar */ }
+    try {
+      refrescarCamisetaHeader();
+      actualizarPaletaCamiseta(typeof jugador !== "undefined" ? jugador.clubActual : null);
+    } catch (e) { /* ignorar */ }
   };
 
   // traducirInterfaz: actualiza los tooltips de las posiciones

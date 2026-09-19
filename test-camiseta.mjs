@@ -172,7 +172,7 @@ asertar(previewCaseros.includes('font-size="8.0"'), "nombre de 7 letras auto-aju
 asertar(previewCaseros.includes('textLength="41.1"'), "CASEROS tiene un ancho definido dentro del torso");
 asertar(/y="60"/.test(previewCaseros) && /y="90"/.test(previewCaseros), "nombre (y=60) y numero (y=90) separados y centrados");
 asertar(previewCaseros.includes('font-size="24"'), "dorsal reducido de 40 a 24 en la vista con nombre");
-asertar(elementos["camiseta-badge"].innerHTML.includes('font-size="40"'), "mini casaca sin nombre conserva un dorsal legible");
+asertar(elementos["camiseta-badge"].innerHTML.includes('font-size="24"') && elementos["camiseta-badge"].innerHTML.includes("TEST") && elementos["camiseta-badge"].innerHTML.includes(">30<"), "la camiseta del juego muestra nombre y dorsal legibles");
 
 elementos["input-nombre"].value = "MUYLARGONOMBRE";
 elementos["input-nombre"].listeners.input();

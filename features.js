@@ -134,15 +134,21 @@ function chequearLogros() {
 
 function mostrarPanelLogros() {
   const desbloqueados = jugador.logros || [];
-  let html = "<h6 class='mb-3'>🏅 Logros</h6><div class='row g-2'>";
+  const portugues = typeof prefs !== "undefined" && prefs.idioma === "pt";
+  const titulo = typeof t === "function" ? t("logrosTitulo") : "🏅 Logros";
+  const completado = typeof t === "function" ? t("logroCompletado") : "✅ Completado";
+  const pendente = typeof t === "function" ? t("logroPendiente") : "⬜ Pendiente";
+  let html = "<h6 class='mb-3'>" + titulo + "</h6><div class='row g-2'>";
   LOGROS.forEach(function(l) {
     const ok = desbloqueados.indexOf(l.id) !== -1;
+    const nombre = portugues && l.nombrePt ? l.nombrePt : l.nombre;
+    const descripcion = portugues && l.descPt ? l.descPt : l.desc;
     html += "<div class='col-6 col-md-4'><div class='border rounded p-2 text-center h-100 " +
       (ok ? "border-warning" : "border-secondary opacity-50") + "'>" +
       "<div style='font-size:1.5rem'>" + l.emoji + "</div>" +
-      "<div class='fw-bold small'" + (ok ? " style='text-decoration:line-through;'" : "") + ">" + l.nombre + "</div>" +
-      "<div class='text-secondary' style='font-size:0.72rem'>" + l.desc + "</div>" +
-      (ok ? "<div class='small text-success fw-bold'>✅ Completado</div>" : "<div class='small text-secondary'>⬜ Pendiente</div>") +
+      "<div class='fw-bold small'" + (ok ? " style='text-decoration:line-through;'" : "") + ">" + nombre + "</div>" +
+      "<div class='text-secondary' style='font-size:0.72rem'>" + descripcion + "</div>" +
+      (ok ? "<div class='small text-success fw-bold'>" + completado + "</div>" : "<div class='small text-secondary'>" + pendente + "</div>") +
       "</div></div>";
   });
   html += "</div>";
@@ -227,8 +233,8 @@ function guardarEnRanking() {
     const titulos = (jugador.trofeos.primeraDivision || 0) + (jugador.trofeos.segundaDivision || 0) +
                     (jugador.trofeos.copaDeCampeones || 0) + (jugador.trofeos.copaArgentina || 0) +
                     (jugador.trofeos.copaApa || 0);
-    ranking.push({ nombre: jugador.nombre, media: jugador.media, titulos: titulos, anio: new Date().getFullYear() });
-    ranking.sort(function(a, b) { return b.media - a.media; });
+    ranking.push({ nombre: jugador.nombre, media: jugador.media, titulos: titulos, anio: new Date().getFullYear(), ts: Date.now() });
+    ranking.sort(compararRanking);
     ranking = ranking.slice(0, 10);
     localStorage.setItem(RANKING_KEY, JSON.stringify(ranking));
   } catch (e) {}
@@ -238,6 +244,7 @@ function mostrarRanking() {
   let ranking = [];
   try { ranking = JSON.parse(localStorage.getItem(RANKING_KEY) || "[]"); } catch (e) {}
   if (ranking.length === 0) { mostrarNotificacion("Ranking", "Todavía no hay carreras registradas."); return; }
+  ranking.sort(compararRanking);
   let html = "<h6>🏆 Mejores Carreras</h6><ol class='mt-2'>";
   ranking.forEach(function(r) {
     html += "<li><strong>" + r.nombre + "</strong> — " + r.media + " OVR, " + r.titulos + " títulos</li>";
@@ -637,6 +644,230 @@ function chequearModoDesafio() {
 }
 
 // ------------------------------------------------------------
+// REDES SOCIALES: jugadores precargados
+// ------------------------------------------------------------
+function asegurarEstadoRedes() {
+  if (!jugador.redesSociales) jugador.redesSociales = {};
+  if (!Array.isArray(jugador.redesSociales.feed)) jugador.redesSociales.feed = [];
+  if (!jugador.redesSociales.rivalidades || typeof jugador.redesSociales.rivalidades !== "object") jugador.redesSociales.rivalidades = {};
+  if (!Object.prototype.hasOwnProperty.call(jugador.redesSociales, "cadenaActual")) jugador.redesSociales.cadenaActual = null;
+  return jugador.redesSociales;
+}
+
+function escRed(texto) {
+  return String(texto == null ? "" : texto)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+function totalTitulosRed() {
+  const t = jugador.trofeos || {};
+  return (t.primeraDivision || 0) + (t.segundaDivision || 0) +
+    (t.copaDeCampeones || 0) + (t.copaArgentina || 0) + (t.copaApa || 0);
+}
+
+function rachaRed() {
+  const h = jugador.historialTemporadas || [];
+  let racha = 0;
+  for (let i = h.length - 1; i >= 0; i--) {
+    const t = h[i];
+    if ((t.goles || 0) + (t.asistencias || 0) > 0 || t.trofeos !== "Ninguno") racha++;
+    else break;
+  }
+  return racha;
+}
+
+function jugadorRedAleatorio(excluir) {
+  const nombres = Object.keys(PERSONAJES_REDES).filter(function(nombre) { return nombre !== excluir; });
+  return nombres[Math.floor(Math.random() * nombres.length)] || "Caseros";
+}
+
+function rivalRedActual() {
+  const club = jugador.clubActual;
+  if (!club) return CLUBES[0];
+  const rivalidad = (typeof RIVALIDADES !== "undefined" ? RIVALIDADES : []).filter(function(r) {
+    if (r.clubA !== club.nombre && r.clubB !== club.nombre) return false;
+    const nombreRival = r.clubA === club.nombre ? r.clubB : r.clubA;
+    return CLUBES.some(function(c) { return c.nombre === nombreRival; });
+  }).sort(function(a, b) { return b.fuerza - a.fuerza; })[0];
+  if (rivalidad) {
+    const nombre = rivalidad.clubA === club.nombre ? rivalidad.clubB : rivalidad.clubA;
+    return CLUBES.find(function(c) { return c.nombre === nombre; }) || club;
+  }
+  return CLUBES.filter(function(c) {
+    return c.nombre !== club.nombre && Math.abs((c.reputacion || 0) - (club.reputacion || 0)) <= 1;
+  })[0] || CLUBES.find(function(c) { return c.nombre !== club.nombre; }) || club;
+}
+
+function claveRivalidadRed(clubA, clubB) {
+  return [clubA || "", clubB || ""].sort().join("|");
+}
+
+function registrarRivalidadRed(clubA, clubB, intensidad) {
+  if (!clubA || !clubB || clubA === clubB) return 0;
+  const redes = asegurarEstadoRedes();
+  const clave = claveRivalidadRed(clubA, clubB);
+  redes.rivalidades[clave] = Math.min(10, (redes.rivalidades[clave] || 0) + (intensidad || 1));
+  return redes.rivalidades[clave];
+}
+
+function contextoRedSocial(momento, rival) {
+  const ultima = jugador.historialTemporadas && jugador.historialTemporadas[jugador.historialTemporadas.length - 1];
+  const anterior = jugador.historialTemporadas && jugador.historialTemporadas[jugador.historialTemporadas.length - 2];
+  const cambio = anterior && ultima && anterior.club !== ultima.club;
+  const titulos = ultima && ultima.trofeos !== "Ninguno" ? ultima.trofeos : "sin títulos";
+  const produccion = ultima ? ((ultima.goles || 0) + " goles y " + (ultima.asistencias || 0) + " asistencias") : "todavía sin estadísticas";
+  const rivalidad = rival ? asegurarEstadoRedes().rivalidades[claveRivalidadRed(jugador.clubActual && jugador.clubActual.nombre, rival.nombre)] || 0 : 0;
+  return {
+    momento: momento,
+    club: jugador.clubActual ? jugador.clubActual.nombre : "su club",
+    rival: rival ? rival.nombre : "el rival",
+    resultado: ultima && ultima.trofeos !== "Ninguno" ? "ganó " + ultima.trofeos : (ultima ? "cerró la temporada sin títulos" : "se prepara para debutar"),
+    competicion: ultima && ultima.club && ultima.club.indexOf("Primera") !== -1 ? "Primera División" : "la temporada",
+    rendimiento: produccion,
+    titulos: totalTitulosRed(),
+    racha: rachaRed(),
+    fichaje: cambio ? "llegó desde " + anterior.club : "sigue en " + (jugador.clubActual ? jugador.clubActual.nombre : "su club"),
+    rivalidad: rivalidad
+  };
+}
+
+function textoDeclaracionRed(autor, estilo, contexto, sobreUsuario) {
+  const sujeto = sobreUsuario ? jugador.nombre : "el equipo";
+  const pt = typeof prefs !== "undefined" && prefs.idioma === "pt";
+  if (pt) {
+    if (contexto.momento === "antes") {
+      if (estilo === "muy_picante") return "No " + contexto.club + ". falam de " + sujeto + ", mas contra " + contexto.rival + " veremos quem aguenta a pressão. Promessa não ganha jogo.";
+      if (estilo === "picante") return "Estamos prontos para " + contexto.rival + ". " + sujeto + " vem bem, mas a partida vai mostrar a verdade.";
+      return "Vem aí uma partida importante entre " + contexto.club + " e " + contexto.rival + ". O grupo confia em " + sujeto + ".";
+    }
+    if (estilo === "muy_picante") return "Vencemos " + contexto.rival + " e " + sujeto + " terminou com " + contexto.rendimiento + ". " + contexto.fichaje + ". Já somamos " + contexto.titulos + " títulos.";
+    if (estilo === "picante") return "Depois de " + contexto.resultado + " em " + contexto.competicion + ", " + sujeto + " tem " + contexto.rendimiento + ". " + contexto.fichaje + ". Alguns ainda continuam falando.";
+    return "Temporada encerrada: " + sujeto + " contribuiu com " + contexto.rendimiento + ", e " + contexto.resultado + ". " + contexto.fichaje + ". A sequência positiva está em " + contexto.racha + ".";
+  }
+  if (contexto.momento === "antes") {
+    if (estilo === "muy_picante") return "En " + contexto.club + " hablan de " + sujeto + ", pero contra " + contexto.rival + " se ve quién aguanta la presión. No se gana con promesas.";
+    if (estilo === "picante") return "Estamos listos para " + contexto.rival + ". " + sujeto + " viene bien, aunque el partido va a decir toda la verdad.";
+    return "Se viene un partido importante entre " + contexto.club + " y " + contexto.rival + ". Hay confianza en el grupo y en " + sujeto + ".";
+  }
+  if (estilo === "muy_picante") return "Ganamos contra " + contexto.rival + " y " + sujeto + " terminó con " + contexto.rendimiento + ". " + contexto.fichaje + ". Que miren la tabla: ya sumamos " + contexto.titulos + " títulos.";
+  if (estilo === "picante") return "Después de " + contexto.resultado + " en " + contexto.competicion + ", " + sujeto + " lleva " + contexto.rendimiento + ". " + contexto.fichaje + ". Algunos todavía siguen hablando.";
+  return "Temporada cerrada: " + sujeto + " aportó " + contexto.rendimiento + ", con " + contexto.resultado + ". " + contexto.fichaje + ". La racha positiva queda en " + contexto.racha + ".";
+}
+
+function viralidadRed(estilo, contexto, esRespuesta) {
+  let valor = estilo === "muy_picante" ? 78 : estilo === "picante" ? 52 : 28;
+  if (contexto.momento === "despues") valor += 8;
+  if (contexto.rivalidad >= 3) valor += 10;
+  if (contexto.titulos > 0) valor += 5;
+  if (contexto.racha >= 2) valor += 6;
+  if (contexto.rendimiento.indexOf("0 goles") === -1) valor += 5;
+  if (esRespuesta) valor += 9;
+  return Math.min(99, valor + Math.floor(Math.random() * 8));
+}
+
+function publicarRedSocial(autor, estilo, momento, contexto, sobreUsuario, respuestaA) {
+  const redes = asegurarEstadoRedes();
+  const post = {
+    id: "red-" + Date.now() + "-" + Math.floor(Math.random() * 10000),
+    temporada: jugador.temporadaActual,
+    momento: momento,
+    autor: autor,
+    estilo: estilo,
+    texto: textoDeclaracionRed(autor, estilo, contexto, sobreUsuario),
+    viralidad: viralidadRed(estilo, contexto, !!respuestaA),
+    contexto: contexto,
+    respuestaA: respuestaA || null,
+    respuestas: []
+  };
+  redes.feed.push(post);
+  if (estilo !== "normal") {
+    contexto.rivalidad = registrarRivalidadRed(contexto.club, contexto.rival, estilo === "muy_picante" ? 2 : 1);
+  }
+  return post;
+}
+
+function generarRespuestaRedSocial(post, contexto) {
+  if (!post || post.respuestas.length >= CONFIG.REDES.MAX_RESPUESTAS) return null;
+  const autor = jugadorRedAleatorio(post.autor);
+  const estilo = obtenerPersonalidadRed(autor).estilo;
+  const pt = typeof prefs !== "undefined" && prefs.idioma === "pt";
+  const texto = pt
+    ? (estilo === "muy_picante"
+      ? "Li o que " + post.autor + " disse: \"" + String(post.texto || "essa declaração").slice(0, 54) + "...\". Se quiser responder, faça isso depois de jogar contra " + contexto.rival + "."
+      : estilo === "picante"
+        ? "Vamos baixar a bola, " + post.autor + ": eu vi sua declaração anterior e os resultados de " + contexto.competicion + " falam por si."
+        : "Li a declaração anterior. Todos podem opinar, mas primeiro é preciso jogar e respeitar o adversário.")
+    : estilo === "muy_picante"
+    ? "Leí lo de " + post.autor + ": \"" + String(post.texto || "esa declaración").slice(0, 54) + "...\". Si quiere responder, que lo haga después de jugar contra " + contexto.rival + "."
+    : estilo === "picante"
+      ? "Bajemos un cambio, " + post.autor + ": vi su declaración anterior y los resultados de " + contexto.competicion + " hablan solos."
+      : "Leí la declaración anterior. Cada uno puede opinar, pero primero hay que jugar y respetar al rival.";
+  const respuesta = {
+    id: "red-res-" + Date.now() + "-" + Math.floor(Math.random() * 10000),
+    autor: autor,
+    estilo: estilo,
+    texto: texto,
+    viralidad: viralidadRed(estilo, contexto, true),
+    respuestaA: post.id
+  };
+  post.respuestas.push(respuesta);
+  if (post.respuestas.length < CONFIG.REDES.MAX_RESPUESTAS && respuesta.viralidad >= 65 && Math.random() < 0.55) {
+    generarRespuestaRedSocial({ autor: autor, respuestas: post.respuestas }, contexto);
+  }
+  return respuesta;
+}
+
+function generarRedesAntesPartido() {
+  if (Math.random() >= CONFIG.REDES.PROB_DECLARACION) return [];
+  const rival = rivalRedActual();
+  const contexto = contextoRedSocial("antes", rival);
+  const autor = jugadorRedAleatorio();
+  const post = publicarRedSocial(autor, obtenerPersonalidadRed(autor).estilo, "antes", contexto, true, null);
+  if (post.estilo !== "normal" && Math.random() < CONFIG.REDES.PROB_RESPUESTA) generarRespuestaRedSocial(post, contexto);
+  asegurarEstadoRedes().cadenaActual = post.id;
+  return [post];
+}
+
+function generarRedesDespuesPartido() {
+  const rival = rivalRedActual();
+  const contexto = contextoRedSocial("despues", rival);
+  const creados = [];
+  if (Math.random() < CONFIG.REDES.PROB_DECLARACION) {
+    const autor = jugadorRedAleatorio();
+    const post = publicarRedSocial(autor, obtenerPersonalidadRed(autor).estilo, "despues", contexto, true, asegurarEstadoRedes().cadenaActual);
+    creados.push(post);
+    if (post.estilo !== "normal" && Math.random() < CONFIG.REDES.PROB_RESPUESTA) generarRespuestaRedSocial(post, contexto);
+  }
+  asegurarEstadoRedes().cadenaActual = creados[0] ? creados[0].id : null;
+  return creados;
+}
+
+function renderizarFeedRedes() {
+  asegurarEstadoRedes();
+  const contenedores = [document.getElementById("redes-feed"), document.getElementById("redes-feed-lateral")].filter(Boolean);
+  if (!contenedores.length) return;
+  const posts = jugador.redesSociales.feed.slice(-3).reverse();
+  if (!posts.length) {
+    contenedores.forEach(function(cont) { cont.innerHTML = "<p class='text-secondary text-center mb-0'>" + t("redesVacio") + "</p>"; });
+    return;
+  }
+  const html = posts.map(function(post) {
+    const respuestas = (post.respuestas || []).map(function(res) {
+      return "<div class='border-start border-warning ps-2 mt-2 small'><strong>" + escRed(res.autor) + "</strong> <span class='text-secondary'>" + escRed(t("redesResponde")) + "</span><br>" + escRed(res.texto) + "<br><span class='text-danger'>🔥 " + res.viralidad + " " + escRed(t("viralidad")) + "</span></div>";
+    }).join("");
+    return "<article class='red-social-post border rounded p-2 mb-2'><div class='d-flex justify-content-between gap-2'><strong>@" + escRed(post.autor) + "</strong><span class='badge text-bg-" + (post.estilo === "muy_picante" ? "danger" : post.estilo === "picante" ? "warning" : "secondary") + "'>" + escRed(post.estilo) + "</span></div><div class='small text-secondary'>" + post.temporada + " · " + escRed(post.momento) + " · " + escRed(post.contexto.club) + " vs " + escRed(post.contexto.rival) + "</div><p class='mb-1 mt-1'>" + escRed(post.texto) + "</p><span class='small text-danger'>🔥 " + post.viralidad + " " + escRed(t("viralidad")) + "</span>" + respuestas + "</article>";
+  }).join("");
+  contenedores.forEach(function(cont) { cont.innerHTML = html; });
+}
+
+function mostrarRedesSociales() {
+  renderizarFeedRedes();
+  const modal = document.getElementById("modalRedesSociales");
+  if (modal && typeof bootstrap !== "undefined") bootstrap.Modal.getOrCreateInstance(modal).show();
+}
+
+// ------------------------------------------------------------
 //  WRAPPERS: extender funciones de app.js sin romperlas
 // ------------------------------------------------------------
 
@@ -685,6 +916,7 @@ iniciarCarrera = function() {
   jugador.posicion = document.getElementById("select-posicion").value;
   document.getElementById("pantalla-inicio").classList.add("hidden");
   document.getElementById("pantalla-juego").classList.remove("hidden");
+  ocultarPanelCuenta();
   activarModoDesafio();
   prepararSiguienteEvento();
   actualizarInterfaz();
@@ -737,6 +969,7 @@ generarOfertasDeFichaje = function(ascendioPorTitulo) {
 
 const _simularTemporadaBase = simularTemporada;
 simularTemporada = function() {
+  generarRedesAntesPartido();
   const mediaOriginal = jugador.media;
   const ajusteMoral = Math.round((jugador.moral - 50) * CONFIG.MORAL_EFECTO * 0.2);
   const mediaConBonus = clampMedia(mediaOriginal + ajusteMoral);
@@ -752,6 +985,7 @@ simularTemporada = function() {
   if (ultima) ultima.media = jugador.media;
 
   ajustarMoral(5);
+  guardarPartida();
   chequearLogros();
   chequearModoDesafio();
 };
@@ -759,6 +993,7 @@ simularTemporada = function() {
 const _actualizarInterfazBase = actualizarInterfaz;
 actualizarInterfaz = function() {
   _actualizarInterfazBase();
+  renderizarFeedRedes();
   const em = document.getElementById("j-moral");
   if (em) {
     const est = estadoMoral();

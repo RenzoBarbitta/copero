@@ -109,4 +109,20 @@ for (const url of ['https://textdb.dev/api/data/test',
     respondWith() { interceptada = true; } });
   assert.equal(interceptada, false, 'SW no cachea consultas de datos');
 }
+
+const rankingCtx = vm.createContext({ console, Math, Date, JSON, localStorage: { getItem: () => null, setItem: () => {} } });
+vm.runInContext(read('data.js'), rankingCtx);
+assert.equal(typeof vm.runInContext('compararRanking', rankingCtx), 'function', 'comparador de ranking disponible');
+const ordenado = [
+  { media: 80, titulos: 1, ts: 50 },
+  { media: 80, titulos: 3, ts: 30 },
+  { media: 79, titulos: 5, ts: 90 },
+  { media: 79, titulos: 5, ts: 10 }
+].sort(vm.runInContext('compararRanking', rankingCtx));
+assert.deepEqual([ordenado[0].titulos, ordenado[1].titulos, ordenado[2].titulos, ordenado[3].titulos], [3, 1, 5, 5], 'OVR primero, títulos segundo y timestamp como desempate');
+const configRanking = vm.runInContext('CONFIG', rankingCtx);
+assert.ok(configRanking.PROMESA.PROB < 0.10, 'promesa: probabilidad baja y configurable');
+assert.equal(configRanking.PROMESA.OVR_INICIAL, 70, 'promesa: OVR inicial de 70');
+assert.ok(configRanking.PROB_LORO < 0.08, 'LORO: frecuencia reducida respecto al valor original');
+
 console.log('OK: apertura, refresco, cambios remotos, concurrencia, error, reconexión, visibilidad, cierre, reapertura y exclusión de API en SW.');

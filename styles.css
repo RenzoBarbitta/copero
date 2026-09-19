@@ -50,12 +50,21 @@ body {
 .tabla-historial td {
   vertical-align: middle;
   overflow-wrap: anywhere;
-  padding-left: 4px;
-  padding-right: 4px;
+  padding: 7px 6px;
 }
 
 .tabla-historial th {
   white-space: nowrap;
+}
+
+@media (min-width: 577px) {
+  #pantalla-juego .card-custom {
+    padding: 1.25rem !important;
+  }
+
+  #pantalla-juego .tabla-historial {
+    font-size: 0.95rem;
+  }
 }
 
 .tabla-historial th:nth-child(1), .tabla-historial td:nth-child(1) { width: 12%; }
@@ -437,6 +446,23 @@ body, .btn, .form-control, .form-select, .nav-link, .modal-content {
 
 .tabla-ranking td { vertical-align: middle; }
 
+.redes-lateral {
+  position: sticky;
+  top: 1rem;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.red-social-post {
+  background: rgba(220, 53, 69, 0.035);
+  border-color: rgba(220, 53, 69, 0.25) !important;
+  font-size: 0.86rem;
+}
+
+body.modo-oscuro .red-social-post {
+  background: rgba(220, 53, 69, 0.1);
+}
+
 .ranking-fila-propia { background-color: rgba(255, 212, 59, 0.18); }
 
 body.modo-oscuro .ranking-fila-propia { background-color: rgba(255, 212, 59, 0.12); }
@@ -561,18 +587,28 @@ body.modo-oscuro .ranking-fila-propia { background-color: rgba(255, 212, 59, 0.1
 #camiseta-badge {
   display: flex;
   align-items: center;
+  justify-content: center;
+  width: 86px;
+  min-width: 86px;
+  height: 86px;
+  padding: 4px;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--camiseta-color, #75aadb) 35%, white), var(--camiseta-color, #75aadb));
+  border: 2px solid var(--camiseta-sombra, #0d2b45);
+  border-radius: 14px;
+  box-shadow: 0 4px 10px rgba(13, 43, 69, 0.22);
 }
 
 #camiseta-badge svg {
-  width: 44px;
-  height: 44px;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+  width: 78px;
+  height: 78px;
+  filter: drop-shadow(0 2px 2px rgba(13, 43, 69, 0.2));
 }
 
 @media (max-width: 576px) {
   .camiseta-preview { min-height: 190px; }
   .camiseta-preview svg { width: 150px; height: 150px; }
-  #camiseta-badge svg { width: 38px; height: 38px; }
+  #camiseta-badge { width: 66px; min-width: 66px; height: 66px; padding: 2px; }
+  #camiseta-badge svg { width: 62px; height: 62px; }
 }
 
 /* ==== DUELO 1v1 ONLINE (V2) ==== */
@@ -598,12 +634,13 @@ body.modo-oscuro .ranking-fila-propia { background-color: rgba(255, 212, 59, 0.1
   display: flex;
   flex-direction: column;
   min-width: 76px;
-  padding: 0 6px;
+  width: 78px;
+  height: 78px;
+  filter: drop-shadow(0 2px 2px rgba(13, 43, 69, 0.2));
 }
 .duelo-stat-num {
   font-size: 1.4rem;
   font-weight: bold;
-  line-height: 1.1;
 }
 .duelo-stat-lbl {
   font-size: 0.7rem;

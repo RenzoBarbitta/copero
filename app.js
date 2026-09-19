@@ -47,6 +47,11 @@ function crearJugadorInicial() {
     mvpTemporadas: [],
     rachaSinPerder: 0,
     mejorTemporada: null,
+    redesSociales: {
+      feed: [],
+      rivalidades: {},
+      cadenaActual: null
+    },
     trofeos: {
       segundaDivision: 0,
       primeraDivision: 0,
@@ -65,7 +70,8 @@ let ofertasActuales = [];
 // Instancias de Modales Bootstrap
 let modalInfo, modalDecision, modalFichajes, modalPenalInstance;
 let modalTLInstance, modalDominiosInstance, modalSSInstance;
-let modalRolInstance;
+let modalRolInstance, modalPartidoInteractivoInstance, modalMomentosClaveInstance;
+let estadoPartidoEspecial = null;
 
 // Variables de minijuegos
 let intervalTL = null;
@@ -203,6 +209,8 @@ document.addEventListener("DOMContentLoaded", () => {
   modalDominiosInstance = new bootstrap.Modal(document.getElementById('modalDominios'));
   modalSSInstance = new bootstrap.Modal(document.getElementById('modalSS'));
   modalRolInstance = new bootstrap.Modal(document.getElementById('modalRol'));
+  modalPartidoInteractivoInstance = new bootstrap.Modal(document.getElementById('modalPartidoInteractivo'));
+  modalMomentosClaveInstance = new bootstrap.Modal(document.getElementById('modalMomentosClave'));
 
   // Mostrar botón "Continuar" si hay partida guardada
   const btnContinuar = document.getElementById("btn-continuar");
@@ -308,6 +316,32 @@ const configsEventos = {
   },
   COCCARO: { titulo: "Invitación por plata", texto: "Coccaro te invita a jugar a su equipo LAFERRERE a cambio de plata.<br><br>¿Aceptas?" }
 };
+
+function eventoEnIdioma(config) {
+  if (!config || !(typeof prefs !== "undefined" && prefs.idioma === "pt")) return config;
+  const reemplazos = [
+    ["Salida con", "Saída com"], ["Invitación", "Convite"], ["Trucos de", "Truques de"], ["Entreno con", "Treino com"],
+    ["Promesa en", "Promessa no"], ["Oferta", "Oferta"], ["Curso de", "Curso de"], ["Paseo con", "Passeio com"],
+    ["Te invita a", "convida você para"], ["te invita a", "convida você para"], ["te pide", "pede para você"], ["te ofrece", "oferece a você"],
+    ["te da la oportunidad", "dá a você a oportunidade"], ["¿Aceptas", "Você aceita"], ["¿Aceptás", "Você aceita"], ["¿Qué haces?", "O que você faz?"],
+    ["¿Qué hacés?", "O que você faz?"], ["¿Vas?", "Você vai?"], ["¿Vas con el?", "Você vai com ele?"], ["¿Jugas", "Você joga"],
+    ["¿Practicas", "Você pratica"], ["¿Lo compras?", "Você compra?"], ["¿Los compras?", "Você compra?"], ["¿Aceptas usarlos?", "Você aceita usá-los?"],
+    ["¿Aceptas ir", "Você aceita ir"], ["¿Aceptas la partida?", "Você aceita a partida?"], ["¿Aceptas salir?", "Você aceita sair?"],
+    ["¿Se lo das?", "Você entrega?"], ["¿La practicas?", "Você pratica?"], ["Aceptas", "Aceitar"], ["Rechazar", "Recusar"],
+    ["Jugar", "Jogar"], ["Comer", "Comer"], ["Giros", "Giros"], ["Primos", "Primos"], ["Rankeds", "Rankeds"]
+  ];
+  function convertir(texto) {
+    return reemplazos.reduce((actual, par) => actual.split(par[0]).join(par[1]), String(texto || ""));
+  }
+  const traducido = Object.assign({}, config, { titulo: convertir(config.titulo), texto: convertir(config.texto) });
+  if (config.dosOpciones) {
+    traducido.dosOpciones = {
+      a: Object.assign({}, config.dosOpciones.a, { texto: convertir(config.dosOpciones.a.texto) }),
+      b: Object.assign({}, config.dosOpciones.b, { texto: convertir(config.dosOpciones.b.texto) })
+    };
+  }
+  return traducido;
+}
 
 
 //  CONDICIÓN OBLIGATORIA DE LORO
@@ -806,6 +840,315 @@ function iniciarMinijuegoDecisivoTemporada(tipoContexto, callback) {
 }
 
 // ============================================================
+//  PARTIDOS RANDOM INTERACTIVOS (baja frecuencia / configurable)
+//  No toca la lógica de finales: se reutiliza el mismo flujo de
+//  cierre de temporada cuando el partido especial se resuelve.
+// ============================================================
+function generarMomentoClave() {
+  const posicion = (jugador && jugador.posicion) || "DEL";
+  const catalogo = {
+    GK: [
+      { id: "arquero-salida", titulo: "🧤 Salida limpia", descripcion: "La pelota viene larga y hay que salir con decisión para sacar la presión.", contexto: "arquero", opciones: ["Salir por arriba", "Bajar y despejar", "Ir al centro del área"], exitoBase: 0.62 },
+      { id: "arquero-remate", titulo: "🛡️ Remate a quemarropa", descripcion: "El rival arma dentro del área y hay que adivinar la dirección del disparo.", contexto: "arquero", opciones: ["Tirarte al palo", "Bajar al centro", "Cubrir el primer poste"], exitoBase: 0.60 },
+      { id: "arquero-largo", titulo: "📤 Lanzamiento largo", descripcion: "El equipo necesita un pase largo para abrir la defensa rival.", contexto: "arquero", opciones: ["Lanzar largo", "Pase corto", "Pase al pivote"], exitoBase: 0.58 }
+    ],
+    DEF: [
+      { id: "despeje-defensa", titulo: "🧱 Despeje clave", descripcion: "Se arma una pelota cruzada y hay que cerrar el espacio antes del remate.", contexto: "defensiva", opciones: ["Despejar hacia la banda", "Sacarlo con el cuerpo", "Cruzar y tapar"], exitoBase: 0.60 },
+      { id: "corte-defensa", titulo: "✂️ Corte defensivo", descripcion: "El mediocampista rival intenta romper la línea y hay que cortar el pase.", contexto: "defensiva", opciones: ["Intervenir antes", "Pisar al jugador", "Esperar la pelota"], exitoBase: 0.58 },
+      { id: "corner-ofensivo", titulo: "⚽ Córner ofensivo", descripcion: "Hay un córner bien desarrollado. El contexto lo justifica para subir a rematar.", contexto: "córner ofensivo", opciones: ["Subir al primer palo", "Ir a la segunda línea", "Pedir el centro"], exitoBase: 0.52 }
+    ],
+    MED: [
+      { id: "mediocampo-recepcion", titulo: "🧠 Recepción bajo presión", descripcion: "Hay un pase filtrado y tenés que controlar primero para seguir el ataque.", contexto: "mediocampo", opciones: ["Controlar y girar", "Pisar y jugar de primera", "Dar un pase atrás"], exitoBase: 0.59 },
+      { id: "mediocampo-espacio", titulo: "📍 Romper líneas", descripcion: "Te abren un hueco entre líneas para empezar la jugada decisiva.", contexto: "mediocampo", opciones: ["Pase al hueco", "Recortar y tirar", "Mediocentro directo"], exitoBase: 0.57 },
+      { id: "mediocampo-espiga", titulo: "⚡ Transición rápida", descripcion: "El equipo rival está desordenado y hay una contra rápida para crear peligro.", contexto: "mediocampo", opciones: ["Pase profundo", "Sacar centro", "Jugar la pared"], exitoBase: 0.55 }
+    ],
+    DEL: [
+      { id: "remate-areas", titulo: "🎯 Remate en el área", descripcion: "Tenés la posición ideal para definir antes de que salga el arquero.", contexto: "ofensivo", opciones: ["Remate corto", "Zurdazo al palo", "Pique a la linea"], exitoBase: 0.61 },
+      { id: "desmarque", titulo: "🔀 Desmarque decisivo", descripcion: "Bajo presión te sacás a tu marcador y hay que aprovechar la ventana de ataque.", contexto: "ofensivo", opciones: ["Quedarte en el área", "Ir al espacio", "Pegar la vuelta"], exitoBase: 0.60 },
+      { id: "cabezazo", titulo: "🦶 Cabezazo a gol", descripcion: "El centro llega perfecto y hay que sentar el balón en el segundo palo.", contexto: "ofensivo", opciones: ["Cabezazo fuerte", "A la espalda", "Picarlo"], exitoBase: 0.59 }
+    ]
+  };
+
+  const pool = catalogo[posicion] || catalogo.DEL;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function formaRecientePartido() {
+  const historial = jugador.historialTemporadas || [];
+  const ultima = historial[historial.length - 1];
+  if (!ultima) return 60;
+  const produccion = (ultima.goles || 0) + (ultima.asistencias || 0);
+  return Math.max(25, Math.min(99, 50 + produccion * 2 + (ultima.trofeos !== "Ninguno" ? 12 : 0)));
+}
+
+function generarPartidoInteractivo() {
+  const club = jugador.clubActual || CLUBES[0];
+  const rivales = CLUBES.filter(c => c && c.nombre !== club.nombre);
+  const rival = rivales[Math.floor(Math.random() * rivales.length)] || CLUBES[0];
+  const esPrimera = club.reputacion > CONFIG.UMBRAL_PRIMERA && jugador.temporadasForzadoSegunda === 0;
+  const importancia = esPrimera ? (jugador.temporadaActual % 3 === 0 ? "Copa de Campeones" : "Primera División") : "Segunda División";
+  const local = Math.random() < 0.5;
+  const titular = jugador.media >= (club.reputacion * 10 - 5) || jugador.edad < 22;
+  const posicion = jugador.posicion === "CM" ? "MED" : jugador.posicion;
+  const minutos = titular ? 90 : 34;
+  const eventos = [15, 32, 58, 78].map(function(minuto, indice) {
+    const catalogo = {
+      GK: ["Ataque rival", "Remate a quemarropa", "Centro peligroso", "Último ataque"],
+      DEF: ["Ataque rival", "Corte defensivo", "Córner ofensivo", "Último ataque"],
+      MED: ["Salida bajo presión", "Recepción entre líneas", "Transición rápida", "Último ataque"],
+      DEL: ["Ataque rival", "Oportunidad del jugador", "Desmarque decisivo", "Último ataque"]
+    }[posicion] || [];
+    return { minuto, titulo: catalogo[indice], descripcion: "El partido entra en una fase decisiva.", opciones: [] };
+  });
+  return {
+    esPartidoInteractivo: true,
+    rival,
+    club,
+    competencia: importancia,
+    local,
+    titular,
+    posicion,
+    ovr: jugador.media,
+    estadoFisico: Math.max(45, Math.min(99, 82 + (jugador.edad < 25 ? 8 : 0) - (jugador.edad > 30 ? 12 : 0))),
+    moral: jugador.moral || 60,
+    forma: formaRecientePartido(),
+    importancia: importancia === "Copa de Campeones" ? "Muy alta" : "Alta",
+    minutos,
+    marcador: { club: 0, rival: 0 },
+    eventos,
+    indiceEvento: 0,
+    goles: 0,
+    asistencias: 0,
+    acciones: []
+  };
+}
+
+function accionesPartidoInteractivo(partido) {
+  const pos = partido.posicion;
+  if (pos === "GK") return [
+    { id: "salir", texto: "🧤 Sale a cortar", atributo: "estadoFisico" },
+    { id: "palo", texto: "🛡️ Cubre el palo", atributo: "moral" },
+    { id: "largo", texto: "📤 Saque largo", atributo: "forma" }
+  ];
+  if (pos === "DEF") return [
+    { id: "cortar", texto: "🛡️ Corta la jugada", atributo: "estadoFisico" },
+    { id: "cuerpo", texto: "💪 Protege el área", atributo: "moral" },
+    { id: "subir", texto: "⚡ Se suma al ataque", atributo: "forma" }
+  ];
+  if (pos === "MED") return [
+    { id: "pase", texto: "➡️ Pase filtrado", atributo: "forma" },
+    { id: "encara", texto: "⚡ Encara", atributo: "moral" },
+    { id: "pared", texto: "🏃 Juega la pared", atributo: "estadoFisico" }
+  ];
+  return [
+    { id: "encara", texto: "⚡ Encara", atributo: "moral" },
+    { id: "remata", texto: "🎯 Remata", atributo: "forma" },
+    { id: "pase", texto: "➡️ Pase", atributo: "estadoFisico" },
+    { id: "desmarque", texto: "🏃 Desmarque", atributo: "forma" },
+    { id: "protege", texto: "🛡️ Protege la pelota", atributo: "moral" }
+  ];
+}
+
+function resolverMomentoClave(situacion, decision, callback) {
+  if (!situacion) return;
+  const contexto = String(situacion.contexto || "normal");
+  const esDefensaCorner = situacion.posicion === "DEF" && contexto === "córner ofensivo";
+  const permitido = !(situacion.posicion === "DEF" && contexto === "córner ofensivo" && !situacion.tieneCantonOfensivo);
+  const tieneContextoValido = !esDefensaCorner || permitido;
+
+  const base = Number(situacion.exitoBase) || 0.55;
+  const exito = tieneContextoValido && Math.random() < base;
+
+  let bonus = { goles: 0, asistencias: 0, partidos: 0, gol: 0 };
+  if (situacion.posicion === "GK") {
+    bonus.asistencias = exito ? 1 : 0;
+  } else if (situacion.posicion === "DEF") {
+    bonus.goles = exito && contexto === "córner ofensivo" ? 1 : 0;
+    bonus.asistencias = exito && contexto !== "córner ofensivo" ? 1 : 0;
+  } else if (situacion.posicion === "MED") {
+    bonus.asistencias = exito ? 1 : 0;
+  } else {
+    bonus.goles = exito ? 1 : 0;
+  }
+
+  const textoFinal = exito
+    ? `${situacion.titulo}: ¡la decisión fue correcta! El equipo saco ventaja del momento y sumó ${bonus.goles ? "un gol" : bonus.asistencias ? "una asistencia" : "valor"}.`
+    : `${situacion.titulo}: no explotaste del todo el momento; el rival se quedó con la iniciativa.`;
+
+  if (typeof callback === "function") {
+    callback({
+      exito,
+      texto: textoFinal,
+      bonus,
+      situacion,
+      decision
+    });
+  }
+}
+
+function abrirModalPartidoInteractivo(situacion, callback) {
+  const detalle = situacion || generarMomentoClave();
+  const partido = detalle.esPartidoInteractivo ? detalle : generarPartidoInteractivo();
+  const cuerpo = document.getElementById("partidoInteractivoTexto");
+  const titulo = document.getElementById("modalPartidoInteractivoTitulo");
+  if (cuerpo) cuerpo.innerHTML =
+    `<strong>⚽ ${partido.club.nombre} ${partido.local ? "(Local)" : "(Visitante)"} vs ${partido.rival.nombre}</strong><br>` +
+    `<span>🏆 ${partido.competencia} · ${partido.importancia}</span><br>` +
+    `<span>👤 ${partido.posicion} · ${partido.titular ? "Titular" : "Suplente"} · OVR ${partido.ovr}</span><br>` +
+    `<span>💪 Físico ${partido.estadoFisico} · 🧠 Moral ${partido.moral} · 📈 Forma ${partido.forma}</span><br><br>` +
+    `El partido avanzará por momentos decisivos. Tus decisiones tendrán consecuencias reales.`;
+  if (titulo) titulo.innerText = "⚽ Partido Importante";
+  estadoPartidoEspecial = {
+    partido,
+    situacion: Object.assign({}, partido, { posicion: (jugador && jugador.posicion) || "DEL" }),
+    callback: typeof callback === "function" ? callback : null
+  };
+  const botones = document.querySelectorAll("#modalPartidoInteractivo .modal-body button");
+  if (botones[1]) botones[1].style.display = "none";
+  if (modalPartidoInteractivoInstance) modalPartidoInteractivoInstance.show();
+}
+
+function resolverDecisionPartido(accion) {
+  const estado = estadoPartidoEspecial;
+  const partido = estado && estado.partido;
+  if (!partido) return;
+  const evento = partido.eventos[partido.indiceEvento];
+  const datos = Number(partido[accion.atributo] || 50);
+  const ventajaPosicion = partido.posicion === "DEL" && accion.id === "remata" ? 0.12
+    : partido.posicion === "MED" && accion.id === "pase" ? 0.10
+      : partido.posicion === "DEF" && accion.id === "cortar" ? 0.12
+        : partido.posicion === "GK" && accion.id === "palo" ? 0.10 : 0;
+  const dificultad = evento.titulo === "Ataque rival" || evento.titulo === "Último ataque" ? 0.08 : 0;
+  const probabilidad = Math.max(0.18, Math.min(0.90, 0.25 + datos / 180 + ventajaPosicion - dificultad));
+  const exito = Math.random() < probabilidad;
+  let consecuencia = "No generaste una ocasión clara.";
+  if (exito && !partido.aporteTipo && (accion.id === "remata" || accion.id === "subir" || accion.id === "encara")) {
+    partido.goles++;
+    partido.aporteTipo = "gol";
+    partido.marcador.club++;
+    consecuencia = "¡Oportunidad de gol y definición!";
+  } else if (exito && !partido.aporteTipo && (accion.id === "pase" || accion.id === "pared" || accion.id === "desmarque")) {
+    partido.asistencias++;
+    partido.aporteTipo = "asistencia";
+    consecuencia = "Encontraste una mejor posición y generaste una asistencia.";
+  } else if (exito && (accion.id === "remata" || accion.id === "subir" || accion.id === "encara" || accion.id === "pase" || accion.id === "pared" || accion.id === "desmarque")) {
+    consecuencia = "La jugada fue correcta, pero ya habías registrado tu aporte ofensivo del partido.";
+  } else if (!exito && (evento.titulo === "Ataque rival" || evento.titulo === "Último ataque")) {
+    partido.marcador.rival++;
+    consecuencia = "El rival aprovechó el espacio y convirtió.";
+  }
+  partido.acciones.push({ minuto: evento.minuto, accion: accion.id, exito, consecuencia });
+  partido.indiceEvento++;
+  if (partido.indiceEvento < partido.eventos.length) {
+    renderizarEventoPartido();
+    return;
+  }
+  const bonus = {
+    goles: partido.goles,
+    asistencias: partido.asistencias,
+    partidos: 1,
+    gol: partido.goles
+  };
+  const ajusteMoral = partido.goles + partido.asistencias > 0 ? 5 : -3;
+  jugador.moral = Math.max(CONFIG.MORAL_MIN, Math.min(CONFIG.MORAL_MAX, (jugador.moral || 60) + ajusteMoral));
+  jugador.rachaSinPerder = partido.marcador.club >= partido.marcador.rival
+    ? (jugador.rachaSinPerder || 0) + 1
+    : 0;
+  const resumen = `FINAL<br><br><strong>${partido.club.nombre} ${partido.marcador.club} - ${partido.marcador.rival} ${partido.rival.nombre}</strong><br><br>` +
+    `👤 Tu actuación<br>⚽ ${partido.goles} gol(es)<br>🎯 ${partido.asistencias} asistencia(s)<br>⏱️ ${partido.minutos} minutos<br>📈 ${exito ? "+forma" : "Forma estable"}` +
+    (jugador.rachaSinPerder > 1 ? "<br>🔥 Nueva racha" : "");
+  const callback = estado.callback;
+  if (modalMomentosClaveInstance) modalMomentosClaveInstance.hide();
+  mostrarNotificacion("FINAL", resumen, function() {
+    estadoPartidoEspecial = null;
+    if (typeof callback === "function") callback({ exito: true, bonus, texto: resumen, decision: "interactivo" });
+  });
+}
+
+function renderizarEventoPartido() {
+  const estado = estadoPartidoEspecial;
+  const partido = estado && estado.partido;
+  if (!partido) return;
+  const evento = partido.eventos[partido.indiceEvento];
+  const body = document.getElementById("modalMomentosClaveCuerpo");
+  const footer = document.getElementById("modalMomentosClaveFooter");
+  if (!body || !evento) return;
+  const acciones = accionesPartidoInteractivo(partido);
+  const historial = partido.acciones.map(a => `${a.minuto}' — ${a.consecuencia}`).join("<br>");
+  body.innerHTML = `<p class="small text-secondary mb-1">⚽ ${partido.club.nombre} ${partido.marcador.club} - ${partido.marcador.rival} ${partido.rival.nombre} · ⏱️ ${evento.minuto}'</p>` +
+    `<p class="fw-bold mb-1">${evento.titulo}</p><p class="text-muted">${evento.descripcion}</p>` +
+    (historial ? `<div class="small text-start border rounded p-2 mb-3">${historial}</div>` : "") +
+    `<div class="d-grid gap-2">${acciones.map(a => `<button class="btn btn-warning fw-bold" data-accion="${a.id}" data-atributo="${a.atributo}">${a.texto}</button>`).join("")}</div>`;
+  if (footer) footer.style.display = "none";
+  body.querySelectorAll("button[data-accion]").forEach(btn => btn.addEventListener("click", function() {
+    resolverDecisionPartido({ id: btn.dataset.accion, atributo: btn.dataset.atributo });
+  }));
+}
+
+function renderizarMomentoClave(situacion) {
+  const body = document.getElementById("modalMomentosClaveCuerpo");
+  const footer = document.getElementById("modalMomentosClaveFooter");
+  if (!body) return;
+  const opciones = Array.isArray(situacion.opciones) ? situacion.opciones : ["Continuar"];
+  body.innerHTML = `
+    <p class="mb-2 fw-bold text-dark">${situacion.titulo}</p>
+    <p class="text-muted mb-3">${situacion.descripcion}</p>
+    <div class="d-grid gap-2 col-10 mx-auto">
+      ${opciones.map((op, idx) => `<button class="btn btn-warning fw-bold" type="button" data-decision="${idx}">${op}</button>`).join("")}
+    </div>
+  `;
+
+  if (footer) {
+    footer.style.display = "none";
+    footer.innerHTML = "";
+  }
+
+  body.querySelectorAll("button[data-decision]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const valor = btn.textContent.trim();
+      const accion = estadoPartidoEspecial && estadoPartidoEspecial.callback;
+      const moment = Object.assign({}, situacion, {
+        posicion: (jugador && jugador.posicion) || "DEL",
+        tieneCantonOfensivo: true
+      });
+      if (modalMomentosClaveInstance) modalMomentosClaveInstance.hide();
+      resolverMomentoClave(moment, valor, (res) => {
+        if (typeof accion === "function") accion(res);
+      });
+    });
+  });
+}
+
+function jugarMomentosClave() {
+  if (estadoPartidoEspecial && estadoPartidoEspecial.partido) {
+    if (modalPartidoInteractivoInstance) modalPartidoInteractivoInstance.hide();
+    document.getElementById("modalMomentosClaveTitulo").innerText = "⚡ Partido en juego";
+    renderizarEventoPartido();
+    modalMomentosClaveInstance.show();
+    return;
+  }
+  const detalle = (estadoPartidoEspecial && estadoPartidoEspecial.situacion) || generarMomentoClave();
+  if (modalPartidoInteractivoInstance) modalPartidoInteractivoInstance.hide();
+  if (modalMomentosClaveInstance) {
+    document.getElementById("modalMomentosClaveTitulo").innerText = "⚡ Momento Clave";
+    renderizarMomentoClave(detalle);
+    modalMomentosClaveInstance.show();
+  }
+}
+
+function simularPartidoNormal() {
+  const accion = estadoPartidoEspecial && estadoPartidoEspecial.callback;
+  if (modalPartidoInteractivoInstance) modalPartidoInteractivoInstance.hide();
+  if (typeof accion === "function") {
+    accion({ exito: true, bonus: { goles: 0, asistencias: 0, partidos: 0 }, texto: "Partido normal resuelto por la simulación habitual.", decision: "simular" });
+  }
+}
+
+function detectarPartidoEspecial() {
+  return generarPartidoInteractivo();
+}
+
+// ============================================================
 //  RESOLUCIÓN DE FINALES SEGÚN LA POSICIÓN
 // ============================================================
 function resolverFinalSegunPosicion(esPrimera, callback) {
@@ -959,11 +1302,28 @@ function iniciarCarrera() {
   jugador = crearJugadorInicial();
   jugador.nombre = nombreInput;
   jugador.posicion = posicionInput;
-  jugador.clubActual = CLUBES[Math.floor(Math.random() * CLUBES.length)];
+  const nacePromesa = Math.random() < CONFIG.PROMESA.PROB;
+  const poolClubesPromesa = (CLUBES || []).filter(function(c) {
+    return c && c.reputacion >= CONFIG.PROMESA.REPUTACION_MIN;
+  }).sort(function(a, b) {
+    return (b.reputacion || 0) - (a.reputacion || 0);
+  });
+  jugador.clubActual = nacePromesa && poolClubesPromesa.length > 0
+    ? poolClubesPromesa[0]
+    : CLUBES[Math.floor(Math.random() * CLUBES.length)];
+  if (nacePromesa) {
+    jugador.media = CONFIG.PROMESA.OVR_INICIAL;
+    mostrarNotificacion(
+      "🌟 ¡Ha nacido una promesa!",
+      "<strong>" + jugador.nombre + "</strong> llega con un talento excepcional.<br><br>" +
+      "Se incorpora a <strong>" + jugador.clubActual.nombre + "</strong> con <strong>" + jugador.media + " OVR</strong> y todo el mundo ya lo mira."
+    );
+  }
   jugador.rolAnterior = obtenerRol(jugador.media);
 
   document.getElementById("pantalla-inicio").classList.add("hidden");
   document.getElementById("pantalla-juego").classList.remove("hidden");
+  ocultarPanelCuenta();
 
   prepararSiguienteEvento();
   actualizarInterfaz();
@@ -978,6 +1338,7 @@ function continuarCarrera() {
 
   document.getElementById("pantalla-inicio").classList.add("hidden");
   document.getElementById("pantalla-juego").classList.remove("hidden");
+  ocultarPanelCuenta();
 
   if (jugador.carreraTerminada) {
     finalizarCarrera();
@@ -990,6 +1351,11 @@ function reiniciarCarrera() {
   if (!confirm("¿Seguro que quieres reiniciar la carrera? Se perderá el progreso actual.")) return;
   borrarPartida();
   location.reload();
+}
+
+function ocultarPanelCuenta() {
+  const panel = document.getElementById("cuenta-panel");
+  if (panel) panel.hidden = true;
 }
 
 // ============================================================
@@ -1063,7 +1429,22 @@ function simularTemporada() {
   const requiereMinijuegoDescenso = esDelOcentrocampista && rep <= 3 && Math.random() < CONFIG.SIM.PROB_MINIJUEGO_DESCENSO;
   const requiereMinijuegoTitulo = esDelOcentrocampista && Math.random() < CONFIG.SIM.PROB_MINIJUEGO_TITULO;
 
-  if (requiereMinijuegoTitulo) {
+  const partidoEspecial = detectarPartidoEspecial();
+
+  if (partidoEspecial) {
+    abrirModalPartidoInteractivo(partidoEspecial, (resultado = {}) => {
+      const bonus = resultado.bonus || { goles: 0, asistencias: 0, partidos: 0 };
+      finalizarResumenTemporada(
+        partidos + (bonus.partidos || 0),
+        goles + (bonus.goles || 0),
+        asistencias + (bonus.asistencias || 0),
+        subidaRendimiento,
+        trofeosGanadosEstaTemp,
+        esPrimera,
+        bajaEdad
+      );
+    });
+  } else if (requiereMinijuegoTitulo) {
     iniciarMinijuegoDecisivoTemporada("TITULO", (gano) => {
       if (gano) {
         if (esPrimera) jugador.trofeos.primeraDivision++;
@@ -1131,6 +1512,8 @@ function finalizarResumenTemporada(partidos, goles, asistencias, subidaRendimien
     media: jugador.media,
     trofeos: trofeosGanadosEstaTemp.length > 0 ? trofeosGanadosEstaTemp.join(", ") : "Ninguno"
   });
+
+  if (typeof generarRedesDespuesPartido === "function") generarRedesDespuesPartido();
 
   jugador.entrenamientosUsadosEstaTemporada = 0;
   jugador.minijuegosUsadosEstaTemporada = 0;
@@ -1257,7 +1640,7 @@ function seleccionarOferta(clubElegido) {
 function abrirModalEvento() {
   if (!jugador.eventoDisponibleActual) return;
 
-  const evConfig = configsEventos[jugador.eventoDisponibleActual];
+  const evConfig = eventoEnIdioma(configsEventos[jugador.eventoDisponibleActual]);
   document.getElementById("decisionModalTitulo").innerText = evConfig.titulo;
   document.getElementById("decisionModalCuerpo").innerHTML = evConfig.texto;
 
@@ -2091,7 +2474,7 @@ function actualizarInterfaz() {
   if (jugador.eventoDisponibleActual) {
     btnEvento.classList.remove("hidden");
     msgEspera.classList.add("hidden");
-    const evConfig = configsEventos[jugador.eventoDisponibleActual];
+    const evConfig = eventoEnIdioma(configsEventos[jugador.eventoDisponibleActual]);
     btnEvento.innerText = evConfig ? `⭐ Evento: ${evConfig.titulo}` : "⭐ Evento Social";
   } else {
     btnEvento.classList.add("hidden");

@@ -51,6 +51,17 @@ let rankingUltimaLectura = 0;
 let rankingErrorLectura = false;
 const RANKING_REFRESH_MS = 10000;
 
+function compararRankingOnline(a, b) {
+  if (typeof compararRanking === "function") return compararRanking(a, b);
+  const mediaA = Number(a && a.media != null ? a.media : 0);
+  const mediaB = Number(b && b.media != null ? b.media : 0);
+  if (mediaB !== mediaA) return mediaB - mediaA;
+  const titulosA = Number(a && a.titulos != null ? a.titulos : 0);
+  const titulosB = Number(b && b.titulos != null ? b.titulos : 0);
+  if (titulosB !== titulosA) return titulosB - titulosA;
+  return Number(b && b.ts != null ? b.ts : 0) - Number(a && a.ts != null ? a.ts : 0);
+}
+
 // ------------------- UTILIDADES -------------------
 
 // Traduccion con respaldo: usa t() de features.js si existe
@@ -146,11 +157,7 @@ function mezclarRanking(lista, registro) {
     return r.id !== registro.id && r.dev !== registro.dev;
   });
   filtrada.push(registro);
-  filtrada.sort(function(a, b) {
-    const ma = a.media || 0, mb = b.media || 0;
-    if (mb !== ma) return mb - ma;
-    return (b.ts || 0) - (a.ts || 0);
-  });
+  filtrada.sort(compararRankingOnline);
   return filtrada.slice(0, RANKING_MAX);
 }
 
@@ -259,7 +266,7 @@ function tablaRankingHtml(lista, esLocal) {
   const medallas = ["🥇", "🥈", "🥉"];
   const miDev = esLocal ? null : idDispositivo();
   let filas = "";
-  (lista || []).forEach(function(r, i) {
+  (lista || []).slice().sort(compararRankingOnline).forEach(function(r, i) {
     const propia = !esLocal && r.dev && r.dev === miDev;
     filas += "<tr class='" + (propia ? "ranking-fila-propia" : "") + "'>" +
       "<td class='fw-bold'>" + (i < 3 ? medallas[i] : (i + 1)) + "</td>" +

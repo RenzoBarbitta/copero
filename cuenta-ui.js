@@ -17,7 +17,7 @@
       if (ocupado) return;
       ocupado = true;
       panel.querySelectorAll("button, input").forEach(function(el) { el.disabled = true; });
-      estado.textContent = "Conectando…";
+      estado.textContent = typeof t === "function" ? t("cuentaConectando") : "Conectando…";
       try {
         estado.textContent = await accion();
       } catch (error) {
@@ -36,7 +36,7 @@
       const registro = evento.submitter && evento.submitter.value === "registrar";
       const privacidad = document.getElementById("cuenta-privacidad");
       if (registro && !privacidad.checked) {
-        estado.textContent = "Para crear la cuenta, leé y aceptá la Política de privacidad.";
+        estado.textContent = typeof t === "function" ? t("cuentaPrivacidadError") : "Para crear la cuenta, leé y aceptá la Política de privacidad.";
         privacidad.focus();
         return;
       }
@@ -44,13 +44,13 @@
         if (registro) {
           await api.registrar(email.value, password.value, privacidad.checked);
           privacidad.checked = false;
-          return "Solicitud enviada. Si corresponde crear la cuenta, recibirás un correo de confirmación. Revisá también spam y luego iniciá sesión.";
+          return (typeof t === "function" ? t("cuentaRegistroOk") : "Solicitud enviada. Si corresponde crear la cuenta, recibirás un correo de confirmación.") + " Revisá también spam y luego iniciá sesión.";
         }
         await api.entrar(email.value, password.value);
         apodo.value = "";
         const nombre = await api.perfil();
         apodo.value = nombre || "";
-        return nombre ? "Sesión iniciada. Perfil leído correctamente." : "Sesión iniciada. Elegí un apodo para crear tu perfil.";
+        return nombre ? (typeof t === "function" ? t("cuentaSesionOk") : "Sesión iniciada.") + " Perfil leído correctamente." : (typeof t === "function" ? t("cuentaSesionOk") : "Sesión iniciada.") + " Elegí un apodo para crear tu perfil.";
       });
     });
     perfil.addEventListener("submit", function(evento) {
@@ -60,7 +60,7 @@
         const leido = await api.perfil();
         if (leido !== nombre) throw new Error("No se pudo confirmar el guardado. Volvé a leer el perfil.");
         apodo.value = leido;
-        return "Apodo guardado y verificado.";
+        return typeof t === "function" ? t("cuentaPerfilOk") : "Apodo guardado y verificado.";
       });
     });
     document.getElementById("cuenta-leer").addEventListener("click", function() {
@@ -76,7 +76,7 @@
         email.value = "";
         try { await api.salir(); }
         catch (error) { return "Sesión eliminada de esta página. No se pudo confirmar la revocación remota; los tokens emitidos pueden seguir vigentes hasta su vencimiento."; }
-        return "Sesión cerrada. Tu carrera local no cambió.";
+        return typeof t === "function" ? t("cuentaSesionCerrada") : "Sesión cerrada. Tu carrera local no cambió.";
       });
     });
   });

@@ -64,6 +64,38 @@ const CLUBES = [
 
 ];
 
+// Fuerza de rivalidad: 1-10 (10 = máxima rivalidad histórica)
+const RIVALIDADES = [
+  { clubA: "River Plate", clubB: "San Lorenzo", fuerza: 8 },
+  { clubA: "River Plate", clubB: "Peñarol", fuerza: 7 },
+  { clubA: "River Plate", clubB: "Nacional", fuerza: 6 },
+  { clubA: "San Lorenzo", clubB: "Peñarol", fuerza: 5 },
+  { clubA: "Peñarol", clubB: "Nacional", fuerza: 9 },
+  { clubA: "Argentinos Juniors", clubB: "Atlanta", fuerza: 6 },
+  { clubA: "Los Andes", clubB: "Chaco For Ever", fuerza: 4 },
+  { clubA: "Boca Juniors", clubB: "River Plate", fuerza: 10 },
+  { clubA: "Imperial", clubB: "Imperial Academy", fuerza: 8 },
+  { clubA: "Los Mancos Weones", clubB: "Chapa", fuerza: 3 },
+  { clubA: "Barracas Central", clubB: "Laferrere", fuerza: 5 },
+  { clubA: "Santos", clubB: "Chapeconense", fuerza: 6 },
+  { clubA: "Cuiaba", clubB: "Chapeconense", fuerza: 4 },
+  { clubA: "Orlando City", clubB: "Nacional", fuerza: 3 },
+  { clubA: "Roma", clubB: "Lions", fuerza: 3 },
+  { clubA: "Napoli", clubB: "Roma", fuerza: 4 },
+];
+
+// Helper: obtener fuerza de rivalidad entre dos clubes
+function obtenerRivalidad(clubA, clubB) {
+  if (!clubA || !clubB) return 0;
+  const nombreA = clubA.nombre || clubA;
+  const nombreB = clubB.nombre || clubB;
+  const rivalidad = RIVALIDADES.find(r => 
+    (r.clubA === nombreA && r.clubB === nombreB) || 
+    (r.clubA === nombreB && r.clubB === nombreA)
+  );
+  return rivalidad ? rivalidad.fuerza : 0;
+}
+
 // 2. REGLAS DE MEDIA SEGÚN REPUTACIÓN
 const REGLAS_MEDIA = {
     1: 65, 2: 68, 3: 72, 4: 76, 5: 80,
@@ -78,6 +110,84 @@ const PERSONAJES = {
   GK: ["Raiko", "Khruel", "Fonta", "Molleja", "Pulgar", "Gbz", "Carlos Maria", "Alisson", "Aubrey"],
   GLOBAL: ["Coutinho", "Iniesta", "Neneu", "Agstn", "Pipita"]
 };
+
+// ============ PERSONALIDADES PARA REDES SOCIALES ============
+// Cada personaje tiene una personalidad que define su estilo de declaraciones
+const PERSONAJES_REDES = {
+  // DELanteros
+  "Gonza431": { estilo: "picante", ego: 8, lealtad: 6, chicana: "Hablan mucho y después no aparecen." },
+  "SidaBolso": { estilo: "normal", ego: 4, lealtad: 7, chicana: "" },
+  "Orsini": { estilo: "muy_picante", ego: 9, lealtad: 5, chicana: "Mucho humo, poco fútbol." },
+  "Pyojo": { estilo: "picante", ego: 7, lealtad: 6, chicana: "Cuando quieras hablamos en la cancha." },
+  "Flowy": { estilo: "normal", ego: 5, lealtad: 8, chicana: "" },
+  "God": { estilo: "muy_picante", ego: 10, lealtad: 4, chicana: "Yo soy el juego, ustedes solo miran." },
+  "Nano_deaa": { estilo: "picante", ego: 6, lealtad: 7, chicana: "Seguí hablando, que yo sigo ganando." },
+  "Nico Piedra": { estilo: "normal", ego: 4, lealtad: 9, chicana: "" },
+  "Charly": { estilo: "picante", ego: 7, lealtad: 6, chicana: "No está a nuestra altura." },
+  "Valem": { estilo: "normal", ego: 5, lealtad: 8, chicana: "" },
+  "GonzaMJ": { estilo: "picante", ego: 6, lealtad: 7, chicana: "Primero ganá algo, después hablás." },
+  "Fan": { estilo: "normal", ego: 3, lealtad: 9, chicana: "" },
+  "Mclovin": { estilo: "picante", ego: 8, lealtad: 5, chicana: "Que disfruten ahora, después no lloren." },
+  "Dona": { estilo: "normal", ego: 4, lealtad: 8, chicana: "" },
+  "Wel": { estilo: "picante", ego: 6, lealtad: 7, chicana: "Mucho ruido, pocas nueces." },
+  "Wellio": { estilo: "normal", ego: 4, lealtad: 8, chicana: "" },
+  "Toledo": { estilo: "picante", ego: 7, lealtad: 6, chicana: "No saben perder, y menos ganar." },
+  "Nika": { estilo: "normal", ego: 5, lealtad: 8, chicana: "" },
+  "Magno": { estilo: "muy_picante", ego: 9, lealtad: 4, chicana: "Se creen grandes y son chicos." },
+
+  // Centrocampistas
+  "Dnt": { estilo: "muy_picante", ego: 9, lealtad: 5, chicana: "El fútbol se demuestra, no se cuenta." },
+  "Caseros": { estilo: "normal", ego: 4, lealtad: 9, chicana: "" },
+  "Ivans": { estilo: "picante", ego: 7, lealtad: 6, chicana: "Hay equipos que hablan antes y desaparecen después." },
+  "Marabola": { estilo: "normal", ego: 4, lealtad: 8, chicana: "" },
+  "Bati": { estilo: "picante", ego: 6, lealtad: 7, chicana: "Algunos necesitan cinco ocasiones para un gol." },
+  "Barney": { estilo: "normal", ego: 4, lealtad: 8, chicana: "" },
+  "Pisa": { estilo: "muy_picante", ego: 8, lealtad: 5, chicana: "Cuándo quieras nos vemos el domingo." },
+  "021": { estilo: "normal", ego: 4, lealtad: 8, chicana: "" },
+  "Valiel": { estilo: "picante", ego: 7, lealtad: 6, chicana: "Tanto hablar para qué, si en la cancha se ve." },
+  "Rafah": { estilo: "normal", ego: 4, lealtad: 8, chicana: "" },
+  "Puskas": { estilo: "picante", ego: 8, lealtad: 5, chicana: "Los títulos se ganan, no se compran." },
+  "Osabio": { estilo: "normal", ego: 5, lealtad: 8, chicana: "" },
+
+  // DEFensas
+  "Cerbe": { estilo: "muy_picante", ego: 9, lealtad: 5, chicana: "Atrás no pasa nadie, y si pasa... se queda." },
+  "Musa": { estilo: "normal", ego: 4, lealtad: 9, chicana: "" },
+  "Fuyi": { estilo: "picante", ego: 6, lealtad: 7, chicana: "Mejor cerrar la boca y abrir el marcador." },
+  "Kolt": { estilo: "normal", ego: 4, lealtad: 8, chicana: "" },
+  "Thomy": { estilo: "picante", ego: 7, lealtad: 6, chicana: "La defensa gana campeonatos, la boca pierde finales." },
+  "Bekku": { estilo: "normal", ego: 4, lealtad: 8, chicana: "" },
+  "Joel": { estilo: "picante", ego: 6, lealtad: 7, chicana: "Hablan de mí porque no pueden hablar de su juego." },
+  "Skchester": { estilo: "normal", ego: 4, lealtad: 8, chicana: "" },
+  "Trompita": { estilo: "muy_picante", ego: 8, lealtad: 5, chicana: "El que habla mucho, juega poco." },
+  "Sepi": { estilo: "normal", ego: 5, lealtad: 8, chicana: "" },
+  "Wizen": { estilo: "picante", ego: 7, lealtad: 6, chicana: "Que hablen los resultados, yo hablo en la cancha." },
+  "Justin": { estilo: "normal", ego: 4, lealtad: 9, chicana: "" },
+  "Luckz": { estilo: "picante", ego: 6, lealtad: 7, chicana: "No necesito hablar, mi juego habla por mí." },
+  "Cz": { estilo: "normal", ego: 5, lealtad: 8, chicana: "" },
+
+  // ARQueros
+  "Raiko": { estilo: "muy_picante", ego: 9, lealtad: 5, chicana: "Entre los tres palos mando yo." },
+  "Khruel": { estilo: "normal", ego: 4, lealtad: 9, chicana: "" },
+  "Fonta": { estilo: "picante", ego: 7, lealtad: 6, chicana: "Los delanteros vienen, los goles no." },
+  "Molleja": { estilo: "normal", ego: 4, lealtad: 8, chicana: "" },
+  "Pulgar": { estilo: "picante", ego: 6, lealtad: 7, chicana: "Atajé penales que ustedes ni soñaron patear." },
+  "Gbz": { estilo: "normal", ego: 4, lealtad: 8, chicana: "" },
+  "Carlos Maria": { estilo: "muy_picante", ego: 8, lealtad: 5, chicana: "Mi arco es mi casa, y ustedes no entran." },
+  "Alisson": { estilo: "normal", ego: 4, lealtad: 8, chicana: "" },
+  "Aubrey": { estilo: "picante", ego: 6, lealtad: 7, chicana: "Mucho tiro, poco gol." },
+
+  // GLOBAL (mix)
+  "Coutinho": { estilo: "normal", ego: 5, lealtad: 8, chicana: "" },
+  "Iniesta": { estilo: "normal", ego: 3, lealtad: 9, chicana: "" },
+  "Neneu": { estilo: "picante", ego: 7, lealtad: 6, chicana: "El fútbol es simple, ustedes lo complican." },
+  "Agstn": { estilo: "normal", ego: 4, lealtad: 8, chicana: "" },
+  "Pipita": { estilo: "muy_picante", ego: 10, lealtad: 4, chicana: "Tengo más títulos que ustedes partidos jugados." }
+};
+
+// Helper: obtener personalidad de un personaje
+function obtenerPersonalidadRed(nombre) {
+  return PERSONAJES_REDES[nombre] || { estilo: "normal", ego: 5, lealtad: 7, chicana: "" };
+}
 
 // 4. TEXTOS DE ENTRENAMIENTO
 const TEXTOS_ENTRENAMIENTO = {
@@ -140,6 +250,77 @@ function obtenerRol(media) {
   return ROLES[0];
 }
 
+const LOGROS = [
+  { id: "primer_titulo", nombre: "Campeón", desc: "Ganá tu primer título.", nombrePt: "Campeão", descPt: "Ganhe seu primeiro título.", emoji: "🏆" },
+  { id: "bota_oro", nombre: "Botín Dorado", desc: "Ganá una Bota de Oro.", nombrePt: "Chuteira de Ouro", descPt: "Ganhe uma Chuteira de Ouro.", emoji: "👟" },
+  { id: "balon_oro", nombre: "Mejor del Mundo", desc: "Ganá un Balón de Oro.", nombrePt: "Melhor do Mundo", descPt: "Ganhe uma Bola de Ouro.", emoji: "🥇" },
+  { id: "master", nombre: "Master", desc: "Alcanzá el rol Master.", nombrePt: "Master", descPt: "Alcance a função Master.", emoji: "👑" },
+  { id: "inmortal", nombre: "Inmortal", desc: "Alcanzá el rol Inmortal.", nombrePt: "Imortal", descPt: "Alcance a função Imortal.", emoji: "💎" },
+  { id: "copa_campeones", nombre: "Rey de Copas", desc: "Ganá la Copa de Campeones.", nombrePt: "Rei das Copas", descPt: "Ganhe a Copa dos Campeões.", emoji: "👑" },
+  { id: "temporada_10", nombre: "Veterano", desc: "Jugá 10 temporadas.", nombrePt: "Veterano", descPt: "Jogue 10 temporadas.", emoji: "🎖️" },
+  { id: "triplete", nombre: "Triplete", desc: "Ganá 3 títulos en una temporada.", nombrePt: "Tríplice coroa", descPt: "Ganhe 3 títulos em uma temporada.", emoji: "🏅" },
+  { id: "superviviente", nombre: "Superviviente", desc: "Zafá una sanción de Loro.", nombrePt: "Sobrevivente", descPt: "Supere uma punição do Loro.", emoji: "🛡️" }
+];
+
+const FINALES = [
+  { id: "leyenda", nombre: "Leyenda del PSO", desc: "Terminaste con OVR 90+ y 3+ títulos mayores.", nombrePt: "Lenda do PSO", descPt: "Terminou com OVR 90+ e 3+ títulos principais.", emoji: "👑", color: "#ffd43b" },
+  { id: "estrella", nombre: "Estrella", desc: "Terminaste con OVR 85+ y títulos.", nombrePt: "Estrela", descPt: "Terminou com OVR 85+ e títulos.", emoji: "⭐", color: "#4dabf7" },
+  { id: "profesional", nombre: "Profesional", desc: "Carrera sólida con buen nivel.", nombrePt: "Profissional", descPt: "Carreira sólida e em bom nível.", emoji: "🔥", color: "#69db7c" },
+  { id: "promesa", nombre: "Promesa Truncada", desc: "No lograste consolidarte.", nombrePt: "Promessa interrompida", descPt: "Você não conseguiu se consolidar.", emoji: "🌟", color: "#adb5bd" },
+  { id: "olvidado", nombre: "Olvidado", desc: "Terminaste en el olvido de la Segunda.", nombrePt: "Esquecido", descPt: "Terminou esquecido na Segunda Divisão.", emoji: "💤", color: "#868e96" }
+];
+
+const TEXTOS_UI = {
+  es: {
+    titulo: "CARRERA PSO", nombreJugador: "Nombre del Jugador:", placeholderNombre: "Ej: Caseros",
+    posCancha: "📍 Posición en cancha", tuCasaca: "👕 Tu casaca", dorsal: "🔢 Dorsal",
+    posDEL: "Delantero (DEL)", posCM: "Mediocampista (CM)", posDEF: "Defensa (DEF)", posGK: "Arquero (GK)",
+    iniciar: "Iniciar Carrera", continuar: "▶️ Continuar Carrera Guardada", modoDesafio: "🎲 Modo Desafío",
+    ranking: "🏆 Ranking", slots: "💾 Slots", modoOscuroTitulo: "Modo oscuro", dueloBoton: "⚔️ 1v1 Online (Duelo)",
+    edad: "Edad:", anios: "años", media: "Media:", club: "Club:", moral: "Moral:", acciones: "Acciones",
+    entrenar: "Entrenar Tradicional", dominios: "⚽ Desafío Dominios", entrenamiento: "⚽ Entrenamiento",
+    masMinijuegos: "🎮 Más Minijuegos", logros: "🏅 Logros", stats: "📊 Stats", sinEventos: "No hay eventos sociales esta temporada.",
+    simular: "Simular Temporada", reiniciar: "Reiniciar Carrera", historial: "Historial de Carrera",
+    thTemp: "Temp", thClub: "Club", thPJ: "PJ", thGoles: "Goles", thAsist: "Asist.", thTitulos: "Títulos / Logros",
+    retiro: "🏁 Retiro Profesional", partidos: "Partidos:", goles: "Goles:", asistencias: "Asistencias:", jugarDeNuevo: "Jugar de Nuevo",
+    rankTitulo: "🏆 Ranking", rankTabGlobal: "🌍 Global (Online)", rankTabLocal: "📱 Este dispositivo", rankColJugador: "Jugador",
+    rankColMedia: "Media", rankColTitulos: "Títulos", rankColAnio: "Año", rankCargando: "Cargando ranking online...",
+    rankErrorOnline: "No se pudo conectar con el ranking online. Revisá tu conexión.", rankReintentar: "🔄 Reintentar", rankActualizar: "🔄 Actualizar",
+    rankVacioOnline: "Todavía no hay carreras en el ranking global. ¡Terminá una carrera y sé el primero!",
+    rankVacioLocal: "Todavía no hay carreras registradas en este dispositivo.", rankSincronizado: "🟢 Ranking online sincronizado",
+    rankPendiente: "📤 Tu carrera quedó guardada y se enviará cuando haya internet", btnInstalar: "📥 Instalar App",
+    desarrollado: "Desarrollado por:", colaboracion: "Colaboración:", privacidadLink: "Política de privacidad",
+    cuentaTitulo: "👤 Mi cuenta (opcional)", cuentaInfo: "Tu carrera sigue guardada en este dispositivo. Supabase gestiona tu correo, autenticación y apodo. Al recargar la página tendrás que iniciar sesión otra vez.",
+    cuentaEmail: "Correo electrónico", cuentaPass: "Contraseña", cuentaAcepto1: "Leí y acepto la", cuentaPrivacidadLink: "Política de privacidad (abre otra pestaña)", cuentaAcepto2: "para crear mi cuenta.",
+    cuentaAyuda: "Obligatorio solo al registrarse. Usamos el correo y la autenticación para gestionar tu cuenta y el apodo para tu perfil. Esta aceptación no autoriza publicidad ni medición opcional.",
+    cuentaLogin: "Iniciar sesión", cuentaCrear: "Crear cuenta", cuentaRegistroAyuda: "Para registrarte, usá al menos 8 caracteres. Confirmá el correo recibido antes de iniciar sesión.",
+    cuentaApodo: "Apodo del perfil", cuentaGuardarApodo: "Guardar apodo", cuentaLeerPerfil: "Volver a leer perfil", cuentaSalir: "Cerrar sesión",
+    btnEntendido: "Entendido", btnRechazar: "Rechazar", btnAceptar: "Aceptar", btnContinuar: "Continuar", btnCerrar: "Cerrar", btnEntendido2: "¡Entendido!",
+    mercadoTitulo: "Mercado de Pases", penalTitulo: "⚽ ¡FINAL DRAMÁTICA!", penalTexto: "El partido está empatado. Tienes en tus pies el penal para definir el título.",
+    minijuegoIndicacion: "Seguí la indicación de este minijuego:", tiempoRestante: "Tiempo restante:", ssTitulo: "🔍 REVISIÓN EN VIVO (SS)", ssTexto: "Revisando carpetas y archivos sospechosos...",
+    rolDesbloqueado: "🔓 ROL DESBLOQUEADO", avisoMinijuego: "Ya jugaste el minijuego de esta temporada. Solo se puede jugar 1 minijuego por temporada, además del entrenamiento tradicional. Avanzá a la próxima temporada para jugar otro."
+  },
+  en: {
+    titulo: "PSO CAREER", nombreJugador: "Player Name:", placeholderNombre: "Ex: Caseros", posCancha: "📍 Position on the pitch", tuCasaca: "👕 Your shirt", dorsal: "🔢 Shirt number",
+    posDEL: "Forward (DEL)", posCM: "Midfielder (CM)", posDEF: "Defender (DEF)", posGK: "Goalkeeper (GK)", iniciar: "Start Career", continuar: "▶️ Continue Saved Career", modoDesafio: "🎲 Challenge Mode", ranking: "🏆 Ranking", slots: "💾 Slots", modoOscuroTitulo: "Dark mode", dueloBoton: "⚔️ 1v1 Online (Duel)",
+    edad: "Age:", anios: "years", media: "Rating:", club: "Club:", moral: "Morale:", acciones: "Actions", entrenar: "Train", dominios: "⚽ Domains Challenge", entrenamiento: "⚽ Training", masMinijuegos: "🎮 More Minigames", logros: "🏅 Achievements", stats: "📊 Stats", sinEventos: "No social events this season.", simular: "Simulate Season", reiniciar: "Restart Career", historial: "Career History", thTemp: "Season", thClub: "Club", thPJ: "MP", thGoles: "Goals", thAsist: "Assists", thTitulos: "Titles / Achievements", retiro: "🏁 Professional Retirement", partidos: "Matches:", goles: "Goals:", asistencias: "Assists:", jugarDeNuevo: "Play Again", rankTitulo: "🏆 Ranking", rankTabGlobal: "🌍 Global (Online)", rankTabLocal: "📱 This device", rankColJugador: "Player", rankColMedia: "Rating", rankColTitulos: "Titles", rankColAnio: "Year", rankCargando: "Loading online ranking...", rankErrorOnline: "Could not connect to the online ranking. Check your connection.", rankReintentar: "🔄 Retry", rankActualizar: "🔄 Refresh", rankVacioOnline: "No careers in the global ranking yet. Finish a career and be the first!", rankVacioLocal: "No careers registered on this device yet.", rankSincronizado: "🟢 Online ranking synced", rankPendiente: "📤 Your career was saved and will be sent when you're back online", btnInstalar: "📥 Install App", desarrollado: "Developed by:", colaboracion: "Collaboration:", privacidadLink: "Privacy Policy",
+    cuentaTitulo: "👤 My account (optional)", cuentaInfo: "Your career is still saved on this device. Supabase manages your email, authentication and nickname. When you reload the page you will have to sign in again.", cuentaEmail: "Email", cuentaPass: "Password", cuentaAcepto1: "I have read and accept the", cuentaPrivacidadLink: "Privacy Policy (opens a new tab)", cuentaAcepto2: "to create my account.", cuentaAyuda: "Required only when signing up. We use the email and authentication to manage your account and the nickname for your profile. This acceptance does not allow advertising or optional measurement.", cuentaLogin: "Sign in", cuentaCrear: "Create account", cuentaRegistroAyuda: "To sign up, use at least 8 characters. Confirm the email you received before signing in.", cuentaApodo: "Profile nickname", cuentaGuardarApodo: "Save nickname", cuentaLeerPerfil: "Read profile again", cuentaSalir: "Sign out", btnEntendido: "Got it", btnRechazar: "Reject", btnAceptar: "Accept", btnContinuar: "Continue", btnCerrar: "Close", btnEntendido2: "Got it!", mercadoTitulo: "Transfer Market", penalTitulo: "⚽ DRAMATIC FINAL!", penalTexto: "The match is tied. The penalty to decide the title is at your feet.", minijuegoIndicacion: "Follow this minigame's instruction:", tiempoRestante: "Time left:", ssTitulo: "🔍 LIVE REVIEW (SS)", ssTexto: "Checking suspicious folders and files...", rolDesbloqueado: "🔓 ROLE UNLOCKED", avisoMinijuego: "You already played this season's minigame. You can only play 1 minigame per season, in addition to traditional training. Advance to the next season to play another."
+  },
+  pt: {
+    titulo: "CARREIRA PSO", nombreJugador: "Nome do jogador:", placeholderNombre: "Ex.: Caseros", posCancha: "📍 Posição em campo", tuCasaca: "👕 Sua camisa", dorsal: "🔢 Número", posDEL: "Atacante (DEL)", posCM: "Meio-campista (CM)", posDEF: "Zagueiro (DEF)", posGK: "Goleiro (GK)", iniciar: "Iniciar carreira", continuar: "▶️ Continuar carreira salva", modoDesafio: "🎲 Modo desafio", ranking: "🏆 Ranking", slots: "💾 Slots", modoOscuroTitulo: "Modo escuro", dueloBoton: "⚔️ 1v1 online (Duelo)", edad: "Idade:", anios: "anos", media: "Média:", club: "Clube:", moral: "Moral:", acciones: "Ações", entrenar: "Treinamento tradicional", dominios: "⚽ Desafio de domínio", entrenamiento: "⚽ Treinamento", masMinijuegos: "🎮 Mais minijogos", logros: "🏅 Conquistas", stats: "📊 Estatísticas", sinEventos: "Não há eventos sociais nesta temporada.", simular: "Simular temporada", reiniciar: "Reiniciar carreira", historial: "Histórico da carreira", thTemp: "Temp.", thClub: "Clube", thPJ: "PJ", thGoles: "Gols", thAsist: "Assist.", thTitulos: "Títulos / Conquistas", retiro: "🏁 Aposentadoria profissional", partidos: "Partidas:", goles: "Gols:", asistencias: "Assistências:", jugarDeNuevo: "Jogar novamente", rankTitulo: "🏆 Ranking", rankTabGlobal: "🌍 Global (online)", rankTabLocal: "📱 Este dispositivo", rankColJugador: "Jogador", rankColMedia: "Média", rankColTitulos: "Títulos", rankColAnio: "Ano", rankCargando: "Carregando ranking online...", rankErrorOnline: "Não foi possível conectar ao ranking online. Verifique sua conexão.", rankReintentar: "🔄 Tentar novamente", rankActualizar: "🔄 Atualizar", rankVacioOnline: "Ainda não há carreiras no ranking global. Termine uma carreira e seja o primeiro!", rankVacioLocal: "Ainda não há carreiras registradas neste dispositivo.", rankSincronizado: "🟢 Ranking online sincronizado", rankPendiente: "📤 Sua carreira foi salva e será enviada quando houver internet", btnInstalar: "📥 Instalar aplicativo", desarrollado: "Desenvolvido por:", colaboracion: "Colaboração:", privacidadLink: "Política de privacidade", cuentaTitulo: "👤 Minha conta (opcional)", cuentaInfo: "Sua carreira continua salva neste dispositivo. O Supabase gerencia seu e-mail, autenticação e apelido. Ao recarregar a página, você terá que entrar novamente.", cuentaEmail: "E-mail", cuentaPass: "Senha", cuentaAcepto1: "Li e aceito a", cuentaPrivacidadLink: "Política de privacidade (abre em outra aba)", cuentaAcepto2: "para criar minha conta.", cuentaAyuda: "Obrigatório apenas no cadastro. Usamos o e-mail e a autenticação para gerenciar sua conta e o apelido do seu perfil. Esta aceitação não autoriza publicidade nem medição opcional.", cuentaLogin: "Entrar", cuentaCrear: "Criar conta", cuentaRegistroAyuda: "Para se cadastrar, use pelo menos 8 caracteres. Confirme o e-mail recebido antes de entrar.", cuentaApodo: "Apelido do perfil", cuentaGuardarApodo: "Salvar apelido", cuentaLeerPerfil: "Ler perfil novamente", cuentaSalir: "Sair da conta", btnEntendido: "Entendi", btnRechazar: "Recusar", btnAceptar: "Aceitar", btnContinuar: "Continuar", btnCerrar: "Fechar", btnEntendido2: "Entendi!", mercadoTitulo: "Mercado de transferências", penalTitulo: "⚽ FINAL DRAMÁTICA!", penalTexto: "A partida está empatada. O pênalti para decidir o título está nos seus pés.", minijuegoIndicacion: "Siga a instrução deste minijogo:", tiempoRestante: "Tempo restante:", ssTitulo: "🔍 REVISÃO AO VIVO (SS)", ssTexto: "Verificando pastas e arquivos suspeitos...", rolDesbloqueado: "🔓 FUNÇÃO DESBLOQUEADA", avisoMinijuego: "Você já jogou o minijogo desta temporada. Só é possível jogar 1 minijogo por temporada, além do treinamento tradicional. Avance para a próxima temporada para jogar outro."
+  }
+};
+
+Object.assign(TEXTOS_UI.es, {
+  eventoRechazar: "Rechazar", eventoAceptar: "Aceptar", partidoTitulo: "⚽ Partido Especial Detectado", partidoTexto: "Se presenta un momento clave en la temporada. ¿Cómo querés resolverlo?", jugarMomentos: "⚽ JUGAR MOMENTOS CLAVE", simularPartido: "🎲 SIMULAR PARTIDO", tiroLibreTitulo: "🎯 Tiro Libre de Precisión", tiroLibreIndicacion: "Presiona ¡DISPARAR! cuando la barra esté en el centro.", tiroLibreBoton: "¡DISPARAR!", peleaIndicacion: "¡Presioná ESPACIO (o hacé clic) rapidísimo para defenderte!", redesTitulo: "📱 Redes Sociales", redesVacio: "Todavía no hay declaraciones sobre tu carrera.", redesResponde: "responde", viralidad: "viralidad", logrosTitulo: "🏅 Logros", logroCompletado: "✅ Completado", logroPendiente: "⬜ Pendiente", cuentaPrivacidadError: "Para crear la cuenta, leé y aceptá la Política de privacidad.", cuentaConectando: "Conectando…", cuentaRegistroOk: "Solicitud enviada. Si corresponde crear la cuenta, recibirás un correo de confirmación.", cuentaSesionOk: "Sesión iniciada.", cuentaPerfilOk: "Apodo guardado y verificado.", cuentaSesionCerrada: "Sesión cerrada. Tu carrera local no cambió.", cuentaError429: "Demasiados intentos. Esperá unos minutos antes de reintentar.", cuentaErrorAuth: "No se autorizó la operación. Revisá tu sesión y la confirmación del correo.", cuentaErrorGeneral: "No se pudo completar la operación. Revisá los datos o intentá más tarde.", cuentaErrorConexion: "No se pudo conectar con las cuentas. Revisá internet e intentá otra vez.", cuentaErrorSesion: "El servidor no devolvió una sesión válida.", cuentaErrorIniciar: "Iniciá sesión para usar tu perfil.", cuentaErrorCambio: "La sesión cambió. Iniciá sesión otra vez.", cuentaErrorCredenciales: "Completá correo y contraseña.", cuentaErrorPassword: "Usá una contraseña de al menos 8 caracteres.", cuentaErrorCancelado: "Se canceló el inicio de sesión.", cuentaErrorApodo: "El apodo debe tener entre 2 y 30 caracteres.", cuentaErrorReintentar: "La sesión cambió. Reintentá."
+});
+Object.assign(TEXTOS_UI.en, {
+  eventoRechazar: "Reject", eventoAceptar: "Accept", partidoTitulo: "⚽ Special Match Detected", partidoTexto: "A key moment appears in the season. How do you want to resolve it?", jugarMomentos: "⚽ PLAY KEY MOMENTS", simularPartido: "🎲 SIMULATE MATCH", tiroLibreTitulo: "🎯 Precision Free Kick", tiroLibreIndicacion: "Press SHOOT when the bar is in the center.", tiroLibreBoton: "SHOOT!", peleaIndicacion: "Press SPACE (or click) as fast as you can to defend yourself!", redesTitulo: "📱 Social Media", redesVacio: "There are no statements about your career yet.", redesResponde: "replies", viralidad: "virality", logrosTitulo: "🏅 Achievements", logroCompletado: "✅ Completed", logroPendiente: "⬜ Pending", cuentaPrivacidadError: "To create the account, read and accept the Privacy Policy.", cuentaConectando: "Connecting…", cuentaRegistroOk: "Request sent. If the account can be created, you will receive a confirmation email.", cuentaSesionOk: "Signed in.", cuentaPerfilOk: "Nickname saved and verified.", cuentaSesionCerrada: "Signed out. Your local career was not changed.", cuentaError429: "Too many attempts. Wait a few minutes before trying again.", cuentaErrorAuth: "The operation was not authorized. Check your session and email confirmation.", cuentaErrorGeneral: "The operation could not be completed. Check the data and try again later.", cuentaErrorConexion: "Could not connect to accounts. Check your internet and try again.", cuentaErrorSesion: "The server did not return a valid session.", cuentaErrorIniciar: "Sign in to use your profile.", cuentaErrorCambio: "The session changed. Sign in again.", cuentaErrorCredenciales: "Complete your email and password.", cuentaErrorPassword: "Use a password with at least 8 characters.", cuentaErrorCancelado: "Sign-in was canceled.", cuentaErrorApodo: "The nickname must be between 2 and 30 characters.", cuentaErrorReintentar: "The session changed. Try again."
+});
+Object.assign(TEXTOS_UI.pt, {
+  eventoRechazar: "Recusar", eventoAceptar: "Aceitar", partidoTitulo: "⚽ Partida especial detectada", partidoTexto: "Surge um momento decisivo na temporada. Como você quer resolvê-lo?", jugarMomentos: "⚽ JOGAR MOMENTOS DECISIVOS", simularPartido: "🎲 SIMULAR PARTIDA", tiroLibreTitulo: "🎯 Cobrança de falta precisa", tiroLibreIndicacion: "Pressione CHUTAR quando a barra estiver no centro.", tiroLibreBoton: "CHUTAR!", peleaIndicacion: "Pressione ESPAÇO (ou clique) o mais rápido possível para se defender!", redesTitulo: "📱 Redes sociais", redesVacio: "Ainda não há declarações sobre a sua carreira.", redesResponde: "responde", viralidad: "viralidade", logrosTitulo: "🏅 Conquistas", logroCompletado: "✅ Concluído", logroPendiente: "⬜ Pendente", cuentaPrivacidadError: "Para criar a conta, leia e aceite a Política de privacidade.", cuentaConectando: "Conectando…", cuentaRegistroOk: "Solicitação enviada. Se a conta puder ser criada, você receberá um e-mail de confirmação.", cuentaSesionOk: "Sessão iniciada.", cuentaPerfilOk: "Apelido salvo e verificado.", cuentaSesionCerrada: "Sessão encerrada. Sua carreira local não foi alterada.", cuentaError429: "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.", cuentaErrorAuth: "A operação não foi autorizada. Verifique sua sessão e a confirmação do e-mail.", cuentaErrorGeneral: "Não foi possível concluir a operação. Verifique os dados e tente novamente mais tarde.", cuentaErrorConexion: "Não foi possível conectar às contas. Verifique a internet e tente novamente.", cuentaErrorSesion: "O servidor não retornou uma sessão válida.", cuentaErrorIniciar: "Entre na sua conta para usar o perfil.", cuentaErrorCambio: "A sessão mudou. Entre novamente.", cuentaErrorCredenciales: "Preencha o e-mail e a senha.", cuentaErrorPassword: "Use uma senha com pelo menos 8 caracteres.", cuentaErrorCancelado: "A entrada foi cancelada.", cuentaErrorApodo: "O apelido deve ter entre 2 e 30 caracteres.", cuentaErrorReintentar: "A sessão mudou. Tente novamente."
+});
+
 // 6. CONFIGURACION GLOBAL (balance del juego centralizado)
 const CONFIG = {
   OVR_MIN: 40,
@@ -149,7 +330,7 @@ const CONFIG = {
   EDAD_RETIRO: 36,
   UMBRAL_PRIMERA: 5,
   SANCION_LORO_TEMPORADAS: 3,
-  PROB_LORO: 0.15,
+  PROB_LORO: 0.03,
   TEMPORADAS_ENTRE_EVENTOS: 2,
   ENTRENAMIENTOS_POR_TEMPORADA: 1,
   MINIJUEGOS_POR_TEMPORADA: 1,
@@ -160,6 +341,7 @@ const CONFIG = {
     PARTIDOS_VARIACION: 5,
     FACTOR_MIN: 0.5,
     FACTOR_MAX: 1.6,
+    PROB_PARTIDO_ESPECIAL: 0.08,
     PROB_MINIJUEGO_TITULO: 0.25,
     PROB_MINIJUEGO_DESCENSO: 0.30,
     PROB_FINAL_TORNEO: 0.30,
@@ -245,267 +427,41 @@ Object.assign(CONFIG, {
     BONUS_MORAL_CLASICO: 20,
     PUNTOS_RIVALIDAD_CLASICO: 150,
     // Edad de arranque del duelista. Con 10 temporadas, 22 llega a 32
-    // (activa la mecánica de +31); subila para verla antes.
+    // (activa la mec�nica de +31); subila para verla antes.
     EDAD_INICIO: 22
+  },
+
+  // ============ NUEVAS MEC�NICAS ============
+
+  // Partido interactivo (momentos clave)
+  PARTIDO_INTERACTIVO: {
+    PROB_PARTIDO: 0.10,
+    PROB_MOMENTO: 0.35,
+    MOMENTOS_MIN: 1,
+    MOMENTOS_MAX: 2
+  },
+
+  // "Ha nacido una promesa" - jugador especial al inicio
+  PROMESA: {
+    PROB: 0.04,
+    OVR_INICIAL: 70,
+    REPUTACION_MIN: 7
+  },
+
+  // Redes sociales
+  REDES: {
+    PROB_DECLARACION: 0.25,
+    MAX_DECLARACIONES_FEED: 10,
+    PROB_RESPUESTA: 0.30,
+    MAX_RESPUESTAS: 3
+  },
+
+  // Rivalidades entre clubes
+  RIVALIDADES: {
+    PROB_DECLARACION_RIVAL: 0.50,
+    FORTALEZA_MINIMA: 5
   }
 });
-
-// 9. LOGROS DESBLOQUEABLES
-const LOGROS = [
-  { id: "primer_titulo", nombre: "Campeón",           desc: "Ganá tu primer título.",             emoji: "🏆" },
-  { id: "bota_oro",      nombre: "Botín Dorado",      desc: "Ganá una Bota de Oro.",              emoji: "👟" },
-  { id: "balon_oro",     nombre: "Mejor del Mundo",   desc: "Ganá un Balón de Oro.",              emoji: "🥇" },
-  { id: "master",        nombre: "Master",            desc: "Alcanzá el rol Master.",             emoji: "👑" },
-  { id: "inmortal",      nombre: "Inmortal",          desc: "Alcanzá el rol Inmortal.",           emoji: "💎" },
-  { id: "copa_campeones",nombre: "Rey de Copas",      desc: "Ganá la Copa de Campeones.",         emoji: "👑" },
-  { id: "temporada_10",  nombre: "Veterano",          desc: "Jugá 10 temporadas.",                emoji: "🎖️" },
-  { id: "triplete",      nombre: "Triplete",          desc: "Ganá 3 títulos en una temporada.",   emoji: "🏅" },
-  { id: "superviviente", nombre: "Superviviente",     desc: "Zafá una sanción de Loro.",          emoji: "🛡️" }
-];
-
-// 10. FINALES POSIBLES
-const FINALES = [
-  { id: "leyenda",    nombre: "Leyenda del PSO",  desc: "Terminaste con OVR 90+ y 3+ títulos mayores.", emoji: "👑", color: "#ffd43b" },
-  { id: "estrella",   nombre: "Estrella",         desc: "Terminaste con OVR 85+ y títulos.",            emoji: "⭐", color: "#4dabf7" },
-  { id: "profesional",nombre: "Profesional",      desc: "Carrera sólida con buen nivel.",               emoji: "🔥", color: "#69db7c" },
-  { id: "promesa",    nombre: "Promesa Truncada", desc: "No lograste consolidarte.",                    emoji: "🌟", color: "#adb5bd" },
-  { id: "olvidado",   nombre: "Olvidado",         desc: "Terminaste en el olvido de la Segunda.",       emoji: "💤", color: "#868e96" }
-];
-
-// 11. TRADUCCIONES (UI COMPLETA)
-const TEXTOS_UI = {
-  es: {
-    titulo: "CARRERA PSO",
-    nombreJugador: "Nombre del Jugador:",
-    placeholderNombre: "Ej: Caseros",
-    posicion: "Posición:",
-    posDEL: "Delantero (DEL)", posCM: "Mediocampista (CM)", posDEF: "Defensa (DEF)", posGK: "Arquero (GK)",
-    iniciar: "Iniciar Carrera",
-    continuar: "▶️ Continuar Carrera Guardada",
-    modoDesafio: "🎲 Modo Desafío",
-    ranking: "🏆 Ranking",
-    slots: "💾 Slots",
-    modoOscuroTitulo: "Modo oscuro",
-    edad: "Edad:", anios: "años", media: "Media:", club: "Club:", moral: "Moral:", estado: "Estado:",
-    acciones: "Acciones",
-    entrenar: "Entrenar Tradicional",
-    dominios: "⚽ Desafío Dominios",
-    entrenamiento: "⚽ Entrenamiento",
-    masMinijuegos: "🎮 Más Minijuegos",
-    logros: "🏅 Logros",
-    stats: "📊 Stats",
-    sinEventos: "No hay eventos sociales esta temporada.",
-    simular: "Simular Temporada",
-    reiniciar: "Reiniciar Carrera",
-    historial: "Historial de Carrera",
-    thTemp: "Temp", thClub: "Club", thPJ: "PJ", thGoles: "Goles", thAsist: "Asist.", thTitulos: "Títulos / Logros",
-    retiro: "🏁 Retiro Profesional",
-    partidos: "Partidos:", goles: "Goles:", asistencias: "Asistencias:",
-    jugarDeNuevo: "Jugar de Nuevo",
-    rankTabGlobal: "🌍 Global (Online)",
-    rankTabLocal: "📱 Este dispositivo",
-    rankTitulo: "🏆 Ranking",
-    rankColJugador: "Jugador", rankColMedia: "Media", rankColTitulos: "Títulos", rankColAnio: "Año",
-    rankCargando: "Cargando ranking online...",
-    rankErrorOnline: "No se pudo conectar con el ranking online. Revisá tu conexión.",
-    rankReintentar: "🔄 Reintentar",
-    rankActualizar: "🔄 Actualizar",
-    rankVacioOnline: "Todavía no hay carreras en el ranking global. ¡Terminá una carrera y sé el primero!",
-    rankVacioLocal: "Todavía no hay carreras registradas en este dispositivo.",
-    rankSincronizado: "🟢 Ranking online sincronizado",
-    rankPendiente: "📤 Tu carrera quedó guardada y se enviará cuando haya internet",
-    posCancha: "📍 Posición en cancha", tuCasaca: "👕 Tu casaca", dorsal: "🔢 Dorsal",
-    btnInstalar: "📥 Instalar App",
-    desarrollado: "Desarrollado por:", colaboracion: "Colaboración:",
-    // --- UI estatica adicional (panel de cuenta, modales, avisos) ---
-    cuentaTitulo: "👤 Mi cuenta (opcional)",
-    cuentaInfo: "Tu carrera sigue guardada en este dispositivo. Supabase gestiona tu correo, autenticación y apodo. Al recargar la página tendrás que iniciar sesión otra vez.",
-    cuentaEmail: "Correo electrónico",
-    cuentaPass: "Contraseña",
-    cuentaAcepto1: "Leí y acepto la",
-    cuentaPrivacidadLink: "Política de privacidad (abre otra pestaña)",
-    cuentaAcepto2: "para crear mi cuenta.",
-    cuentaAyuda: "Obligatorio solo al registrarse. Usamos el correo y la autenticación para gestionar tu cuenta y el apodo para tu perfil. Esta aceptación no autoriza publicidad ni medición opcional.",
-    cuentaLogin: "Iniciar sesión",
-    cuentaCrear: "Crear cuenta",
-    cuentaRegistroAyuda: "Para registrarte, usá al menos 8 caracteres. Confirmá el correo recibido antes de iniciar sesión.",
-    cuentaApodo: "Apodo del perfil",
-    cuentaGuardarApodo: "Guardar apodo",
-    cuentaLeerPerfil: "Volver a leer perfil",
-    cuentaSalir: "Cerrar sesión",
-    dueloBoton: "⚔️ 1v1 Online (Duelo)",
-    btnEntendido: "Entendido",
-    btnRechazar: "Rechazar",
-    btnAceptar: "Aceptar",
-    btnContinuar: "Continuar",
-    btnCerrar: "Cerrar",
-    btnEntendido2: "¡Entendido!",
-    mercadoTitulo: "Mercado de Pases",
-    penalTitulo: "⚽ ¡FINAL DRAMÁTICA!",
-    penalTexto: "El partido está empatado. Tienes en tus pies el penal para definir el título.",
-    minijuegoIndicacion: "Seguí la indicación de este minijuego:",
-    tiempoRestante: "Tiempo restante:",
-    ssTitulo: "🔍 REVISIÓN EN VIVO (SS)",
-    ssTexto: "Revisando carpetas y archivos sospechosos...",
-    rolDesbloqueado: "🔓 ROL DESBLOQUEADO",
-    privacidadLink: "Política de privacidad",
-    avisoMinijuego: "Ya jugaste el minijuego de esta temporada. Solo se puede jugar 1 minijuego por temporada, además del entrenamiento tradicional. Avanzá a la próxima temporada para jugar otro."
-  },
-  en: {
-    titulo: "PSO CAREER",
-    nombreJugador: "Player Name:",
-    placeholderNombre: "Ex: Caseros",
-    posicion: "Position:",
-    posDEL: "Forward (DEL)", posCM: "Midfielder (CM)", posDEF: "Defender (DEF)", posGK: "Goalkeeper (GK)",
-    iniciar: "Start Career",
-    continuar: "▶️ Continue Saved Career",
-    modoDesafio: "🎲 Challenge Mode",
-    ranking: "🏆 Ranking",
-    slots: "💾 Slots",
-    modoOscuroTitulo: "Dark mode",
-    edad: "Age:", anios: "years", media: "Rating:", club: "Club:", moral: "Morale:", estado: "Status:",
-    acciones: "Actions",
-    entrenar: "Train",
-    dominios: "⚽ Domains Challenge",
-    entrenamiento: "⚽ Training",
-    masMinijuegos: "🎮 More Minigames",
-    logros: "🏅 Achievements",
-    stats: "📊 Stats",
-    sinEventos: "No social events this season.",
-    simular: "Simulate Season",
-    reiniciar: "Restart Career",
-    historial: "Career History",
-    thTemp: "Season", thClub: "Club", thPJ: "MP", thGoles: "Goals", thAsist: "Assists", thTitulos: "Titles / Achievements",
-    retiro: "🏁 Professional Retirement",
-    partidos: "Matches:", goles: "Goals:", asistencias: "Assists:",
-    jugarDeNuevo: "Play Again",
-    rankTabGlobal: "🌍 Global (Online)",
-    rankTabLocal: "📱 This device",
-    rankTitulo: "🏆 Ranking",
-    rankColJugador: "Player", rankColMedia: "Rating", rankColTitulos: "Titles", rankColAnio: "Year",
-    rankCargando: "Loading online ranking...",
-    rankErrorOnline: "Could not connect to the online ranking. Check your connection.",
-    rankReintentar: "🔄 Retry",
-    rankActualizar: "🔄 Refresh",
-    rankVacioOnline: "No careers in the global ranking yet. Finish a career and be the first!",
-    rankVacioLocal: "No careers registered on this device yet.",
-    rankSincronizado: "🟢 Online ranking synced",
-    rankPendiente: "📤 Your career was saved and will be sent when you're back online",
-    posCancha: "📍 Position on the pitch", tuCasaca: "👕 Your shirt", dorsal: "🔢 Shirt number",
-    btnInstalar: "📥 Install App",
-    desarrollado: "Developed by:", colaboracion: "Collaboration:",
-    // --- Extra static UI (account panel, modals, notices) ---
-    cuentaTitulo: "👤 My account (optional)",
-    cuentaInfo: "Your career is still saved on this device. Supabase manages your email, authentication and nickname. When you reload the page you will have to sign in again.",
-    cuentaEmail: "Email",
-    cuentaPass: "Password",
-    cuentaAcepto1: "I have read and accept the",
-    cuentaPrivacidadLink: "Privacy Policy (opens a new tab)",
-    cuentaAcepto2: "to create my account.",
-    cuentaAyuda: "Required only when signing up. We use the email and authentication to manage your account and the nickname for your profile. This acceptance does not allow advertising or optional measurement.",
-    cuentaLogin: "Sign in",
-    cuentaCrear: "Create account",
-    cuentaRegistroAyuda: "To sign up, use at least 8 characters. Confirm the email you received before signing in.",
-    cuentaApodo: "Profile nickname",
-    cuentaGuardarApodo: "Save nickname",
-    cuentaLeerPerfil: "Read profile again",
-    cuentaSalir: "Sign out",
-    dueloBoton: "⚔️ 1v1 Online (Duel)",
-    btnEntendido: "Got it",
-    btnRechazar: "Reject",
-    btnAceptar: "Accept",
-    btnContinuar: "Continue",
-    btnCerrar: "Close",
-    btnEntendido2: "Got it!",
-    mercadoTitulo: "Transfer Market",
-    penalTitulo: "⚽ DRAMATIC FINAL!",
-    penalTexto: "The match is tied. The penalty to decide the title is at your feet.",
-    minijuegoIndicacion: "Follow this minigame's instruction:",
-    tiempoRestante: "Time left:",
-    ssTitulo: "🔍 LIVE REVIEW (SS)",
-    ssTexto: "Checking suspicious folders and files...",
-    rolDesbloqueado: "🔓 ROLE UNLOCKED",
-    privacidadLink: "Privacy Policy",
-    avisoMinijuego: "You already played this season's minigame. You can only play 1 minigame per season, in addition to traditional training. Advance to the next season to play another."
-  },
-  pt: {
-    titulo: "CARREIRA PSO",
-    nombreJugador: "Nome do Jogador:",
-    placeholderNombre: "Ex: Caseros",
-    posicion: "Posição:",
-    posDEL: "Atacante (DEL)", posCM: "Meio-campista (CM)", posDEF: "Zagueiro (DEF)", posGK: "Goleiro (GK)",
-    iniciar: "Iniciar Carreira",
-    continuar: "▶️ Continuar Carreira Salva",
-    modoDesafio: "🎲 Modo Desafio",
-    ranking: "🏆 Ranking",
-    slots: "💾 Slots",
-    modoOscuroTitulo: "Modo escuro",
-    edad: "Idade:", anios: "anos", media: "Média:", club: "Clube:", moral: "Moral:", estado: "Status:",
-    acciones: "Ações",
-    entrenar: "Treinar",
-    dominios: "⚽ Desafio de Domínios",
-    entrenamiento: "⚽ Treinamento",
-    masMinijuegos: "🎮 Mais Minijogos",
-    logros: "🏅 Conquistas",
-    stats: "📊 Estatísticas",
-    sinEventos: "Não há eventos sociais nesta temporada.",
-    simular: "Simular Temporada",
-    reiniciar: "Reiniciar Carreira",
-    historial: "Histórico da Carreira",
-    thTemp: "Temp", thClub: "Clube", thPJ: "PJ", thGoles: "Gols", thAsist: "Assist.", thTitulos: "Títulos / Conquistas",
-    retiro: "🏁 Aposentadoria Profissional",
-    partidos: "Partidas:", goles: "Gols:", asistencias: "Assistências:",
-    jugarDeNuevo: "Jogar Novamente",
-    rankTabGlobal: "🌍 Global (Online)",
-    rankTabLocal: "📱 Este dispositivo",
-    rankTitulo: "🏆 Ranking",
-    rankColJugador: "Jogador", rankColMedia: "Média", rankColTitulos: "Títulos", rankColAnio: "Ano",
-    rankCargando: "Carregando ranking online...",
-    rankErrorOnline: "Não foi possível conectar ao ranking online. Verifique sua conexão.",
-    rankReintentar: "🔄 Tentar novamente",
-    rankActualizar: "🔄 Atualizar",
-    rankVacioOnline: "Ainda não há carreiras no ranking global. Termine uma carreira e seja o primeiro!",
-    rankVacioLocal: "Ainda não há carreiras registradas neste dispositivo.",
-    rankSincronizado: "🟢 Ranking online sincronizado",
-    rankPendiente: "📤 Sua carreira foi salva e será enviada quando houver internet",
-    posCancha: "📍 Posição em campo", tuCasaca: "👕 Sua camisa", dorsal: "🔢 Número",
-    btnInstalar: "📥 Instalar App",
-    desarrollado: "Desenvolvido por:", colaboracion: "Colaboração:",
-    // --- UI estatica adicional (painel de conta, modais, avisos) ---
-    cuentaTitulo: "👤 Minha conta (opcional)",
-    cuentaInfo: "Sua carreira continua salva neste dispositivo. O Supabase gerencia seu e-mail, autenticação e apelido. Ao recarregar a página, você terá que entrar novamente.",
-    cuentaEmail: "E-mail",
-    cuentaPass: "Senha",
-    cuentaAcepto1: "Li e aceito a",
-    cuentaPrivacidadLink: "Política de privacidade (abre em outra aba)",
-    cuentaAcepto2: "para criar minha conta.",
-    cuentaAyuda: "Obrigatório apenas no cadastro. Usamos o e-mail e a autenticação para gerenciar sua conta e o apelido para o seu perfil. Este aceite não autoriza publicidade nem medição opcional.",
-    cuentaLogin: "Entrar",
-    cuentaCrear: "Criar conta",
-    cuentaRegistroAyuda: "Para se cadastrar, use pelo menos 8 caracteres. Confirme o e-mail recebido antes de entrar.",
-    cuentaApodo: "Apelido do perfil",
-    cuentaGuardarApodo: "Salvar apelido",
-    cuentaLeerPerfil: "Ler perfil novamente",
-    cuentaSalir: "Sair da conta",
-    dueloBoton: "⚔️ 1v1 Online (Duelo)",
-    btnEntendido: "Entendi",
-    btnRechazar: "Recusar",
-    btnAceptar: "Aceitar",
-    btnContinuar: "Continuar",
-    btnCerrar: "Fechar",
-    btnEntendido2: "Entendi!",
-    mercadoTitulo: "Mercado de Transferências",
-    penalTitulo: "⚽ FINAL DRAMÁTICO!",
-    penalTexto: "A partida está empatada. Você tem nos pés o pênalti para decidir o título.",
-    minijuegoIndicacion: "Siga a instrução deste minijogo:",
-    tiempoRestante: "Tempo restante:",
-    ssTitulo: "🔍 REVISÃO AO VIVO (SS)",
-    ssTexto: "Verificando pastas e arquivos suspeitos...",
-    rolDesbloqueado: "🔓 CARGO DESBLOQUEADO",
-    privacidadLink: "Política de privacidade",
-    avisoMinijuego: "Você já jogou o minijogo desta temporada. Só é possível jogar 1 minijogo por temporada, além do treino tradicional. Avance para a próxima temporada para jogar outro."
-  }
-};
 
 // 14. OFERTAS DE EQUIPOS: rango de reputacion coherente con la media/OVR.
 // Reglas de coherencia (V2):
@@ -564,6 +520,24 @@ function crearPRNG(semilla) {
   };
 }
 
+function compararRanking(a, b) {
+  const mediaA = Number(a && a.media != null ? a.media : 0);
+  const mediaB = Number(b && b.media != null ? b.media : 0);
+  if (mediaB !== mediaA) return mediaB - mediaA;
+
+  const titA = Number(a && a.titulos != null ? a.titulos : 0);
+  const titB = Number(b && b.titulos != null ? b.titulos : 0);
+  if (titB !== titA) return titB - titA;
+
+  const tsA = Number(a && a.ts != null ? a.ts : (a && a.anio != null ? a.anio : 0));
+  const tsB = Number(b && b.ts != null ? b.ts : (b && b.anio != null ? b.anio : 0));
+  if (tsB !== tsA) return tsB - tsA;
+
+  return String(a && a.nombre ? a.nombre : "").localeCompare(String(b && b.nombre ? b.nombre : ""));
+}
+
 // 13. HELPER DE RANDOM GLOBAL (usa PRNG si hay semilla activa)
 let _randActivo = Math.random;
 function rnd() { return _randActivo(); }
+
+
