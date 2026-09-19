@@ -1548,6 +1548,18 @@ function resolverEvento(acepta) {
         break;
       }
 
+      case "COCCARO": {
+        // Coccaro: te llevás por la guita a Laferrere. En Modo Desafío no hay
+        // cambio de club (estás fichado para siempre), pero sí la penalidad.
+        if (!jugador.modoDesafio) {
+          const laferrere = CLUBES.find(c => c.nombre === "Laferrere");
+          if (laferrere) jugador.clubActual = laferrere;
+        }
+        sumarMedia(-3);
+        resultadoTxt = "💰 Te fuiste por la guita: -3 OVR. Cambiaste a Laferrere.";
+        break;
+      }
+
       case "ACUSADO": {
         // Evento obligatorio: el SS se ejecuta sí o sí. "Sí" y "cerrar el
         // modal" terminan acá.
@@ -1657,6 +1669,21 @@ function resolverEventoDosOpciones(id, opcion) {
         resultadoTxt = "🧑‍🤝‍🧑 Te hiciste tan amigo que te fuiste a BODO a jugar. ¡Cambio de club inmediato a Bodo Glimt!";
       }
       break;
+
+    case "TAMBUPA":
+      // Tambupa: partido de futbol 5. Aceptar puede subir OVR (con riesgo).
+      if (opcion === "a") {
+        if (Math.random() < 0.6) {
+          sumarMedia(3);
+          resultadoTxt = "🔥 ¡Te la pasaste bien en el 5 y mejoraste tu juego (+3 OVR)!";
+        } else {
+          sumarMedia(-2);
+          resultadoTxt = "🤕 Te lastimaste en el 5 y perdiste nivel (-2 OVR).";
+        }
+      } else {
+        resultadoTxt = "🙅 Rechazaste la invitación de Tambupa. Continuás con tu carrera.";
+      }
+      break;
   }
 
   registrarEventoFinalizado();
@@ -1757,7 +1784,8 @@ const TODOS_EVENTOS = [
   "BEKKU", "CARNICERO", "PIEDRA", "KULONETA", "MACHI", "PIPITA", "NOZ", "PYOJO",
   "ORSINI", "NICOBAILARIN", "RONNIE", "BAREIRO", "MUSA", "KOLT", "VIEJO", "PISA",
   "PERUANOS", "PUSKAS", "GLIZZI", "PASO", "MATUTE", "RANKEDS",
-  "CERBE", "NERVA", "NITTOX", "KROSTY", "PRIMOS"
+  "CERBE", "NERVA", "NITTOX", "KROSTY", "PRIMOS",
+  "TAMBUPA", "COCCARO"
 ];
 
 function prepararSiguienteEvento() {

@@ -777,3 +777,92 @@ body.modo-oscuro .duelo-arco {
 .duelo-stats-final .duelo-vs {
   font-size: 2rem;
 }
+/* ==== BARRA DE PENAL DEL DUELO (mejorada: zona ideal + valor + pasos) ==== */
+.duelo-barra-penal {
+  width: 100%;
+  height: 30px;
+  background: #dee2e6;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+}
+.duelo-barra-ideal {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: rgba(25, 200, 25, 0.28);
+  border-left: 2px solid #19c819;
+  border-right: 2px solid #19c819;
+  pointer-events: none;
+  z-index: 1;
+}
+.duelo-barra-penal #duelo-barra-fill {
+  position: relative;
+  z-index: 2;
+  opacity: 0.85;
+}
+.duelo-barra-lbl {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #212529;
+  z-index: 3;
+  pointer-events: none;
+}
+.duelo-penal-pasos {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 420px;
+  margin: 0 auto;
+}
+.duelo-penal-paso {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  color: #6c757d;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 6px 10px;
+  text-align: left;
+}
+.duelo-penal-paso.activo {
+  color: #212529;
+  border-color: #ffc107;
+  background: #fff9db;
+}
+.duelo-penal-paso.completo {
+  color: #198754;
+  border-color: #198754;
+  background: #eafaf1;
+}
+.duelo-penal-paso.completo::after {
+  content: "✓";
+  margin-left: auto;
+  font-weight: 700;
+}
+.duelo-paso-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #adb5bd;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+.duelo-penal-paso.activo .duelo-paso-num { background: #ffc107; color: #212529; }
+.duelo-penal-paso.completo .duelo-paso-num { background: #198754; }
+
+body.modo-oscuro .duelo-barra-penal { background: #343a40; }
+body.modo-oscuro .duelo-penal-paso { border-color: #495057; color: #adb5bd; }
+body.modo-oscuro .duelo-penal-paso.activo { background: #4d3b00; border-color: #ffc107; color: #ffe066; }
+body.modo-oscuro .duelo-penal-paso.completo { background: #10361f; border-color: #198754; color: #75d1a3; }
+body.modo-oscuro .duelo-barra-lbl { color: #f8f9fa; }

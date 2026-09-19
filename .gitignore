@@ -13,3 +13,9 @@ node_modules/
 *.log
 verificacion-http.txt
 ver-camiseta*.js
+
+node_modules/
+.DS_Store
+*.zip
+*.rar
+*.mp4

@@ -97,5 +97,23 @@ let califica = null;
 try { L.DUELO_EVENTOS.NITTOX.resolver("b", jPromesa); califica = true; } catch (e) { califica = false; }
 ok(califica, 'NITTOX: OVR 77 (Promesa) -> la opción se resuelve sin error');
 
+  // 10) Duelo de Reflejos - resolución determinística
+  // 10a) Doble foul -> empate
+  ok(L.resolverReflejoDuelo(100, true, 200, true).r === 'empate', 'reflejo: doble foul -> empate');
+  // 10b) Yo foul, rival no -> pierdo
+  ok(L.resolverReflejoDuelo(100, true, 200, false).r === 'pierde', 'reflejo: yo foul -> pierdo');
+  // 10c) Rival foul, yo no -> gano
+  ok(L.resolverReflejoDuelo(100, false, 200, true).r === 'gana', 'reflejo: rival foul -> gano');
+  // 10d) Mismo tiempo -> empate
+  ok(L.resolverReflejoDuelo(150, false, 150, false).r === 'empate', 'reflejo: mismo tiempo -> empate');
+  // 10e) Yo más rápido -> gano
+  ok(L.resolverReflejoDuelo(120, false, 200, false).r === 'gana', 'reflejo: yo más rápido -> gano');
+  // 10f) Rival más rápido -> pierdo
+  ok(L.resolverReflejoDuelo(200, false, 120, false).r === 'pierde', 'reflejo: rival más rápido -> pierdo');
+  // 10g) Timeout (9999) vs tiempo válido -> pierde el timeout
+  ok(L.resolverReflejoDuelo(9999, false, 150, false).r === 'pierde', 'reflejo: timeout vs válido -> pierde timeout');
+  ok(L.resolverReflejoDuelo(150, false, 9999, false).r === 'gana', 'reflejo: válido vs timeout -> gana');
+
+
 if (fallos === 0) { console.log('TODO OK'); }
 else { console.error(fallos + ' pruebas fallaron'); process.exit(1); }

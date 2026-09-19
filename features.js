@@ -54,8 +54,13 @@ function traducirInterfaz() {
     const clave = el.getAttribute("data-i18n");
     el.innerText = t(clave);
   });
+  // data-i18n-title: traduce el atributo title (tooltips), sin tocar el texto.
+  document.querySelectorAll("[data-i18n-title]").forEach(function(el) {
+    el.setAttribute("title", t(el.getAttribute("data-i18n-title")));
+  });
   const inp = document.getElementById("input-nombre");
   if (inp) inp.setAttribute("placeholder", t("placeholderNombre"));
+  document.documentElement.lang = prefs.idioma || "es";
   document.title = t("titulo");
 }
 

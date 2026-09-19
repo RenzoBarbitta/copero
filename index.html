@@ -32,31 +32,31 @@
   <div class="container flex-grow-1" style="max-width: 900px;">
 
     <details class="card card-custom p-3 mt-3" id="cuenta-panel">
-      <summary class="fw-bold">👤 Mi cuenta (opcional)</summary>
-      <p class="small mt-2">Tu carrera sigue guardada en este dispositivo. Supabase gestiona tu correo, autenticación y apodo. Al recargar la página tendrás que iniciar sesión otra vez.</p>
+      <summary class="fw-bold" data-i18n="cuentaTitulo">👤 Mi cuenta (opcional)</summary>
+      <p class="small mt-2" data-i18n="cuentaInfo">Tu carrera sigue guardada en este dispositivo. Supabase gestiona tu correo, autenticación y apodo. Al recargar la página tendrás que iniciar sesión otra vez.</p>
       <form id="cuenta-form">
-        <label for="cuenta-email" class="form-label">Correo electrónico</label>
+        <label for="cuenta-email" class="form-label" data-i18n="cuentaEmail">Correo electrónico</label>
         <input id="cuenta-email" type="email" class="form-control mb-2" autocomplete="username" required maxlength="254">
-        <label for="cuenta-pass" class="form-label">Contraseña</label>
+        <label for="cuenta-pass" class="form-label" data-i18n="cuentaPass">Contraseña</label>
         <input id="cuenta-pass" type="password" class="form-control mb-3" autocomplete="current-password" required>
         <div class="form-check mb-3">
           <input class="form-check-input" type="checkbox" id="cuenta-privacidad" aria-describedby="cuenta-privacidad-ayuda">
-          <label class="form-check-label" for="cuenta-privacidad">Leí y acepto la <a href="privacidad.html" target="_blank" rel="noopener">Política de privacidad (abre otra pestaña)</a> para crear mi cuenta.</label>
+          <label class="form-check-label" for="cuenta-privacidad"><span data-i18n="cuentaAcepto1">Leí y acepto la</span> <a href="privacidad.html" target="_blank" rel="noopener" data-i18n="cuentaPrivacidadLink">Política de privacidad (abre otra pestaña)</a> <span data-i18n="cuentaAcepto2">para crear mi cuenta.</span></label>
         </div>
-        <p class="small" id="cuenta-privacidad-ayuda">Obligatorio solo al registrarse. Usamos el correo y la autenticación para gestionar tu cuenta y el apodo para tu perfil. Esta aceptación no autoriza publicidad ni medición opcional.</p>
+        <p class="small" id="cuenta-privacidad-ayuda" data-i18n="cuentaAyuda">Obligatorio solo al registrarse. Usamos el correo y la autenticación para gestionar tu cuenta y el apodo para tu perfil. Esta aceptación no autoriza publicidad ni medición opcional.</p>
         <div class="d-flex gap-2 flex-wrap">
-          <button class="btn btn-primary" type="submit">Iniciar sesión</button>
-          <button class="btn btn-outline-primary" type="submit" value="registrar">Crear cuenta</button>
+          <button class="btn btn-primary" type="submit" data-i18n="cuentaLogin">Iniciar sesión</button>
+          <button class="btn btn-outline-primary" type="submit" value="registrar" data-i18n="cuentaCrear">Crear cuenta</button>
         </div>
-        <p class="small mt-2">Para registrarte, usá al menos 8 caracteres. Confirmá el correo recibido antes de iniciar sesión.</p>
+        <p class="small mt-2" data-i18n="cuentaRegistroAyuda">Para registrarte, usá al menos 8 caracteres. Confirmá el correo recibido antes de iniciar sesión.</p>
       </form>
       <form id="cuenta-perfil" hidden>
-        <label for="cuenta-apodo" class="form-label">Apodo del perfil</label>
+        <label for="cuenta-apodo" class="form-label" data-i18n="cuentaApodo">Apodo del perfil</label>
         <input id="cuenta-apodo" class="form-control mb-3" minlength="2" maxlength="30" required autocomplete="nickname">
         <div class="d-flex gap-2 flex-wrap">
-          <button class="btn btn-primary" type="submit">Guardar apodo</button>
-          <button id="cuenta-leer" class="btn btn-outline-primary" type="button">Volver a leer perfil</button>
-          <button id="cuenta-salir" class="btn btn-outline-secondary" type="button">Cerrar sesión</button>
+          <button class="btn btn-primary" type="submit" data-i18n="cuentaGuardarApodo">Guardar apodo</button>
+          <button id="cuenta-leer" class="btn btn-outline-primary" type="button" data-i18n="cuentaLeerPerfil">Volver a leer perfil</button>
+          <button id="cuenta-salir" class="btn btn-outline-secondary" type="button" data-i18n="cuentaSalir">Cerrar sesión</button>
         </div>
       </form>
       <p id="cuenta-estado" class="small mt-3 mb-0" role="status" aria-live="polite"></p>
@@ -124,7 +124,7 @@
       <div class="d-flex justify-content-center gap-2 mt-3 flex-wrap">
         <button id="btn-modo-desafio" class="btn btn-outline-secondary btn-sm fw-bold" data-i18n="modoDesafio">🎲 Modo Desafío</button>
         <button id="btn-ranking" class="btn btn-outline-secondary btn-sm fw-bold" data-i18n="ranking">🏆 Ranking</button>
-        <button id="btn-duelo-online" class="btn btn-outline-danger btn-sm fw-bold" onclick="abrirPantallaDuelo()">⚔️ 1v1 Online (Duelo)</button>
+        <button id="btn-duelo-online" class="btn btn-outline-danger btn-sm fw-bold" onclick="abrirPantallaDuelo()" data-i18n="dueloBoton">⚔️ 1v1 Online (Duelo)</button>
         <button class="btn btn-outline-secondary btn-sm fw-bold" onclick="mostrarSlots()" data-i18n="slots">💾 Slots</button>
         <select id="select-idioma" class="form-select form-select-sm" style="width:auto;">
           <option value="es">🇺🇾 ES</option>
@@ -160,7 +160,7 @@
         <div class="col-md-4 mb-3">
           <div class="card card-custom p-3 text-center">
             <h4 class="mb-3 text-dark fw-bold" data-i18n="acciones">Acciones</h4>
-            <div id="aviso-minijuego-usado" class="alert alert-info small hidden" role="status">Ya jugaste el minijuego de esta temporada. Solo se puede jugar <strong>1 minijuego por temporada</strong>, además del entrenamiento tradicional. Avanzá a la próxima temporada para jugar otro.</div>
+            <div id="aviso-minijuego-usado" class="alert alert-info small hidden" role="status" data-i18n="avisoMinijuego">Ya jugaste el minijuego de esta temporada. Solo se puede jugar 1 minijuego por temporada, además del entrenamiento tradicional. Avanzá a la próxima temporada para jugar otro.</div>
             <button id="btn-entrenar" class="btn btn-outline-primary mb-2 w-100 fw-bold" onclick="entrenar()" data-i18n="entrenar">Entrenar Tradicional</button>
             <button class="btn btn-outline-success mb-2 w-100 fw-bold btn-minijuego" onclick="iniciarMinijuegoDominios()" data-i18n="dominios">⚽ Desafío Dominios</button>
             <button id="btn-minijuego-especifico" class="btn btn-outline-warning mb-2 w-100 fw-bold text-dark btn-minijuego" onclick="iniciarMinijuegoEntrenamiento()" data-i18n="entrenamiento">⚽ Entrenamiento</button>
@@ -239,7 +239,7 @@
   <footer class="text-center py-3 text-muted mt-4">
     <p class="mb-0"><strong data-i18n="desarrollado">Desarrollado por:</strong> Caseros</p>
     <p class="mb-0"><strong data-i18n="colaboracion">Colaboración:</strong> Nasty</p>
-    <p class="mt-2 mb-0"><a href="privacidad.html" target="_blank" rel="noopener">Política de privacidad</a></p>
+    <p class="mt-2 mb-0"><a href="privacidad.html" target="_blank" rel="noopener" data-i18n="privacidadLink">Política de privacidad</a></p>
   </footer>
 
   <!-- MODALES -->
@@ -248,7 +248,7 @@
       <div class="modal-content border-secondary">
         <div class="modal-header border-bottom-0"><h5 class="modal-title fw-bold" id="infoModalTitulo"></h5></div>
         <div class="modal-body" id="infoModalCuerpo"></div>
-        <div class="modal-footer border-top-0"><button class="btn btn-primary" data-bs-dismiss="modal">Entendido</button></div>
+        <div class="modal-footer border-top-0"><button class="btn btn-primary" data-bs-dismiss="modal" data-i18n="btnEntendido">Entendido</button></div>
       </div>
     </div>
   </div>
@@ -269,7 +269,7 @@
   <div class="modal fade" id="modal-fichajes" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content border-primary">
-        <div class="modal-header border-bottom-0"><h5 class="modal-title text-primary fw-bold">Mercado de Pases (Temp. <span id="fichajes-temp"></span>)</h5></div>
+        <div class="modal-header border-bottom-0"><h5 class="modal-title text-primary fw-bold"><span data-i18n="mercadoTitulo">Mercado de Pases</span> (Temp. <span id="fichajes-temp"></span>)</h5></div>
         <div class="modal-body"><div id="contenedor-ofertas"></div></div>
       </div>
     </div>
@@ -278,9 +278,9 @@
   <div class="modal fade" id="modalPenal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content text-center border-warning">
-        <div class="modal-header border-bottom-0"><h5 class="modal-title w-100 fw-bold text-warning">⚽ ¡FINAL DRAMÁTICA!</h5></div>
+        <div class="modal-header border-bottom-0"><h5 class="modal-title w-100 fw-bold text-warning" data-i18n="penalTitulo">⚽ ¡FINAL DRAMÁTICA!</h5></div>
         <div class="modal-body">
-          <p>El partido está empatado. Tienes en tus pies el penal para definir el título.</p>
+          <p data-i18n="penalTexto">El partido está empatado. Tienes en tus pies el penal para definir el título.</p>
           <div class="d-inline-block p-2 border border-secondary rounded mb-3 bg-light">
             <div class="row g-1 mb-1">
               <div class="col-4"><button type="button" class="btn btn-outline-dark w-100" aria-label="Arriba izquierda" onclick="patearPenal('Arriba-Izquierda')">↖️</button></div>
@@ -296,7 +296,7 @@
           <div id="penalResultado" role="status" aria-live="polite"></div>
         </div>
         <div class="modal-footer border-top-0 justify-content-center" id="penalFooter" style="display: none;">
-          <button type="button" class="btn btn-warning fw-bold px-4" onclick="cerrarModalPenal()">Continuar</button>
+          <button type="button" class="btn btn-warning fw-bold px-4" onclick="cerrarModalPenal()" data-i18n="btnContinuar">Continuar</button>
         </div>
       </div>
     </div>
@@ -330,9 +330,9 @@
           <h5 class="modal-title w-100 fw-bold text-success" id="modalDominiosTitulo">⚽ Desafío de Dominios</h5>
         </div>
         <div class="modal-body">
-          <p class="mb-3">Seguí la indicación de este minijuego:</p>
+          <p class="mb-3" data-i18n="minijuegoIndicacion">Seguí la indicación de este minijuego:</p>
           <div id="secuenciaObjetivo" class="fs-1 fw-bold my-4 text-primary">---</div>
-          <p id="tiempoDominiosRow" class="m-0 fs-5">Tiempo restante: <span id="tiempoDominios" class="text-danger fw-bold">3.0</span>s</p>
+          <p id="tiempoDominiosRow" class="m-0 fs-5"><span data-i18n="tiempoRestante">Tiempo restante:</span> <span id="tiempoDominios" class="text-danger fw-bold">3.0</span>s</p>
           <div id="resultadoDominios" role="status" aria-live="polite"></div>
         </div>
       </div>
@@ -342,10 +342,10 @@
   <div class="modal fade" id="modalSS" tabindex="-1" data-bs-backdrop="static" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content text-center border-danger">
-        <div class="modal-header border-bottom-0"><h5 class="modal-title w-100 fw-bold text-danger">🔍 REVISIÓN EN VIVO (SS)</h5></div>
+        <div class="modal-header border-bottom-0"><h5 class="modal-title w-100 fw-bold text-danger" data-i18n="ssTitulo">🔍 REVISIÓN EN VIVO (SS)</h5></div>
         <div class="modal-body">
           <div id="escaneoSSAnim" class="spinner-border text-danger my-3" role="status"></div>
-          <div id="resultadoSS" class="fw-bold fs-5 text-dark" role="status" aria-live="polite">Revisando carpetas y archivos sospechosos...</div>
+          <div id="resultadoSS" class="fw-bold fs-5 text-dark" role="status" aria-live="polite" data-i18n="ssTexto">Revisando carpetas y archivos sospechosos...</div>
         </div>
       </div>
     </div>
@@ -356,7 +356,7 @@
     <div class="modal-dialog modal-dialog-centered modal-sm">
       <div class="modal-content">
         <div class="modal-header border-0 pb-0 justify-content-center">
-          <p class="rol-unlock-title mb-0">🔓 ROL DESBLOQUEADO</p>
+          <p class="rol-unlock-title mb-0" data-i18n="rolDesbloqueado">🔓 ROL DESBLOQUEADO</p>
         </div>
         <div class="modal-body pt-2">
           <div id="rolModalEmoji" class="my-2"></div>
@@ -365,7 +365,7 @@
           <div id="rolModalOVR" class="mb-3"></div>
         </div>
         <div class="modal-footer border-0 justify-content-center pt-0">
-          <button class="btn btn-warning fw-bold px-4" data-bs-dismiss="modal">¡Entendido!</button>
+          <button class="btn btn-warning fw-bold px-4" data-bs-dismiss="modal" data-i18n="btnEntendido2">¡Entendido!</button>
         </div>
       </div>
     </div>
@@ -403,7 +403,7 @@
         </div>
         <div class="modal-footer border-top-0 justify-content-center pt-0">
           <button type="button" id="btn-ranking-actualizar" class="btn btn-outline-secondary btn-sm fw-bold" data-i18n="rankActualizar">🔄 Actualizar</button>
-          <button type="button" class="btn btn-warning fw-bold px-4" data-bs-dismiss="modal">Cerrar</button>
+          <button type="button" class="btn btn-warning fw-bold px-4" data-bs-dismiss="modal" data-i18n="btnCerrar">Cerrar</button>
         </div>
       </div>
     </div>

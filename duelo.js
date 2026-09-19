@@ -70,6 +70,19 @@
     return 8 + (Math.min(99, ovr) - 60) * 0.45; // tolerancia del pateador
   }
 
+  // Resolucion deterministica del DUELO DE REFLEJOS (1v1 directo, sin arco).
+  // Cada lado aporta su tiempo de reaccion en ms y si hizo foul (click anticipado).
+  // Gana el menor tiempo valido; foul = derrota salvo doble foul (empate).
+  // Sin respuesta (timeout) se representa con ms=9999.
+  function resolverReflejoDuelo(msYo, foulYo, msRiv, foulRiv) {
+    if (foulYo && foulRiv) return { r: "empate", t: "Doble salida en falso: nadie gana" };
+    if (foulYo) return { r: "pierde", t: "Salida en falso: tocaste antes del ¡YA!" };
+    if (foulRiv) return { r: "gana", t: "El rival se adelantó: victoria por foul" };
+    if (msYo === msRiv) return { r: "empate", t: "Mismo tiempo de reacción" };
+    if (msYo < msRiv) return { r: "gana", t: "Reflejo más rápido" };
+    return { r: "pierde", t: "El rival reaccionó antes" };
+  }
+
   // Resolucion deterministica de un penal. Ambos clientes computan
   // EXACTAMENTE el mismo resultado con los mismos datos.
   // potencia: 0-100 (ideal ~65), zonaTiro/zonaArquero: clave de DUELO_ZONAS.
@@ -165,14 +178,11 @@
     return pool[hashSemilla(semillaStr) % pool.length];
   }
 
+  // Semilla determinista por sala + temporada. Ambos clientes calculan el
+  // mismo valor, asi eligen el MISMO minijuego de temporada sin depender
+  // del anfitrion.
   function semillaDeterministaDuelo(topic, temporada) {
-    return hashSemilla(topic + "-remate-" + temporada);
-  }
-
-  function hashSemilla(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) hash = ((hash << 5) - hash) + str.charCodeAt(i);
-    return Math.abs(hash);
+    return hashSemilla((topic || "sala") + "-minijuego-" + temporada);
   }
 
 
@@ -293,10 +303,357 @@
         j.ovr = Math.max(40, j.ovr - 2);
         return "🚶 Perdiste la oportunidad de aprender de Piedra (-2 OVR).";
       }
+    },
+    RICKY: {
+      titulo: "Trucos de Ricky",
+      texto: "Ricky Centurión te ofrece sus CHEATS.<br><br>¿Aceptas usarlos?",
+      a: "✅ Aceptar", b: "❌ Rechazar",
+      resolver: function(op, j) {
+        if (op === "a") { j.ovr = Math.min(99, j.ovr + 2); return "😈 Usaste los cheats de Ricky y rendís más (+2 OVR)... por ahora."; }
+        j.ovr = Math.max(40, j.ovr - 2);
+        return "Decidiste enfocarte y rechazaste la propuesta (-2 OVR).";
+      }
+    },
+    BANDIDO: {
+      titulo: "El Mágico",
+      texto: "Bandido te invita un porro mágico antes de jugar.<br><br>¿Aceptas?",
+      a: "✅ Aceptar", b: "❌ Rechazar",
+      resolver: function(op, j) {
+        if (op === "a") {
+          if (Math.random() < 0.5) return "¡Efecto mágico! Volás en la cancha.";
+          j.ovr = Math.max(40, j.ovr - 1);
+          return "Te cayó pesado y andás lento (Era Paraguayo) (-1 OVR).";
+        }
+        return "Decidiste enfocarte y rechazaste la propuesta.";
+      }
+    },
+    NACHO_LV: {
+      titulo: "Entreno con Las Varillas",
+      texto: "NachoLV te invita a hacer un entreno con Las Varillas.<br><br>¿Aceptas?",
+      a: "✅ Aceptar", b: "❌ Rechazar",
+      resolver: function(op, j) {
+        if (op === "a") {
+          if (Math.random() < 0.5) { j.ovr = Math.min(99, j.ovr + 4); return "¡Excelente entreno con las Varillas! (+4 OVR)."; }
+          j.ovr = Math.max(40, j.ovr - 3);
+          return "Entreno cansador (-3 OVR).";
+        }
+        return "Decidiste enfocarte y rechazaste la propuesta.";
+      }
+    },
+    VALIEL: {
+      titulo: "Promesa en MIX SA",
+      texto: "Valiel te da la oportunidad de quedar como Aspirante tras unos partidos de prueba.<br><br>¿Aceptas jugarlas?",
+      a: "✅ Aceptar", b: "❌ Rechazar",
+      resolver: function(op, j) {
+        if (op === "a") {
+          if (Math.random() < 0.4) { j.ovr = Math.min(99, j.ovr + 5); return "🔥 ¡Pasaste las pruebas de Valiel! (+5 OVR)."; }
+          return "No lograste superar las pruebas de Valiel esta vez.";
+        }
+        return "Decidiste enfocarte y rechazaste la propuesta.";
+      }
+    },
+    RANKEDS: {
+      titulo: "Rankeds",
+      texto: "Mojo te invita a jugar unas Rankeds del juego.<br><br>¿Qué decides hacer?",
+      a: "✅ Aceptar rankeds", b: "❌ Jugar mix",
+      resolver: function(op, j) {
+        if (op === "a") { j.ovr = Math.max(40, j.ovr - 1); return "Sumas horas innecesarias por unas monedas y no mejoras (-1 OVR)."; }
+        j.ovr = Math.min(99, j.ovr + 2);
+        return "Utilizas tu tiempo para jugar mix (+2 OVR).";
+      }
+    },
+    CHAGAS: {
+      titulo: "Comer",
+      texto: "Chagas te invita a una GRAN cena.<br><br>¿Aceptas ir a comer?",
+      a: "✅ Aceptar", b: "❌ Rechazar",
+      resolver: function(op, j) {
+        if (op === "a") {
+          if (Math.random() < 0.5) { j.ovr = Math.min(99, j.ovr + 2); return "¡La cena estuvo excelente y saludable! (+2 OVR)."; }
+          j.ovr = Math.max(40, j.ovr - 2);
+          return "La comida te cayó bastante mal (-2 OVR).";
+        }
+        return "Decidiste enfocarte y rechazaste la propuesta.";
+      }
+    },
+    CASANA: {
+      titulo: "Jugar IOSOCCER",
+      texto: "Casana te invita a jugar IOSOCCER.<br><br>¿Aceptas la partida?",
+      a: "✅ Aceptar", b: "❌ Rechazar",
+      resolver: function(op, j) {
+        if (op === "a") {
+          if (Math.random() < 0.4) { j.ovr = Math.min(99, j.ovr + 3); return "¡Jugar IOSOCCER te ayudó a mejorar en el PSO! (+3 OVR)."; }
+          j.ovr = Math.max(40, j.ovr - 2);
+          return "Perdiste tiempo valioso jugando IOSOCCER (-2 OVR).";
+        }
+        return "Decidiste enfocarte y rechazaste la propuesta.";
+      }
+    },
+    BEKKU: {
+      titulo: "Mix con Bekku",
+      texto: "Bekku te pide jugar mas suelto la mix.<br><br>¿Aceptas?",
+      a: "✅ Aceptar", b: "❌ Rechazar",
+      resolver: function(op, j) {
+        if (op === "a") {
+          if (Math.random() < 0.5) { j.ovr = Math.min(99, j.ovr + 2); return "Bekku te ayuda a ganar la mix (+2 OVR)."; }
+          j.ovr = Math.max(40, j.ovr - 2);
+          return "Bekku te trolea todo y pierden la mix y te comes 4adv (-2 OVR).";
+        }
+        return "Decidiste enfocarte y rechazaste la propuesta.";
+      }
+    },
+    CARNICERO: {
+      titulo: "Carnicero de Neuquen",
+      texto: "El Carnicero de Neuquén te invita a un asado.<br><br>¿Aceptas ir?",
+      a: "✅ Aceptar", b: "❌ Rechazar",
+      resolver: function(op, j) {
+        if (op === "a") {
+          if (Math.random() < 0.4) { j.ovr = Math.min(99, j.ovr + 2); return "El Carnicero Neuquino te da una dieta a base de carne y mejoras (+2 OVR)."; }
+          j.ovr = Math.max(40, j.ovr - 2);
+          return "La carne estaba toda vencida, te cayó mal (-2 OVR).";
+        }
+        return "Decidiste enfocarte y rechazaste la propuesta.";
+      }
+    },
+    KULONETA: {
+      titulo: "Kuloneta",
+      texto: "Kurona te invita a su server de discord, a cambio de algo...<br><br>¿Se lo das?",
+      a: "✅ Aceptar", b: "❌ Rechazar",
+      resolver: function(op, j) {
+        if (op === "a") {
+          if (Math.random() < 0.5) { j.moral = Math.min(100, j.moral + 15); return "🤝 Te haces amigo de ellos (+15 de moral)."; }
+          j.moral = Math.max(0, j.moral - 15);
+          return "😖 Salis traumado del discord (-15 de moral).";
+        }
+        return "Decidiste enfocarte y rechazaste la propuesta.";
+      }
+    },
+    MACHI: {
+      titulo: "Giros",
+      texto: "Te hablan de un jugador Machi que giraba mucho y te interesa probar su tecnica.<br><br>¿La practicas?",
+      a: "✅ Practicar", b: "❌ Rechazar",
+      resolver: function(op, j) {
+        if (op === "a") {
+          if (Math.random() < 0.5) { j.ovr = Math.min(99, j.ovr + 2); return "🌀 Aprendiste los giros de Machi (+2 OVR)."; }
+          return "🙃 No servis para los giritos.";
+        }
+        return "Decidiste enfocarte y rechazaste la propuesta.";
+      }
+    },
+    PIPITA: {
+      titulo: "Titulos Pipa",
+      texto: "Pipita te esta boqueando los titulos que tiene.<br><br>¿Que haces?",
+      a: "🥊 Pegarle una piña", b: "😐 Dejarlo boquear",
+      resolver: function(op, j) {
+        if (op === "a") {
+          j.moral = Math.min(100, j.moral + 15);
+          if (Math.random() < 0.5) { j.ovr = Math.max(40, j.ovr - 3); return "🥊 ¡Le pegaste una PIÑA a Pipita! Te sube la moral (+15), pero te vieron y te sancionaron (-3 OVR)."; }
+          return "🥊 ¡Le pegaste una PIÑA a Pipita! Nadie vio nada y te sentis un campeón (+15 de moral).";
+        }
+        return "😐 Te dejaste boquear con los títulos de Pipita. No pasa nada.";
+      }
+    },
+    NOZ: {
+      titulo: "Noz te invita",
+      texto: "Noz te invita a salir previo al entrenamiento.<br><br>¿Aceptas?",
+      a: "✅ Aceptar", b: "❌ Rechazar",
+      resolver: function(op, j) {
+        if (op === "a") {
+          if (Math.random() < 0.5) { j.ovr = Math.min(99, j.ovr + 2); j.moral = Math.min(100, j.moral + 10); return "🍺 Buena salida con Noz: rendís más (+2 OVR, +10 moral)."; }
+          j.ovr = Math.max(40, j.ovr - 2); j.moral = Math.max(0, j.moral - 10);
+          return "😴 La salida con Noz te dejó fundido y rendís mal (-2 OVR, -10 moral).";
+        }
+        return "Decidiste enfocarte y rechazaste la propuesta.";
+      }
+    },
+    PYOJO: {
+      titulo: "Salida a bar con Pyojo",
+      texto: "Pyojo te invita a tomar un negroni con 2 rocas.<br><br>¿Aceptas?",
+      a: "✅ Aceptar", b: "❌ Rechazar",
+      resolver: function(op, j) {
+        if (op === "a") {
+          if (Math.random() < 0.5) { j.ovr = Math.min(99, j.ovr + 2); return "🍸 Salis re mamado y te bailas a todos (+2 OVR)."; }
+          j.ovr = Math.max(40, j.ovr - 2);
+          return "🥴 Saliste todo quebrado y no te podes ni parar (-2 OVR).";
+        }
+        return "Decidiste enfocarte y rechazaste la propuesta.";
+      }
+    },
+    ORSINI: {
+      titulo: "Paseo con Orsini",
+      texto: "Orsini te pide que lo acompañes a buscar un frasco de flores.<br><br>¿Aceptas?",
+      a: "✅ Aceptar", b: "❌ Rechazar",
+      resolver: function(op, j) {
+        if (op === "a") return "🌼 Jugás unas mixs con Orsini. Ni bien ni mal, buena compañía.";
+        return "Orsini te odia.";
+      }
+    },
+    NICOBAILARIN: {
+      titulo: "A Bailar con Nico",
+      texto: "Nico Bailarin te invita a bailar un enganchado de Fer Palacio.<br><br>¿Te da?",
+      a: "✅ Aceptar", b: "❌ Rechazar",
+      resolver: function(op, j) {
+        if (op === "a") {
+          if (Math.random() < 0.5) { j.ovr = Math.min(99, j.ovr + 1); return "🕺 Mejoras tu movimiento de cadera y te ayuda a dribblear mejor (+1 OVR)."; }
+          j.ovr = Math.max(40, j.ovr - 1);
+          return "💃 Salio mal el baile y te lastimaste (-1 OVR).";
+        }
+        return "Decidiste enfocarte y rechazaste la propuesta.";
+      }
+    },
+    RONNIE: {
+      titulo: "Curso de Ronnie",
+      texto: "Ronnie te vende un curso de 1337.<br><br>¿Lo compras?",
+      a: "✅ Comprar", b: "❌ Rechazar",
+      resolver: function(op, j) {
+        if (op === "a") { j.ovr = Math.min(99, j.ovr + 2); return "📚 Aprendes las habilidades de Ronnie y Flowy (+2 OVR)."; }
+        return "Te llega un MD de Flowy diciendo que sos un fraca.";
+      }
+    },
+    BAREIRO: {
+      titulo: "Oferta Bareiro",
+      texto: "Bareiro te invita a jugar en Argentinos Juniors.<br><br>¿Vas con el?",
+      a: "✅ Ir", b: "❌ Rechazar",
+      resolver: function(op, j) {
+        if (op === "a") {
+          var ar = (typeof CLUBES !== "undefined") ? CLUBES.find(function(c) { return c.nombre === "Argentinos Juniors"; }) : null;
+          if (ar) j.club = ar;
+          return "🔴⚪ ¡Te vas a jugar a Argentinos Juniors con Bareiro! Cambio de club inmediato.";
+        }
+        return "Decidiste enfocarte y rechazaste la propuesta.";
+      }
+    },
+    MUSA: {
+      titulo: "El Establo de Musa",
+      texto: "Musa te invita a su establo para que veas como entrena.<br><br>¿Aceptas?",
+      a: "✅ Aceptar", b: "❌ Rechazar",
+      resolver: function(op, j) {
+        if (op === "a") { j.ovr = Math.min(99, j.ovr + 1); return "🐴 Vas a entrenar con Musa (+1 OVR)."; }
+        return "Te perdes las habilidades del CABA.";
+      }
+    },
+    VIEJO: {
+      titulo: "Viejo y Carita",
+      texto: "Viejo y Carita te invitan a jugar al Dark Souls.<br><br>¿Jugas con ellos?",
+      a: "✅ Jugar", b: "❌ Rechazar",
+      resolver: function(op, j) {
+        if (op === "a") {
+          if (Math.random() < 0.5) { j.ovr = Math.min(99, j.ovr + 1); return "🎮 Incrementan tus habilidades (+1 OVR)."; }
+          j.ovr = Math.max(40, j.ovr - 2);
+          return "⏳ Perdiste tiempo al pedo (-2 OVR).";
+        }
+        return "Carita te bloqueo de todos lados.";
+      }
+    },
+    PISA: {
+      titulo: "Pase Pisa",
+      texto: "Pisa te enseña a tirar su pase especial.<br><br>¿Lo aprendes?",
+      a: "✅ Aprender", b: "❌ Rechazar",
+      resolver: function(op, j) {
+        if (op === "a") {
+          if (Math.random() < 0.5) { j.ovr = Math.min(99, j.ovr + 2); return "🎯 Mejoras tu habilidad de Pase (+2 OVR)."; }
+          j.ovr = Math.max(40, j.ovr - 2);
+          return "😈 Te putea todo Impalare y te doxean (-2 OVR).";
+        }
+        return "Decidiste enfocarte y rechazaste la propuesta.";
+      }
+    },
+    PERUANOS: {
+      titulo: "Peruanos",
+      texto: "Strahl y Cubarsi te invitan a Peru, pero tendrias que jugar un partido desde ahi.<br><br>¿Vas?",
+      a: "✅ Ir", b: "❌ Rechazar",
+      resolver: function(op, j) {
+        if (op === "a") {
+          if (Math.random() < 0.5) { j.ovr = Math.min(99, j.ovr + 2); return "🇵🇪 Ganas el ofi desde Peru, nada te para (+2 OVR)."; }
+          j.ovr = Math.max(40, j.ovr - 1);
+          return "📡 El ping te mato y perdieron (-1 OVR).";
+        }
+        return "Decidiste enfocarte y rechazaste la propuesta.";
+      }
+    },
+    PUSKAS: {
+      titulo: "Componentes Puskas",
+      texto: "Puskas te ofrece sus componentes.<br><br>¿Los compras?",
+      a: "✅ Comprar", b: "❌ Rechazar",
+      resolver: function(op, j) {
+        if (op === "a") {
+          if (Math.random() < 0.5) { j.ovr = Math.min(99, j.ovr + 3); return "🖥️ Mejoras mucho gracias a los componentes (+3 OVR)."; }
+          j.ovr = Math.max(40, j.ovr - 3);
+          return "🔧 Estaban rotos y dejaste de jugar por un tiempo (-3 OVR).";
+        }
+        return "Decidiste enfocarte y rechazaste la propuesta.";
+      }
+    },
+    GLIZZI: {
+      titulo: "Aprendes(?) con Glizzi",
+      texto: "Glizzi te quiere enseñar a jugar.<br><br>¿Practicas con el?",
+      a: "✅ Practicar", b: "❌ Rechazar",
+      resolver: function(op, j) {
+        if (op === "a") { j.ovr = Math.min(99, j.ovr + 1); return "😄 Vos le enseñaste a él al final (+1 OVR)."; }
+        return "No te perdiste de nada.";
+      }
+    },
+    PASO: {
+      titulo: "Terraria",
+      texto: "Paso te invita a jugar a Terraria con Marabola.<br><br>¿Jugas con ellos?",
+      a: "✅ Jugar", b: "❌ Rechazar",
+      resolver: function(op, j) {
+        if (op === "a") { j.moral = Math.min(100, j.moral + 10); return "⛏️ Vas a jugar al Terraria con ellos. ¡HICISTE UNA BUENA ELECCION! (+10 de moral)."; }
+        return "Marabola te odia.";
+      }
+    },
+    MATUTE: {
+      titulo: "Semillero Chaco",
+      texto: "Matute te invita a su semillero Chaco For Ever.<br><br>¿Vas a jugar?",
+      a: "✅ Ir", b: "❌ Rechazar",
+      resolver: function(op, j) {
+        if (op === "a") {
+          var ch = (typeof CLUBES !== "undefined") ? CLUBES.find(function(c) { return c.nombre === "Chaco For Ever"; }) : null;
+          if (ch) j.club = ch;
+          return "🌰 Vas a jugar a Chaco For Ever. Equipo donde salieron grandes jugadores.";
+        }
+        return "Decidiste enfocarte y rechazaste la propuesta.";
+      }
+    },
+    ACUSADO: {
+      titulo: "Acusado de Cheats",
+      texto: "Después de una mix en la que hiciste 4 goles, te están acusando de cheats.<br><br>Estás OBLIGADO a hacerte una SS.<br><br>No hay vueltas: te hacen el SS ahora mismo.",
+      a: "🛡️ Hacerte la SS", b: "🛡️ Hacerte la SS",
+      sinRechazo: true,
+      resolver: function(op, j) {
+        j.ovr = Math.max(40, j.ovr - 5);
+        return "🚨 ¡DETECTADO! Te hicieron el SS y te sacaron 5 OVR por sospecha de hacks.";
+      }
+    },
+    TAMBUPA: {
+      titulo: "Futbol 5 con Tambupa",
+      texto: "Tambupa te invita a jugar un futbol 5.<br><br>¿Aceptas?",
+      a: "⚽ Aceptás", b: "🙅 Rechazás",
+      resolver: function(op, j) {
+        if (op === "a") {
+          if (Math.random() < 0.6) { j.ovr = Math.min(99, j.ovr + 3); return "🔥 Te la pasaste bien en el 5 y mejoraste tu juego (+3 OVR)."; }
+          j.ovr = Math.max(40, j.ovr - 2);
+          return "🤕 Te lastigaste en el 5 y perdiste OVR (-2 OVR).";
+        }
+        return "🙅 Rechazaste la invitación de Tambupa. Continuaste con tu carrera.";
+      }
+    },
+    COCCARO: {
+      titulo: "Invitación por plata",
+      texto: "Coccaro te invita a jugar a su equipo LAFERRERE a cambio de plata.<br><br>¿Aceptas?",
+      a: "💰 Aceptás", b: "🙅 Rechazás",
+      resolver: function(op, j) {
+        if (op === "a") {
+          var lf = (typeof CLUBES !== "undefined") ? CLUBES.find(function(c) { return c.nombre === "Laferrere"; }) : null;
+          if (lf) j.club = lf;
+          j.ovr = Math.max(40, j.ovr - 3);
+          return "💰 Te fuiste por la guita: -3 OVR. Cambiaste a Laferrere.";
+        }
+        return "Gran elección. Seguís con tu club actual.";
+      }
     }
   };
 
-  const DUELO_EVENTOS_POOL = ["CERBE", "NERVA", "NITTOX", "KROSTY", "PRIMOS", "SOSSA", "DNT", "KOLT", "PIEDRA"];
+  var DUELO_EVENTOS_POOL = Object.keys(DUELO_EVENTOS);
 
   // API pura para tests
   window.CoperoDueloLogica = {
@@ -308,6 +665,7 @@
     velocidadBarraDuelo: velocidadBarraDuelo,
     margenPotenciaDuelo: margenPotenciaDuelo,
     resolverPenalDuelo: resolverPenalDuelo,
+    resolverReflejoDuelo: resolverReflejoDuelo,
     simularTemporadaDuelo: simularTemporadaDuelo,
     elegirEventoDeterminista: elegirEventoDeterminista,
     hashSemilla: hashSemilla
@@ -599,7 +957,7 @@
     const band = document.getElementById("duelo-banner-desc");
     if (!band) return;
     band.classList.remove("hidden");
-    band.innerHTML = "🔌 “ + (d.rival.apodo) + “ se desconectó. Si vuelve, seguimos en la misma temporada. Si no regresa, podés esperar o abandonar el duelo.";
+    band.innerHTML = "🔌 <strong>" + escaparDuelo(d.rival.apodo) + "</strong> se desconectó. Si vuelve, seguimos en la misma temporada. Si no regresa, podés esperar o abandonar el duelo.";
   }
 
   function enviarDuelo(payload) {
@@ -644,17 +1002,11 @@
           resolverPenalSiListo(msg.p);
         }
         break;
-      case "remate_sel":
-        if (d.remate) {
-          d.remate.zonaRival = msg.zona;
-          d.remate.potenciaRival = msg.potencia;
-          resolverRemateSiListo();
-        }
-        break;
-      case "remate_pot":
-        if (d.remate) {
-          d.remate.potenciaRival = msg.potencia;
-          resolverRemateSiListo();
+      case "reflejo":
+        if (d.reflejo) {
+          d.reflejo.rivMs = msg.ms;
+          d.reflejo.rivFoul = !!msg.foul;
+          resolverReflejoSiListo();
         }
         break;
       case "fin":
@@ -782,10 +1134,15 @@
     if (!d || !d.activo) return;
     if (fase === "entreno") { d.fase = "mercado"; faseMercadoDuelo(); }
     else if (fase === "mercado") { d.fase = "evento"; enTarea(function() { faseEventoDuelo(); }, 600); }
-    else if (fase === "evento") { d.fase = "clasico"; enTarea(function() { 
-      const usarRemate = (semillaDeterministaDuelo(dSesion.topic, d.temporada) % 2) === 0;
-      if (usarRemate) faseRemateDuelo(); 
-      else faseClasicoDuelo(); 
+    else if (fase === "evento") { enTarea(function() {
+      // Minijuego de la temporada. Se elige de forma determinista con la
+      // semilla de la sala (misma para ambos clientes) para que los dos
+      // jueguen EXACTAMENTE el mismo minijuego: Duelo de Reflejos o el
+      // Clásico de penales.
+      const jugarReflejos = (semillaDeterministaDuelo(dSesion.topic, d.temporada) % 2) === 0;
+      d.fase = jugarReflejos ? "reflejos" : "clasico";
+      if (jugarReflejos) faseReflejosDuelo();
+      else faseClasicoDuelo();
     }, 1500); }
     else if (fase === "tempo") {
       if (d.temporada >= DUELO_CFG.TEMPORADAS) { d.fase = "retiro"; faseRetiroDuelo(); }
@@ -977,166 +1334,95 @@
   }
 
   // ============================================================
-  //  REMATE DECISIVO (alternativa al Clásico: minijuego de timing
-  //  y estrategia - ambos eligen a ciegas angulo y potencia)
+  //  DUELO DE REFLEJOS 1v1 (contra el rival, sin arco ni penales:
+  //  esperar el ¡YA! y tocar antes que el oponente)
   // ============================================================
-  function faseRemateDuelo() {
+  function faseReflejosDuelo() {
     if (!d || !d.activo) return;
-    d.remate = { 
-      zonaLocal: null, potenciaLocal: null,
-      zonaRival: null, potenciaRival: null,
-      barra: null
-    };
-    enviarStatsDuelo("Preparando remate decisivo...");
+    var esperaMs = 2000 + (semillaDeterministaDuelo(dSesion ? dSesion.topic : "sala", d.temporada) % 3001);
+    d.reflejo = { ya: false, miMs: null, miFoul: false, rivMs: null, rivFoul: false, resuelto: false };
+    enviarStatsDuelo("Duelo de reflejos...");
+    var esperaS = (esperaMs / 1000).toFixed(1);
     
     abrirModalDuelo(
-      "🎯 REMATE DECISIVO — Temporada " + d.temporada,
-      "<p class='fs-5'>¡Momento clave! Ambos jugadores deben ajustar su remate a ciegas.</p>" +
-      "<p class='small text-secondary'>1) Elegí la zona del arco rival.</p>" +
-      "<p class='small text-secondary'>2) Ajustá la potencia del remate (ideal ~65).</p>" +
-      "<p class='small text-secondary'>Tu OVR (<strong>" + d.yo.ovr + "</strong>) afecta la velocidad de la barra.</p>" +
-      "<div class='duelo-arco mb-3'>" + htmlZonasArcoDuelo("elegirZonaRemate") + "</div>",
+      "⚡ DUELO DE REFLEJOS — Temporada " + d.temporada,
+      "<p class='fs-5'>🆚 <strong>" + escaparDuelo(d.yo.apodo) + "</strong> vs <strong>" + escaparDuelo(d.rival.apodo) + "</strong></p>" +
+      "<p>Esperá la señal <strong class='text-success'>¡YA!</strong> (" + esperaS + "s aprox) y tocá el botón lo más rápido que puedas.</p>" +
+      "<p class='small text-danger'>⚠️ Si tocás antes del ¡YA! cometés FOUL y perdés el duelo.</p>" +
+      "<p class='small text-secondary'>El ganador se lleva: <strong>+1 OVR</strong> en la temporada siguiente, <strong>+20 de Moral</strong> y <strong>+150 Puntos de Rivalidad</strong>.</p>" +
+      "<div id='duelo-reflejo-estado' class='display-6 fw-bold my-3 text-warning'>⏳ Esperá...</div>" +
+      "<button class='btn btn-success btn-lg fw-bold px-5' onclick='clickReflejoDuelo()'>⚡ ¡TOCAR!</button>",
       ""
     );
-    
-    iniciarTimerDuelo(15, function() { 
-      const zonaDefault = DUELO_ZONAS[Math.floor(Math.random() * 6)];
-      elegirZonaRemate(zonaDefault);
-    });
+    if (typeof lanzarConfeti === "function") lanzarConfeti(30);
+    enTarea(function() {
+      if (!d || !d.reflejo || d.reflejo.ya) return;
+      d.reflejo.ya = true;
+      d.reflejo.tYa = Date.now();
+      var est = document.getElementById("duelo-reflejo-estado");
+      if (est) { est.innerHTML = "🟢 ¡YA!"; est.className = "display-6 fw-bold my-3 text-success"; }
+      if (typeof sonidoGol === "function") sonidoGol();
+      iniciarTimerDuelo(3, function() { enviarReflejoDuelo(9999, false, true); });
+    }, esperaMs);
   }
 
-  function elegirZonaRemate(zona, porTimer) {
-    if (!d || !d.remate) return;
-    if (d.remate.zonaLocal) return;
-    
-    d.remate.zonaLocal = zona;
-    enviarDuelo({ t: "remate_sel", zona: zona });
-    
-    actualizarModalDuelo(
-      "<p class='mt-2'>🎯 Zona elegida: <strong>" + DUELO_ZONA_TXT[zona] + "</strong></p>" +
-      "<p>Ajustá la potencia del remate (presioná ESPACIO o clickeá la barra):</p>" +
-      "<div class='zona-gol duelo-barra' style='height:22px;' id='duelo-barra-zona-remate' onclick='detenerBarraRemate()'>" +
-      "<div id='duelo-barra-fill-remate' class='progress-bar bg-info' style='width:0%;height:100%;'></div></div>" +
-      "<p class='small text-secondary'>Tu OVR: " + d.yo.ovr + " | OVR rival: " + d.rival.ovr + "</p>",
-      ""
-    );
-    
-    iniciarTimingRemate();
+  function clickReflejoDuelo() {
+    if (!d || !d.reflejo || d.reflejo.miMs !== null) return;
+    if (!d.reflejo.ya) { enviarReflejoDuelo(9999, true, false); return; }
+    enviarReflejoDuelo(Math.max(0, Date.now() - (d.reflejo.tYa || Date.now())), false, false);
   }
-  
-  function iniciarTimingRemate() {
-    enviarStatsDuelo("Timing de potencia...");
-    const vel = velocidadBarraDuelo(d.yo.ovr);
-    const estado = d.remate;
-    
-    estado.barra = { pos: 0, dir: 1, corriendo: true };
-    
-    estado.barra.intervalo = enIntervalo(function() {
-      if (!d || !d.remate || !d.remate.barra || !d.remate.barra.corriendo) return;
-      const b = d.remate.barra;
-      b.pos += b.dir * vel / 60;
-      if (b.pos >= 100) { b.pos = 100; b.dir = -1; }
-      if (b.pos <= 0) { b.pos = 0; b.dir = 1; }
-      const fill = document.getElementById("duelo-barra-fill-remate");
-      if (fill) fill.style.width = b.pos + "%";
-    }, 16);
-    
-    document.addEventListener("keydown", manejarEspacioRemate);
-  }
-  
-  function detenerBarraRemate() {
-    const rem = d.remate;
-    if (!rem || !rem.barra || !rem.barra.corriendo) return;
-    
-    rem.barra.corriendo = false;
-    document.removeEventListener("keydown", manejarEspacioRemate);
-    
-    const potenciaFinal = Math.round(rem.barra.pos);
-    rem.potenciaLocal = potenciaFinal;
-    enviarDuelo({ t: "remate_pot", potencia: potenciaFinal });
-    
-    actualizarModalDuelo(
-      "<p class='mt-2'>🎯 Remate enviado: potencia <strong>" + potenciaFinal + "</strong></p>" +
-      "<p class='text-warning'>Esperando al rival...</p>",
-      ""
-    );
-    
-    resolverRemateSiListo();
-  }
-  
-  function manejarEspacioRemate(e) {
-    if (e.code === "Space") {
-      e.preventDefault();
-      detenerBarraRemate();
+
+  function enviarReflejoDuelo(ms, foul, porTimer) {
+    if (!d || !d.reflejo || d.reflejo.miMs !== null) return;
+    detenerTimerDuelo();
+    d.reflejo.miMs = ms;
+    d.reflejo.miFoul = !!foul;
+    enviarDuelo({ t: "reflejo", ms: ms, foul: !!foul });
+    var est = document.getElementById("duelo-reflejo-estado");
+    if (est) {
+      if (foul && !porTimer) est.innerHTML = "🔴 ¡FOUL! Tocaste antes del ¡YA!";
+      else est.innerHTML = "📨 ¡" + ms + " ms! Esperando al rival...";
     }
+    resolverReflejoSiListo();
   }
-  
-  function resolverRemateSiListo() {
-    if (!d || !d.remate) return;
-    if (d.remate.zonaLocal === null || d.remate.potenciaLocal === null) return;
-    if (d.remate.zonaRival === null || d.remate.potenciaRival === null) return;
-    
-    const res = resolverRemateDecisivo(
-      d.remate.zonaLocal, d.remate.potenciaLocal,
-      d.remate.zonaRival, d.remate.potenciaRival,
-      d.yo.ovr, d.rival.ovr
-    );
-    
-    let titulo, html;
-    if (res.ganaste) {
-      titulo = "🎯 ¡REMATE DECISIVO GANADO!";
-      d.yo.rivalidad += 30;
-      html = "<h4 class='text-success mt-3'>⚽ " + (res.tipo === "gol" ? "GOL DE ORO!" : "Definición perfecta!") + "</h4>" +
-        "<p>Tu remate en <strong>" + DUELO_ZONA_TXT[d.remate.zonaLocal] + "</strong> con potencia <strong>" + d.remate.potenciaLocal + "</strong> superó al arquero rival.</p>" +
-        "<p class='small'>➕ <strong>+30 Puntos de Rivalidad</strong></p>";
+
+  function resolverReflejoSiListo() {
+    if (!d || !d.reflejo || d.reflejo.resuelto) return;
+    if (d.reflejo.miMs === null || d.reflejo.rivMs === null) return;
+    d.reflejo.resuelto = true;
+    detenerTimerDuelo();
+    var res = resolverReflejoDuelo(d.reflejo.miMs, d.reflejo.miFoul, d.reflejo.rivMs, d.reflejo.rivFoul);
+    var titulo, html;
+    if (res.r === "gana") {
+      titulo = "⚡ ¡GANASTE EL DUELO DE REFLEJOS!";
+      d.yo.clasicosGanados++;
+      d.yo.rivalidad += DUELO_CFG.PUNTOS_RIVALIDAD_CLASICO;
+      d.yo.moral = Math.min(100, d.yo.moral + DUELO_CFG.BONUS_MORAL_CLASICO);
+      d.yo.bonusPendiente += DUELO_CFG.BONUS_OVR_CLASICO;
+      html =
+        "<h4 class='text-success'>" + d.reflejo.miMs + " ms — " + d.reflejo.rivMs + " ms</h4>" +
+        "<p>" + res.t + "</p>" +
+        "<p>⚡ Duelos ganados: <strong>" + d.yo.clasicosGanados + "</strong></p>" +
+        "<p>➕ <strong>+" + DUELO_CFG.BONUS_OVR_CLASICO + " OVR</strong> en la temporada siguiente</p>" +
+        "<p>😊 <strong>+" + DUELO_CFG.BONUS_MORAL_CLASICO + " de Moral</strong></p>" +
+        "<p>⚔️ <strong>+" + DUELO_CFG.PUNTOS_RIVALIDAD_CLASICO + " Puntos de Rivalidad</strong></p>";
+      if (typeof lanzarConfeti === "function") lanzarConfeti(80);
       if (typeof sonidoExito === "function") sonidoExito();
-    } else {
-      titulo = "😞 ¡REMATE ATAJADO!";
-      html = "<h4 class='text-danger mt-3'>" + (res.tipo === "atajado" ? "¡ATAJADO!" : "¡Fuera!") + "</h4>" +
-        "<p>Tu remate en <strong>" + DUELO_ZONA_TXT[d.remate.zonaLocal] + "</strong> fue <strong>" + res.mensaje + "</strong> por el arquero rival.</p>";
+    } else if (res.r === "pierde") {
+      titulo = "😞 PERDISTE EL DUELO DE REFLEJOS";
+      html = "<h4 class='text-danger'>" + d.reflejo.miMs + " ms — " + d.reflejo.rivMs + " ms</h4>" +
+        "<p>" + res.t + ". El rival se lleva las recompensas. Podés desquitarte en la próxima temporada.</p>";
       if (typeof sonidoError === "function") sonidoError();
+    } else {
+      titulo = "⚖️ REFLEJOS EMPATADOS";
+      html = "<h4>" + d.reflejo.miMs + " ms — " + d.reflejo.rivMs + " ms</h4><p>" + res.t + ". Nadie se lleva las recompensas esta vez.</p>";
     }
-    
+    html += "<p class='small text-secondary mt-2'>Simulando la temporada...</p>";
+    document.getElementById("modalDueloTitulo").innerHTML = titulo;
     actualizarModalDuelo(html, "");
-    limpiarTimerRemate();
-    
-    enTarea(function() {
-      cerrarModalDuelo();
-      simularTemporadaDueloUI();
-    }, 2500);
-  }
-  
-  function limpiarTimerRemate() {
-    if (d && d.remate && d.remate.barra) {
-      if (d.remate.barra.intervalo) clearInterval(d.remate.barra.intervalo);
-      d.remate.barra = null;
-    }
-    document.removeEventListener("keydown", manejarEspacioRemate);
-  }
-  
-  function resolverRemateDecisivo(zonaYo, potenciaYo, zonaRiv, potenciaRiv, ovrYo, ovrRiv) {
-    const potenciaIdeal = 65;
-    const errorYo = Math.abs(potenciaYo - potenciaIdeal);
-    const errorRiv = Math.abs(potenciaRiv - potenciaIdeal);
-    
-    const idxZonaRiv = DUELO_ZONAS.indexOf(zonaRiv);
-    const idxZonaYo = DUELO_ZONAS.indexOf(zonaYo);
-    const cobertura = Math.max(1, Math.floor(ovrRiv / 25));
-    const zonasCubiertas = [];
-    for (let i = -cobertura; i <= cobertura; i++) {
-      const idx = (idxZonaRiv + i + DUELO_ZONAS.length) % DUELO_ZONAS.length;
-      zonasCubiertas.push(DUELO_ZONAS[idx]);
-    }
-    const zonaAdivinada = zonasCubiertas.includes(zonaYo);
-    const potenciaPrecisa = errorYo < 15;
-    
-    const gol = (potenciaPrecisa && !zonaAdivinada) || (potenciaPrecisa && zonaAdivinada && Math.random() < 0.3);
-    const atajado = zonaAdivinada && !gol;
-    const afuera = !potenciaPrecisa && !atajado;
-    
-    if (gol) return { ganaste: true, tipo: "gol", mensaje: "un gran remate" };
-    if (atajado) return { ganaste: false, tipo: "atajado", mensaje: "el arquero lo atajó" };
-    return { ganaste: false, tipo: "afuera", mensaje: "afuera del arco" };
+    d.reflejo = null;
+    enviarStatsDuelo("Reflejos terminados");
+    enTarea(function() { cerrarModalDuelo(); simularTemporadaDueloUI(); }, 3400);
   }
   
   // ============================================================
@@ -1259,11 +1545,22 @@
       "<div class='duelo-arco mb-3'>" + htmlZonasArcoDuelo() + "</div>";
 
     if (papel === "pateador") {
+      const margen = Math.round(margenPotenciaDuelo(d.yo.ovr));
+      const desde = Math.max(0, 65 - margen);
+      const ancho = Math.min(100, 65 + margen) - desde;
       cuerpo +=
-        "<p class='small mb-1'>1) Elegí la zona del tiro. 2) Frená la barra de potencia (ESPACIO / tocá la barra). Ideal ~65.</p>" +
-        "<div class='zona-gol duelo-barra' style='height:22px;' id='duelo-barra-zona' onclick='detenerBarraDuelo()'>" +
-        "<div id='duelo-barra-fill' class='progress-bar bg-info' style='width:0%;height:100%;'></div></div>" +
-        "<p class='small text-secondary mt-1'>Tu OVR (" + d.yo.ovr + ") hace la barra más lenta. OVR rival: " + d.rival.ovr + "</p>";
+        "<div class='duelo-penal-pasos mb-2'>" +
+        "<div class='duelo-penal-paso' id='duelo-paso-1'><span class='duelo-paso-num'>1</span> Elegí la zona del arco</div>" +
+        "<div class='duelo-penal-paso' id='duelo-paso-2'><span class='duelo-paso-num'>2</span> Frená la barra en la zona verde</div>" +
+        "</div>" +
+        "<div class='zona-gol duelo-barra duelo-barra-penal' id='duelo-barra-zona' onclick='detenerBarraDuelo()'>" +
+        "<div class='duelo-barra-ideal' style='left:" + desde + "%;width:" + ancho + "%;'></div>" +
+        "<div id='duelo-barra-fill' class='progress-bar bg-info' style='width:0%;height:100%;'></div>" +
+        "<div id='duelo-barra-lbl' class='duelo-barra-lbl'>0</div>" +
+        "</div>" +
+        "<button type='button' class='btn btn-warning fw-bold mt-2 px-4' onclick='detenerBarraDuelo()'>✋ ¡FRENAR! <span class='small'>(ESPACIO)</span></button>" +
+        "<p class='small text-secondary mt-2 mb-1'>Objetivo: <strong>65 de potencia</strong>. La zona verde es tu margen de error según tu OVR (" + d.yo.ovr + "): podés acertar entre " + desde + " y " + Math.round(desde + ancho) + ".</p>" +
+        "<p class='small text-secondary'>Tu OVR hace la barra más lenta. OVR rival: " + d.rival.ovr + "</p>";
     } else {
       cuerpo += "<p class='small'>Elegí hacia dónde tirarte. Con más OVR tenés más rango de tolerancia para atajar.</p>";
     }
@@ -1282,7 +1579,13 @@
         if (b.pos >= 100) { b.pos = 100; b.dir = -1; }
         if (b.pos <= 0) { b.pos = 0; b.dir = 1; }
         const fill = document.getElementById("duelo-barra-fill");
-        if (fill) fill.style.width = b.pos + "%";
+        const enZona = Math.abs(b.pos - 65) <= margenPotenciaDuelo(d.yo.ovr);
+        if (fill) {
+          fill.style.width = b.pos + "%";
+          fill.className = "progress-bar " + (enZona ? "bg-success" : "bg-danger");
+        }
+        const lbl = document.getElementById("duelo-barra-lbl");
+        if (lbl) lbl.innerText = Math.round(b.pos);
       }, 16);
       document.addEventListener("keydown", manejarEspacioBarraDuelo);
     }
@@ -1325,8 +1628,12 @@
       document.querySelectorAll(".duelo-zona").forEach(function(b) {
         b.classList.toggle("seleccionada", b.dataset.zona === zona);
       });
+      const paso1 = document.getElementById("duelo-paso-1");
+      const paso2 = document.getElementById("duelo-paso-2");
+      if (paso1) paso1.classList.add("completo");
+      if (paso2) paso2.classList.add("activo");
       const estado = document.getElementById("duelo-penal-estado");
-      if (estado) estado.innerHTML = "🎯 Zona elegida. Ahora frená la barra de potencia.";
+      if (estado) estado.innerHTML = "🎯 Zona elegida. Ahora frená la barra en la zona verde.";
       if (pen.barra && pen.barra.corriendo) return; // espera la potencia
       enviarDatosPenalDuelo(p, zona, Math.round(pen.barra ? pen.barra.pos : 65));
     } else {
@@ -1338,11 +1645,18 @@
     const pen = d.penales;
     const p = pen.p;
     if (!pen.barra || !pen.barra.corriendo) return;
+    // Sin zona elegida NO se frena: evita mandar el tiro a una zona al azar.
+    if (!pen.zonaPendiente) {
+      const estado = document.getElementById("duelo-penal-estado");
+      if (estado) estado.innerHTML = "👉 Primero elegí una zona del arco para saber a dónde va el tiro.";
+      const paso1 = document.getElementById("duelo-paso-1");
+      if (paso1) paso1.classList.add("activo");
+      return;
+    }
     pen.barra.corriendo = false;
     document.removeEventListener("keydown", manejarEspacioBarraDuelo);
     const potencia = Math.round(pen.barra.pos);
-    const zona = pen.zonaPendiente || DUELO_ZONAS[Math.floor(Math.random() * 6)];
-    enviarDatosPenalDuelo(p, zona, potencia);
+    enviarDatosPenalDuelo(p, pen.zonaPendiente, potencia);
   }
 
   function enviarDatosPenalDuelo(p, zona, potencia, porTimer) {
@@ -1678,8 +1992,6 @@
   window.arrancarClasicoDuelo = arrancarClasicoDuelo;
   window.elegirZonaPenalDuelo = elegirZonaPenalDuelo;
   window.detenerBarraDuelo = detenerBarraDuelo;
-  window.elegirZonaRemate = elegirZonaRemate;
-  window.detenerBarraRemate = detenerBarraRemate;
   window.abandonarDuelo = abandonarDuelo;
 
   window.addEventListener("beforeunload", function() {
