@@ -124,6 +124,7 @@
       <div class="d-flex justify-content-center gap-2 mt-3 flex-wrap">
         <button id="btn-modo-desafio" class="btn btn-outline-secondary btn-sm fw-bold" data-i18n="modoDesafio">🎲 Modo Desafío</button>
         <button id="btn-ranking" class="btn btn-outline-secondary btn-sm fw-bold" data-i18n="ranking">🏆 Ranking</button>
+        <button id="btn-duelo-online" class="btn btn-outline-danger btn-sm fw-bold" onclick="abrirPantallaDuelo()">⚔️ 1v1 Online (Duelo)</button>
         <button class="btn btn-outline-secondary btn-sm fw-bold" onclick="mostrarSlots()" data-i18n="slots">💾 Slots</button>
         <select id="select-idioma" class="form-select form-select-sm" style="width:auto;">
           <option value="es">🇺🇾 ES</option>
@@ -418,6 +419,8 @@
   <script src="supabase-config.js"></script>
   <script src="cuenta-api.js"></script>
   <script src="cuenta-ui.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="duelo.js"></script>
   <script src="pwa.js"></script>
 </body>
 </html>

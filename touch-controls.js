@@ -30,8 +30,8 @@
 
   // Conecta un boton del gamepad. Se usa pointerdown (o touchstart de
   // respaldo) y se hace preventDefault para que NO se dispare tambien
-  // un click real: asi los minijuegos que cuentan clics (pelea,
-  // chilena) no suman de mas.
+  // un click real: asi los minijuegos que cuentan clics (pelea) no
+  // suman de mas.
   function conectarBoton(btn, code) {
     const enviar = function(ev) {
       ev.preventDefault();

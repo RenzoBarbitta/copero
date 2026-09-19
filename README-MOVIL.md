@@ -30,7 +30,7 @@ Una vez instalada, la app abre sin barra del navegador y **funciona sin internet
 Cuando se abre un minijuego, aparece un **gamepad en pantalla** en la esquina inferior derecha:
 
 - ⬆️⬅️⬇️➡️ para los minijuegos de flechas (Dominios, Regate, Guantes).
-- ⚡ **ESPACIO** para los de acción (Pase, Cabezazo, Pelea, Chilena).
+- ⚡ **ESPACIO** para los de acción (Pase, Cabezazo, Pelea).
 
 En la PC no cambia nada: se sigue jugando con el teclado.
 

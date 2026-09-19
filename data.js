@@ -44,7 +44,23 @@ const CLUBES = [
     { nombre: "Sexito", reputacion: 5, imagen: "imagenes/sexito.png" },
     { nombre: "Shark", reputacion: 6, imagen: "imagenes/shark.png" },
     { nombre: "Sol de Mayo", reputacion: 8, imagen: "imagenes/soldemayo.png" },
-    { nombre: "Yorkshine", reputacion: 6, imagen: "imagenes/yorkshine.png" }
+    { nombre: "Yorkshine", reputacion: 6, imagen: "imagenes/yorkshine.png" },
+    { nombre: "Hasbullitah", reputacion: 2, imagen: "imagenes/hasbulitah.png" },
+    { nombre: "Bodo Glimt", reputacion: 6, imagen: "imagenes/bodoglimt.png" },
+    { nombre: "Atlanta", reputacion: 4, imagen: "imagenes/atlanta.png" },
+    { nombre: "Napoli", reputacion: 6, imagen: "imagenes/napoli.png" },
+    { nombre: "Villa Dalmine", reputacion: 2, imagen: "imagenes/villadalmine.png" },
+    { nombre: "El Bondi", reputacion: 4, imagen: "imagenes/elbondi.png" },
+    { nombre: "Bochum", reputacion: 4, imagen: "imagenes/bochum.png" },
+    { nombre: "Barracas Central", reputacion: 9, imagen: "imagenes/barracascentral.png" },
+    { nombre: "Orlando City", reputacion: 10, imagen: "imagenes/orlandocity.png" },
+    { nombre: "Ta falido", reputacion: 10, imagen: "imagenes/tafalido.png" },
+    { nombre: "Santos", reputacion: 7, imagen: "imagenes/santos.png" },
+    { nombre: "Chapeconense", reputacion: 10, imagen: "imagenes/chapecoense.png" },
+    { nombre: "Nitegy", reputacion: 7, imagen: "imagenes/nitegy.png" },
+    { nombre: "Night Ravens", reputacion: 8, imagen: "imagenes/nightravens.png" },
+    { nombre: "Laferrere", reputacion: 1, imagen: "imagenes/laferrere.png" }
+
 ];
 
 // 2. REGLAS DE MEDIA SEGÚN REPUTACIÓN
@@ -207,9 +223,30 @@ Object.assign(CONFIG, {
   // Minijuegos nuevos
   REGATE:    { PASOS: 6, TIEMPO_POR_PASO: 1.2, SUBIDA_OVR: 1 },
   PASE:      { TICK_MS: 20, VELOCIDAD: 3, ZONA: 18, SUBIDA_OVR: 1 },
-  CHILENA:   { TAPS: 2, VENTANA_MS: 550, SUBIDA_OVR: 2 },
   CABEZAZO:  { TIEMPO_MS: 2500, SUBIDA_OVR: 1 },
-  UNO_VS_UNO: { SUBIDA_OVR: 2 }
+  UNO_VS_UNO: { SUBIDA_OVR: 2 },
+
+  // Evento "Acusado de cheats": probabilidad MUY baja por chequeo y
+  // solo puede ocurrir UNA VEZ en toda la partida.
+  PROB_EVENTO_ACUSADO: 0.03,
+  PROB_ACUSADO_ATRAPADO: 0.45,
+
+  // Temporada minima para la intervencion de Loro (no aparece al
+  // iniciar la partida).
+  TEMPORADA_MINIMA_LORO: 3,
+
+  // Duelo 1v1 Online (Carrera PSO V2)
+  DUELO: {
+    TEMPORADAS: 10,
+    TIMER_MS: 10000,
+    TANDA_PENALES: 3,
+    BONUS_OVR_CLASICO: 1,
+    BONUS_MORAL_CLASICO: 20,
+    PUNTOS_RIVALIDAD_CLASICO: 150,
+    // Edad de arranque del duelista. Con 10 temporadas, 22 llega a 32
+    // (activa la mecánica de +31); subila para verla antes.
+    EDAD_INICIO: 22
+  }
 });
 
 // 9. LOGROS DESBLOQUEABLES
@@ -369,6 +406,54 @@ const TEXTOS_UI = {
     desarrollado: "Desenvolvido por:", colaboracion: "Colaboração:"
   }
 };
+
+// 14. OFERTAS DE EQUIPOS: rango de reputacion coherente con la media/OVR.
+// Reglas de coherencia (V2):
+//   hasta 69  -> rep 1 a 4
+//   70 a 74   -> rep 4 a 6
+//   75 a 80   -> rep 6 a 8
+//   81 o mas  -> rep 8 a 10
+// Fuera de esto solo se llega por eventos (cambios de club forzados).
+function rangoReputacionPorMedia(media) {
+  if (media < 70) return { min: 1, max: 4 };
+  if (media < 75) return { min: 4, max: 6 };
+  if (media <= 80) return { min: 6, max: 8 };
+  return { min: 8, max: 10 };
+}
+
+// Edad a partir de la cual los equipos llaman de forma mas aleatoria
+// (ya no siguen la coherencia de media/OVR).
+const EDAD_OFERTAS_ALEATORIAS = 31;
+
+function ofertasAleatoriasPorEdad(edad) {
+  return edad > EDAD_OFERTAS_ALEATORIAS;
+}
+
+// Declive de media por edad: 31 = arranque suave, >31 se acentua.
+function calcularDecliveEdad(edad) {
+  if (edad > 31) return 2 + Math.floor((edad - 32) / 2);
+  if (edad >= CONFIG.EDAD_DECLIVE) return Math.floor(Math.random() * 2) + 1;
+  return 0;
+}
+
+// Arma las ofertas del mercado: renovacion + 2 clubes alternativos distintos.
+// Nunca repite el club actual ni dos ofertas iguales. Si el pool queda vacio,
+// completa con clubes del listado general.
+function armarTresOfertas(pool, clubActual) {
+  const actual = clubActual || null;
+  const candidatas = (pool || []).slice().concat(typeof CLUBES !== "undefined" ? CLUBES : []);
+  const usados = [];
+  for (let i = 0; i < candidatas.length && usados.length < 2; i++) {
+    const c = candidatas[i];
+    if (!c || !c.nombre) continue;
+    if (actual && c.nombre === actual.nombre) continue;
+    if (usados.some(function(u) { return u.nombre === c.nombre; })) continue;
+    usados.push(c);
+  }
+  const resultado = [];
+  if (actual) resultado.push(actual);
+  return resultado.concat(usados);
+}
 
 // 12. PRNG CON SEMILLA (modo desafío reproducible)
 function crearPRNG(semilla) {

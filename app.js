@@ -28,6 +28,9 @@ function crearJugadorInicial() {
     clubCampeonAnterior: null,
     rolAnterior: null,
     rolForzado: null,
+    eventoAcusadoJugado: false,
+    eventoNittoxJugado: false,
+    nittoxRangoQuitado: false,
     eventosUsados: [],
     modoDesafio: false,
     desafioCompletado: false,
@@ -66,6 +69,7 @@ let modalRolInstance;
 
 // Variables de minijuegos
 let intervalTL = null;
+let peleaEstado = null; // V2: guard global del minijuego de pelea
 let posicionTL = 0;
 let direccionTL = 1;
 let modoTiroLibre = 'entrenamiento';
@@ -254,22 +258,84 @@ const configsEventos = {
   PUSKAS: { titulo: "Componentes Puskas", texto: "Puskas te ofrece sus componentes <br><br>¿Los compras?" },
   GLIZZI: { titulo: "Aprendes(? con Glizzi", texto: "Glizzi te quiere enseñar a jugar <br><br>¿Practicas con el?", textoRechazo: "No te perdiste de nada." },
   PASO: { titulo: "Terraria", texto: "Paso te invita a jugar a Terraria con Marabola <br><br>¿Jugas con ellos?", textoRechazo: "Marabola te odia." },
-  MATUTE: { titulo: "Semillero Chaco", texto: "Matute te invita a su semillero Chaco For Ever <br><br>¿Vas a jugar?" }
+  MATUTE: { titulo: "Semillero Chaco", texto: "Matute te invita a su semillero Chaco For Ever <br><br>¿Vas a jugar?" },
 
-
-
+  // ============ EVENTOS NUEVOS V2 ============
+  CERBE: {
+    titulo: "Clubes Pro",
+    texto: "Cerbe te pide que le tires un pase para convertir él.<br><br>¿Se lo tirás?",
+    dosOpciones: {
+      a: { texto: "⚽ Se la tirás", desc: "Opción A" },
+      b: { texto: "🙅 No se la tirás", desc: "Opción B" }
+    }
+  },
+  NERVA: {
+    titulo: "Pelea de Wachines",
+    texto: "Nerva se está peleando con Matias Fernandez.<br><br>¿Qué hacés?",
+    dosOpciones: {
+      a: { texto: "📱 Doxeás a los 2", desc: "Opción A" },
+      b: { texto: "🤐 No hacés nada", desc: "Opción B" }
+    }
+  },
+  NITTOX: {
+    titulo: "Sargento Nittox",
+    texto: "Nittox te quiere sacar el rol.<br><br>¿Volvés a jugar para defenderte?",
+    dosOpciones: {
+      a: { texto: "🎮 Volvés a jugar", desc: "Opción A" },
+      b: { texto: "😴 No jugás más hasta que se le pase", desc: "Opción B" }
+    }
+  },
+  KROSTY: { titulo: "Invitación rara", texto: "Krosty te invita a jugar a Hasbullitah.<br><br>¿Vas?", textoRechazo: "Rechazaste la invitación de Krosty. Hasbullitah sigue esperando." },
+  PRIMOS: {
+    titulo: "Primos",
+    texto: "Benjita y Theo te dicen de ser primos.<br><br>¿Qué hacés?",
+    dosOpciones: {
+      a: { texto: "✋ Los mandás a cagar", desc: "Opción A" },
+      b: { texto: "🤝 Aceptás", desc: "Opción B" }
+    }
+  },
+  ACUSADO: {
+    titulo: "Acusado de Cheats",
+    texto: "Después de una mix en la que hiciste 4 goles, te están acusando de cheats.<br><br>Estás OBLIGADO a hacerte una SS.<br><br>No hay vueltas: te hacen el SS ahora mismo.",
+    sinRechazo: true
+  },
+  TAMBUPA: { titulo: "Futbol 5 con Tambupa", 
+    texto:"Tambupa te invita  a jugar un futbol 5.<br><br>¿Aceptas?",
+  dosOpciones: {
+    a: { texto: "⚽ Aceptás", desc: "Opción A" },
+    b: { texto: "🙅 Rechazás", desc: "Opción B" }
+    }
+  },
+  COCCARO: { titulo: "Invitación por plata", texto: "Coccaro te invita a jugar a su equipo LAFERRERE a cambio de plata.<br><br>¿Aceptas?" }
 };
 
 
 //  CONDICIÓN OBLIGATORIA DE LORO
 // ============================================================
 function verificarCondicionLoro() {
-  if (!jugador.loroOcurrio && Math.random() < CONFIG.PROB_LORO) {
+  // FIX V2: la intervención de Loro tiene poca chance de aparecer y no
+  // puede dispararse al iniciar la partida: recién puede ocurrir desde
+  // la temporada mínima configurada y solo UNA vez por carrera.
+  if (!jugador.loroOcurrio &&
+      jugador.temporadaActual >= CONFIG.TEMPORADA_MINIMA_LORO &&
+      Math.random() < CONFIG.PROB_LORO) {
     jugador.loroOcurrio = true;
     jugador.temporadasForzadoSegunda = CONFIG.SANCION_LORO_TEMPORADAS;
     mostrarNotificacion(
       "🚨 Intervención Obligatoria de Loro",
       "Loro ha intervenido en tu carrera de forma inevitable.<br><br><strong>Quedas sancionado a jugar en Segunda División por las próximas " + CONFIG.SANCION_LORO_TEMPORADAS + " temporadas.</strong>"
+    );
+  }
+}
+
+// V2 - Nittox: al pasar a la próxima temporada se puede recuperar el rango.
+function recuperarRangoNittox() {
+  if (jugador.nittoxRangoQuitado) {
+    jugador.nittoxRangoQuitado = false;
+    jugador.eventoNittoxJugado = false;
+    mostrarNotificacion(
+      "🎮 Rango Recuperado",
+      "Pasó la temporada del Sargento Nittox y te dejaste el cuerpo. <strong>Recuperaste tu rango</strong> y podés volver a jugar mixs de tu nivel."
     );
   }
 }
@@ -281,6 +347,14 @@ function verificarCondicionLoro() {
 // salvo que el rol natural por media sea estrictamente superior.
 function rolEfectivo() {
   const natural = obtenerRol(jugador.media);
+  // V2 - Nittox: si Nittox te sacó el rol, tu rango vuelve a Normal una
+  // temporada (solo te afecta si tu rango natural era Promesa o Aspirante).
+  if (jugador.nittoxRangoQuitado) {
+    const idxAspirante = ROLES.findIndex(r => r.nombre === "Aspirante");
+    if (ROLES.indexOf(natural) !== -1 && ROLES.indexOf(natural) <= idxAspirante) {
+      return ROLES[0];
+    }
+  }
   if (jugador.rolForzado) {
     const forzado = ROLES.find(r => r.nombre === jugador.rolForzado);
     if (forzado) {
@@ -662,6 +736,45 @@ function ejecutarScreenShare(callback) {
 }
 
 // ============================================================
+//  V2 - SS OBLIGATORIO: EVENTO "ACUSADO DE CHEATS"
+//  Sale con probabilidad MUY baja, una sola vez por partida.
+//  Si salís sin nada: "Sos legit... o capaz escondés bien" (+3 OVR).
+//  Si sale mal: "Te banearon, 3 temporadas sin jugar".
+// ============================================================
+function ejecutarAcusacionCheats() {
+  document.getElementById("escaneoSSAnim").style.display = "inline-block";
+  document.getElementById("resultadoSS").className = "fw-bold fs-5 text-warning";
+  document.getElementById("resultadoSS").innerText = "Los mods revisan tu PC a fondo...";
+
+  modalSSInstance.show();
+
+  setTimeout(() => {
+    document.getElementById("escaneoSSAnim").style.display = "none";
+
+    const atrapado = Math.random() < CONFIG.PROB_ACUSADO_ATRAPADO;
+
+    if (atrapado) {
+      document.getElementById("resultadoSS").className = "fw-bold fs-5 text-danger";
+      document.getElementById("resultadoSS").innerHTML = `🚨 ¡TE BANEARON! Había cosas que no debían estar.<br>Sanción: ${CONFIG.SANCION_LORO_TEMPORADAS} temporadas sin jugar en Primera.`;
+      jugador.temporadasForzadoSegunda = CONFIG.SANCION_LORO_TEMPORADAS;
+      sonidoError();
+    } else {
+      document.getElementById("resultadoSS").className = "fw-bold fs-5 text-success";
+      document.getElementById("resultadoSS").innerHTML = `✅ Saliste sin nada. Sos legítimo... o capáz escondés bien (+3 OVR).`;
+      sumarMedia(3);
+      sonidoExito();
+    }
+
+    guardarPartida();
+    setTimeout(() => {
+      modalSSInstance.hide();
+      verificarCambioRol();
+      actualizarInterfaz();
+    }, CONFIG.TIMING.RESULTADO_SS_MS);
+  }, CONFIG.TIMING.RESULTADO_SS_MS);
+}
+
+// ============================================================
 //  MINIJUEGO DECISIVO AL SIMULAR TEMPORADA (SÓLO DEL Y CM)
 // ============================================================
 function iniciarMinijuegoDecisivoTemporada(tipoContexto, callback) {
@@ -921,9 +1034,9 @@ function simularTemporada() {
   }
 
   // --- DECLIVE POR EDAD ---
-  let bajaEdad = 0;
-  if (jugador.edad >= CONFIG.EDAD_DECLIVE) {
-    bajaEdad = Math.floor(Math.random() * 2) + 1;
+  // Desde los 31 empieza el declive; después de los 31 se acentúa más.
+  const bajaEdad = calcularDecliveEdad(jugador.edad);
+  if (bajaEdad > 0) {
     jugador.media = Math.max(CONFIG.OVR_MIN, jugador.media - bajaEdad);
   }
 
@@ -1061,29 +1174,32 @@ function generarOfertasDeFichaje(ascendioPorTitulo = false) {
   let candidatos = CLUBES.filter(c => c.nombre !== jugador.clubActual.nombre);
 
   if (jugador.temporadasForzadoSegunda > 0) {
-    // FIX: el fallback también debe ser de Segunda para respetar la sanción
+    // Sanción Loro: solo clubes de Segunda División (reputacion <= 5)
     candidatos = candidatos.filter(c => c.reputacion <= CONFIG.UMBRAL_PRIMERA);
-    candidatos.sort(() => Math.random() - 0.5);
-
-    const segundos = CLUBES.filter(c => c.reputacion <= CONFIG.UMBRAL_PRIMERA && c.nombre !== jugador.clubActual.nombre);
-    ofertasActuales = [
-      candidatos[0] || segundos[0] || CLUBES[0],
-      candidatos[1] || segundos[1] || segundos[0] || CLUBES[0]
-    ];
-  } else {
-    if (ascendioPorTitulo) {
-      candidatos = candidatos.filter(c => c.reputacion > CONFIG.UMBRAL_PRIMERA);
-    } else {
-      candidatos = candidatos.filter(c => Math.abs((c.reputacion * 10) - jugador.media) <= 18);
-    }
-
-    candidatos.sort(() => Math.random() - 0.5);
-
     ofertasActuales = [
       jugador.clubActual,
       candidatos[0] || CLUBES[0],
       candidatos[1] || CLUBES[1]
     ];
+  } else if (ascendioPorTitulo) {
+    // Ascendió por título: solo clubes de Primera División (reputacion > 5)
+    candidatos = candidatos.filter(c => c.reputacion > CONFIG.UMBRAL_PRIMERA);
+    ofertasActuales = [
+      jugador.clubActual,
+      candidatos[0] || CLUBES[0],
+      candidatos[1] || CLUBES[1]
+    ];
+  } else if (ofertasAleatoriasPorEdad(jugador.edad)) {
+    // Veterano (más de 31): los equipos llegan más al azar, sin filtro por media.
+    candidatos.sort(() => Math.random() - 0.5);
+    ofertasActuales = armarTresOfertas(candidatos, jugador.clubActual);
+  } else {
+    // Rangos coherentes según la media (ver rangoReputacionPorMedia en data.js)
+    const rango = rangoReputacionPorMedia(jugador.media);
+    const dentroRango = candidatos.filter(c => c.reputacion >= rango.min && c.reputacion <= rango.max);
+    // Si el rango quedara vacío por alguna razón, se usa el pool completo.
+    const pool = (dentroRango.length > 0 ? dentroRango : candidatos).sort(() => Math.random() - 0.5);
+    ofertasActuales = armarTresOfertas(pool, jugador.clubActual);
   }
 
   document.getElementById('fichajes-temp').innerText = jugador.temporadaActual + 1;
@@ -1096,6 +1212,16 @@ function generarOfertasDeFichaje(ascendioPorTitulo = false) {
     alerta.innerHTML = `⚠️ <strong>Sanción Activa de Loro:</strong> Obligado a jugar en Segunda. No puedes renovar si estás en Primera.`;
     contenedor.appendChild(alerta);
   }
+
+  // Nota explicativa: coherencia de las ofertas con la media y la edad
+  const nota = document.createElement("div");
+  nota.className = "alert alert-light border p-2 small mb-3";
+  if (ofertasAleatoriasPorEdad(jugador.edad) && jugador.temporadasForzadoSegunda === 0) {
+    nota.innerHTML = `🎲 A tu edad (<strong>${jugador.edad}</strong>), los equipos te llaman de forma más aleatoria: ya no siguen del todo tu media.`;
+    } else {
+    nota.innerHTML = '';
+  }
+  contenedor.appendChild(nota);
 
   ofertasActuales.forEach((club) => {
     const esClubPrimera = club.reputacion > CONFIG.UMBRAL_PRIMERA;
@@ -1122,6 +1248,7 @@ function seleccionarOferta(clubElegido) {
   jugador.temporadaActual++;
 
   verificarCondicionLoro();
+  recuperarRangoNittox();
   prepararSiguienteEvento();
   actualizarInterfaz();
   guardarPartida();
@@ -1138,7 +1265,40 @@ function abrirModalEvento() {
   const footer = elModal.querySelector(".modal-footer");
   let respuestaTomada = false;
 
-  if (jugador.eventoDisponibleActual === "PIPITA") {
+  if (evConfig.dosOpciones) {
+    // Eventos con DOS opciones explícitas (CERBE, NERVA, NITTOX, PRIMOS...)
+    footer.innerHTML = "";
+    const btnA = document.createElement("button");
+    btnA.className = "btn btn-warning fw-bold";
+    btnA.innerText = evConfig.dosOpciones.a.texto;
+    btnA.onclick = () => {
+      respuestaTomada = true;
+      modalDecision.hide();
+      resolverEventoDosOpciones(jugador.eventoDisponibleActual, "a");
+    };
+    const btnB = document.createElement("button");
+    btnB.className = "btn btn-secondary fw-bold";
+    btnB.innerText = evConfig.dosOpciones.b.texto;
+    btnB.onclick = () => {
+      respuestaTomada = true;
+      modalDecision.hide();
+      resolverEventoDosOpciones(jugador.eventoDisponibleActual, "b");
+    };
+    footer.appendChild(btnA);
+    footer.appendChild(btnB);
+  } else if (evConfig.sinRechazo) {
+    // Evento obligatorio (ACUSADO): no se puede rechazar, la única salida es el SS.
+    footer.innerHTML = "";
+    const btnOk = document.createElement("button");
+    btnOk.className = "btn btn-danger fw-bold";
+    btnOk.innerText = "🖥️ Someterse al SS";
+    btnOk.onclick = () => {
+      respuestaTomada = true;
+      modalDecision.hide();
+      resolverEvento(true);
+    };
+    footer.appendChild(btnOk);
+  } else if (jugador.eventoDisponibleActual === "PIPITA") {
     // Evento especial con DOS opciones: piña o dejarse boquear
     footer.innerHTML = "";
     const btnPina = document.createElement("button");
@@ -1177,6 +1337,11 @@ function abrirModalEvento() {
   const rechazoHandler = function() {
     elModal.removeEventListener('hidden.bs.modal', rechazoHandler);
     if (!respuestaTomada) {
+      if (evConfig.sinRechazo) {
+        // Evento obligatorio (ACUSADO): cerrar el modal no lo esquiva.
+        resolverEvento(true);
+        return;
+      }
       resolverEvento(false);
     }
   };
@@ -1375,6 +1540,21 @@ function resolverEvento(acepta) {
         resultadoTxt = "🌰 Vas a jugar a Chaco For Ever. Equipo donde salieron grandes jugadores.";
         break;
       }
+
+      case "KROSTY": {
+        const hasbulitah = CLUBES.find(c => c.nombre === "Hasbullitah");
+        if (hasbulitah) jugador.clubActual = hasbulitah;
+        resultadoTxt = "🧔 Aceptaste la invitación rara: cambiaste de equipo a Hasbullitah.";
+        break;
+      }
+
+      case "ACUSADO": {
+        // Evento obligatorio: el SS se ejecuta sí o sí. "Sí" y "cerrar el
+        // modal" terminan acá.
+        registrarEventoFinalizado();
+        ejecutarAcusacionCheats();
+        return;
+      }
     }
 
     registrarEventoFinalizado();
@@ -1419,6 +1599,75 @@ function resolverEventoPipita(opcion) {
   }, CONFIG.TIMING.AVISO_EVENTO_MS);
 }
 
+// ============================================================
+//  EVENTOS NUEVOS V2 CON DOS OPCIONES (CERBE, NERVA, NITTOX, PRIMOS)
+// ============================================================
+function resolverEventoDosOpciones(id, opcion) {
+  let resultadoTxt = "";
+
+  switch (id) {
+    case "CERBE":
+      if (opcion === "a") {
+        // Se la tirás: se queda solo y la erra.
+        sumarMedia(-1);
+        resultadoTxt = "⚽ Se la tiraste... lo dejaste SOLO frente al arco y Cerbe la erró el gol (-1 OVR).";
+      } else {
+        // No se la tirás: te mete en el collage de caras.
+        cambiarMoral(-15);
+        resultadoTxt = "🤣 No se la tiraste y Cerbe te metió en el Collage de caras (-15 de moral).";
+      }
+      break;
+
+    case "NERVA":
+      if (opcion === "a") {
+        // Doxeás a los dos: Navarro te felicita.
+        cambiarMoral(15);
+        resultadoTxt = "📽️ Doxeaste la pelea: filtraste la cara de ambos. Navarro te felicita (+15 de moral).";
+      } else {
+        // No hacés nada: Nerva se revela y te doxea a vos.
+        cambiarMoral(-15);
+        resultadoTxt = "🙃 No hiciste nada y Nerva se reveló: filtró TU cara en la pelea (-15 de moral).";
+      }
+      break;
+
+    case "NITTOX":
+      if (opcion === "a") {
+        // Volvés a jugar: 50/50.
+        if (Math.random() < 0.5) {
+          sumarMedia(2);
+          resultadoTxt = "🔥 ¡La rompiste toda! Le cerraste el orto a Nittox (+2 OVR).";
+        } else {
+          // Perdés el rango y volvés a Normal. La próxima temporada se recupera.
+          jugador.nittoxRangoQuitado = true;
+          jugador.eventoNittoxJugado = true;
+          resultadoTxt = "💀 Jugaste como el ojete. ¡A jugar mix Normal! (Perdés el rango esta temporada; la próxima podés recuperarlo).";
+        }
+      } else {
+        resultadoTxt = "😴 No jugás más hasta que a Nittox se le pase. Sin consecuencias... esta vez.";
+      }
+      break;
+
+    case "PRIMOS":
+      if (opcion === "a") {
+        resultadoTxt = "✋ Los mandaste a cagar a Benjita y a Theo. No pasa nada.";
+      } else {
+        // Aceptás: te fuiste a BODO a jugar.
+        const bodo = CLUBES.find(c => c.nombre === "Bodo Glimt");
+        if (bodo) jugador.clubActual = bodo;
+        resultadoTxt = "🧑‍🤝‍🧑 Te hiciste tan amigo que te fuiste a BODO a jugar. ¡Cambio de club inmediato a Bodo Glimt!";
+      }
+      break;
+  }
+
+  registrarEventoFinalizado();
+  setTimeout(() => {
+    mostrarNotificacion("Resultado del Evento", resultadoTxt, () => {
+      verificarCambioRol();
+      actualizarInterfaz();
+    });
+  }, CONFIG.TIMING.AVISO_EVENTO_MS);
+}
+
 // ------------------------------------------------------------
 //  MINIJUEGO DE PELEA (se dispara cuando la salida con Sossa sale mal)
 // ------------------------------------------------------------
@@ -1428,6 +1677,10 @@ function iniciarMinijuegoPelea() {
   let golpes = 0;
   let terminada = false;
 
+  // FIX V2: guard global para que la pelea nunca quede "activada" si el
+  // flujo se interrumpe (cerrar el modal, iniciar/continuar otra partida).
+  peleaEstado = { activo: true };
+
   document.getElementById("modalDominiosTitulo").innerText = "🥊 ¡PELEA EN DORIAN!";
   document.getElementById("secuenciaObjetivo").innerText = "¡Presioná ESPACIO (o hacé clic) rapidísimo para defenderte!";
   document.getElementById("resultadoDominios").innerHTML =
@@ -1435,6 +1688,18 @@ function iniciarMinijuegoPelea() {
     "<div class='progress mt-2' style='height:14px;'><div id='barraPelea' class='progress-bar bg-danger' style='width:0%;'></div></div>";
   document.getElementById("tiempoDominiosRow").style.display = "none";
   modalDominiosInstance.show();
+
+  const cancelarSiSeCierra = () => {
+    // Si el jugador cierra el modal sin terminar, la pelea se cancela
+    // (sin penalidad) y se limpian TODOS los listeners globales.
+    if (!terminada) {
+      terminada = true;
+      peleaEstado = null;
+      window.removeEventListener("keydown", manejar);
+      window.removeEventListener("click", manejar);
+    }
+  };
+  document.getElementById("modalDominios").addEventListener("hidden.bs.modal", cancelarSiSeCierra, { once: true });
 
   const actualizar = () => {
     const cont = document.getElementById("peleaContador");
@@ -1446,6 +1711,7 @@ function iniciarMinijuegoPelea() {
   const finalizar = (exito) => {
     if (terminada) return;
     terminada = true;
+    peleaEstado = null;
     window.removeEventListener("keydown", manejar);
     window.removeEventListener("click", manejar);
     const resDiv = document.getElementById("resultadoDominios");
@@ -1468,7 +1734,7 @@ function iniciarMinijuegoPelea() {
   };
 
   const manejar = (e) => {
-    if (terminada) return;
+    if (terminada || !peleaEstado || !peleaEstado.activo) return;
     const esClick = e.type === "click";
     const esEspacio = e.type === "keydown" && e.code === "Space";
     if (!esClick && !esEspacio) return;
@@ -1490,7 +1756,8 @@ const TODOS_EVENTOS = [
   "SOSSA", "RICKY", "BANDIDO", "DNT", "NACHO_LV", "VALIEL", "CHAGAS", "CASANA",
   "BEKKU", "CARNICERO", "PIEDRA", "KULONETA", "MACHI", "PIPITA", "NOZ", "PYOJO",
   "ORSINI", "NICOBAILARIN", "RONNIE", "BAREIRO", "MUSA", "KOLT", "VIEJO", "PISA",
-  "PERUANOS", "PUSKAS", "GLIZZI", "PASO", "MATUTE", "RANKEDS"
+  "PERUANOS", "PUSKAS", "GLIZZI", "PASO", "MATUTE", "RANKEDS",
+  "CERBE", "NERVA", "NITTOX", "KROSTY", "PRIMOS"
 ];
 
 function prepararSiguienteEvento() {
@@ -1503,6 +1770,20 @@ function prepararSiguienteEvento() {
       pool = pool.filter(ev => ev !== "RANKEDS");
     }
     pool = pool.filter(ev => !(jugador.modoDesafio && (ev === "BAREIRO" || ev === "MATUTE")));
+
+    // FIX V2: un evento con poca chance de aparecer NO puede salir de forma
+    // obligatoria. ACUSADO solo entra al pool mediante una tirada extra de
+    // probabilidad MUY baja y solo puede ocurrir UNA VEZ en toda la partida.
+    if (!jugador.eventoAcusadoJugado && Math.random() < CONFIG.PROB_EVENTO_ACUSADO) {
+      pool.push("ACUSADO");
+    }
+
+    // NITTOX es SOLO para los que tienen rango Promesa o Aspirante.
+    const rolActualNombre = rolEfectivo().nombre;
+    if (rolActualNombre !== "Promesa" && rolActualNombre !== "Aspirante") {
+      pool = pool.filter(ev => ev !== "NITTOX");
+    }
+
     if (pool.length === 0) return; // Ya viste todos los eventos de esta partida
 
     // VALIEL es más raro que el resto
@@ -1514,6 +1795,10 @@ function prepararSiguienteEvento() {
     const elegido = pool[Math.floor(Math.random() * pool.length)];
     if (elegido === "RANKEDS") {
       jugador.eventoRankedsJugado = true;
+    }
+    if (elegido === "ACUSADO") {
+      // El evento "Acusado de cheats" solo puede salir UNA VEZ por partida.
+      jugador.eventoAcusadoJugado = true;
     }
     jugador.eventosUsados.push(elegido);
     jugador.eventoDisponibleActual = elegido;

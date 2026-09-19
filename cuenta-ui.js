@@ -50,7 +50,7 @@
         apodo.value = "";
         const nombre = await api.perfil();
         apodo.value = nombre || "";
-        return nombre ? "Sesión iniciada. Perfil leído desde Supabase." : "Sesión iniciada. Elegí un apodo para crear tu perfil.";
+        return nombre ? "Sesión iniciada. Perfil leído correctamente." : "Sesión iniciada. Elegí un apodo para crear tu perfil.";
       });
     });
     perfil.addEventListener("submit", function(evento) {
@@ -60,14 +60,14 @@
         const leido = await api.perfil();
         if (leido !== nombre) throw new Error("No se pudo confirmar el guardado. Volvé a leer el perfil.");
         apodo.value = leido;
-        return "Apodo guardado y verificado en Supabase.";
+        return "Apodo guardado y verificado.";
       });
     });
     document.getElementById("cuenta-leer").addEventListener("click", function() {
       ejecutar(async function() {
         const nombre = await api.perfil();
         apodo.value = nombre || "";
-        return nombre === null ? "Todavía no hay un perfil guardado." : "Perfil leído desde Supabase.";
+        return nombre === null ? "Todavía no hay un perfil guardado." : "Perfil leído correctamente.";
       });
     });
     document.getElementById("cuenta-salir").addEventListener("click", function() {

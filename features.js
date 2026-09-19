@@ -195,7 +195,7 @@ function mostrarSlots() {
     const ocupado = !!localStorage.getItem(claveSlot(i));
     html += "<div class='d-flex gap-2'>" +
       "<button class='btn btn-outline-primary flex-grow-1' onclick='guardarEnSlot(" + i + ")'>Guardar en Slot " + i + (ocupado ? " 💾" : " (vacío)") + "</button>" +
-      "<button class='btn btn-outline-success' " + (ocupado ? "" : "disabled") + " onclick='cargarSlotDesdePanel(" + i + ")'>Cargar</button>" +
+      "<button class='btn btn-outline-success' " + (ocupado ? "" : "disabled") + " onclick='cargarSlotDesdePanelConLimpieza(" + i + ")'>Cargar</button>" +
       "</div>";
   }
   html += "</div>";
@@ -278,7 +278,6 @@ function abrirSelectorMinijuegos() {
   const botones = [
     { nombre: "Regate en Zigzag", emoji: "🏃", fn: "iniciarMinijuegoRegate()" },
     { nombre: "Pase Filtrado",    emoji: "🎯", fn: "iniciarMinijuegoPase()" },
-    { nombre: "Chilena",          emoji: "🤸", fn: "iniciarMinijuegoChilena()" },
     { nombre: "Cabezazo",         emoji: "💥", fn: "iniciarMinijuegoCabezazo()" },
     { nombre: "1 vs 1",           emoji: "⚔️", fn: "iniciarMinijuegoUnoVsUno()" },
     { nombre: "Tanda de Penales", emoji: "🥅", fn: "iniciarMinijuegoPenales()" }
@@ -430,85 +429,6 @@ function finalizarPase() {
     sonidoError();
   }
   paseEstado = null;
-  jugador.minijuegosUsadosEstaTemporada = 1;
-  guardarPartida();
-  setTimeout(function() { modalDominiosInstance.hide(); verificarCambioRol(); actualizarInterfaz(); }, CONFIG.TIMING.RESULTADO_MINIJUEGO_MS);
-}
-
-// ------------------------------------------------------------
-//  MINIJUEGO: CHILENA (2 taps sincronizados)
-// ------------------------------------------------------------
-function iniciarMinijuegoChilena() {
-  if (!puedeJugarMinijuegoExtra()) return;
-  document.getElementById("modalDominiosTitulo").innerText = "🤸 Chilena";
-  document.getElementById("secuenciaObjetivo").innerText = "Tocá el botón o presioná ESPACIO 2 veces rápido.";
-  document.getElementById("resultadoDominios").innerHTML =
-    "<div id='chilenaContador' class='fs-3 fw-bold text-primary'>0 / " + CONFIG.CHILENA.TAPS + "</div>" +
-    "<button type='button' id='btn-chilena-toque' class='btn btn-primary btn-lg mt-2' disabled>🤸 ¡Conectar!</button>";
-  document.getElementById("tiempoDominiosRow").style.display = "none";
-
-  const modal = document.getElementById("modalDominios");
-  const boton = document.getElementById("btn-chilena-toque");
-  let taps = 0;
-  let ultimoTap = 0;
-  let activo = false;
-  let terminado = false;
-  let timer = null;
-
-  function limpiar() {
-    activo = false;
-    clearTimeout(timer);
-    window.removeEventListener("keydown", manejar);
-    boton.removeEventListener("click", manejar);
-    modal.removeEventListener("shown.bs.modal", empezar);
-    modal.removeEventListener("hide.bs.modal", cancelar);
-    boton.disabled = true;
-  }
-  function terminar(exito) {
-    if (terminado) return;
-    terminado = true;
-    limpiar();
-    finalizarChilena(exito);
-  }
-  function cancelar() { terminar(false); }
-  function manejar(e) {
-    if (!activo) return;
-    if (e.type === "keydown") {
-      if (e.code !== "Space") return;
-      e.preventDefault(); // Evita que ESPACIO genere además un clic en el botón.
-      if (e.repeat) return;
-    }
-    const now = performance.now();
-    if (taps > 0 && (now - ultimoTap) > CONFIG.CHILENA.VENTANA_MS) taps = 0;
-    taps++;
-    ultimoTap = now;
-    document.getElementById("chilenaContador").innerText = taps + " / " + CONFIG.CHILENA.TAPS;
-    if (taps >= CONFIG.CHILENA.TAPS) terminar(true);
-  }
-  function empezar() {
-    activo = true;
-    boton.disabled = false;
-    window.addEventListener("keydown", manejar);
-    boton.addEventListener("click", manejar);
-    timer = setTimeout(function() { terminar(false); }, CONFIG.CHILENA.VENTANA_MS * 2);
-  }
-  modal.addEventListener("shown.bs.modal", empezar, { once: true });
-  modal.addEventListener("hide.bs.modal", cancelar);
-  modalDominiosInstance.show();
-}
-
-function finalizarChilena(exito) {
-  const resDiv = document.getElementById("resultadoDominios");
-  if (exito) {
-    resDiv.className = "text-success fw-bold fs-5 mt-2";
-    resDiv.innerText = "🤸 ¡CHILENA ESPECTACULAR! (+" + CONFIG.CHILENA.SUBIDA_OVR + " OVR)";
-    sumarMedia(CONFIG.CHILENA.SUBIDA_OVR);
-    sonidoGol();
-  } else {
-    resDiv.className = "text-danger fw-bold fs-5 mt-2";
-    resDiv.innerText = "❌ No llegaste a la pelota.";
-    sonidoError();
-  }
   jugador.minijuegosUsadosEstaTemporada = 1;
   guardarPartida();
   setTimeout(function() { modalDominiosInstance.hide(); verificarCambioRol(); actualizarInterfaz(); }, CONFIG.TIMING.RESULTADO_MINIJUEGO_MS);
@@ -725,8 +645,29 @@ finalizarCarrera = function() {
   if (jugador.modoDesafio) chequearModoDesafio();
 };
 
+// ------------------------------------------------------------
+//  FIX V2: estados residuales de minijuegos
+//  Los minijuegos usan listeners globales y variables de estado.
+//  Si el flujo se interrumpe, al iniciar/continuar una partida
+//  pueden quedar "activados". Esta funcion limpia TODO al arrancar.
+// ------------------------------------------------------------
+function limpiarEstadosMinijuegos() {
+  regateEstado = null;
+  paseEstado = null;
+  if (typeof peleaEstado !== "undefined") peleaEstado = null;
+  escuchandoTeclado = false;
+  if (typeof timerDominios !== "undefined" && timerDominios) {
+    clearInterval(timerDominios);
+    timerDominios = null;
+  }
+  try {
+    if (typeof modalDominiosInstance !== "undefined" && modalDominiosInstance) modalDominiosInstance.hide();
+  } catch (e) { /* el modal puede no estar abierto */ }
+}
+
 const _iniciarCarreraBase = iniciarCarrera;
 iniciarCarrera = function() {
+  limpiarEstadosMinijuegos();
   if (!modoDesafioPendiente) { _iniciarCarreraBase(); return; }
   // Modo Desafío: reemplaza la asignación de club aleatoria por el sorteo ponderado
   const nombreInput = document.getElementById("input-nombre").value.trim();
@@ -752,6 +693,18 @@ iniciarCarrera = function() {
   }
 };
 
+// FIX V2: también limpiar estados al continuar una partida guardada.
+const _continuarCarreraBase = continuarCarrera;
+continuarCarrera = function() {
+  limpiarEstadosMinijuegos();
+  _continuarCarreraBase();
+};
+
+function cargarSlotDesdePanelConLimpieza(n) {
+  limpiarEstadosMinijuegos();
+  cargarSlotDesdePanel(n);
+}
+
 const _generarOfertasBase = generarOfertasDeFichaje;
 generarOfertasDeFichaje = function(ascendioPorTitulo) {
   if (jugador.modoDesafio && !jugador.carreraTerminada) {
@@ -759,6 +712,7 @@ generarOfertasDeFichaje = function(ascendioPorTitulo) {
     modalFichajes.hide();
     jugador.temporadaActual++;
     verificarCondicionLoro();
+    recuperarRangoNittox();
     prepararSiguienteEvento();
     actualizarInterfaz();
     guardarPartida();
