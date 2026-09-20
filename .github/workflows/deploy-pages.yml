@@ -1,0 +1,35 @@
+name: Deploy a Cloudflare Pages
+
+# Se ejecuta en cada push a main (o manualmente desde la pestaña Actions).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Mismo criterio que el deploy manual: solo los archivos del juego,
+      # sin tests, READMEs ni archivos internos.
+      - name: Preparar carpeta de publicacion
+        run: |
+          mkdir -p dist
+          cp index.html privacidad.html styles.css app.js data.js features.js \
+             duelo.js camiseta.js touch-controls.js ranking-online.js \
+             supabase-config.js cuenta-api.js cuenta-ui.js pwa.js sw.js \
+             manifest.webmanifest google7cb43165a7bd622a.html _headers dist/
+          cp -r imagenes dist/
+
+      - name: Deploy a Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=copero --branch=main

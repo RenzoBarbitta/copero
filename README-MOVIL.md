@@ -13,7 +13,10 @@ Esta versión del juego agrega dos cosas nuevas:
 
 El juego es una página web estática, se sube tal cual la carpeta:
 
-- **Netlify Drop** (lo más fácil, 1 minuto): entrá a <https://app.netlify.com/drop>, arrastrá la carpeta `CoperoActualizado` completa y te da una URL `https://algo.netlify.app`.
+- **Cloudflare Pages** (gratis, dominio `*.pages.dev`), tres formas de subirlo:
+  1. **Arrastrar y soltar** (lo más fácil): entrá al dashboard de Cloudflare → *Workers & Pages* → *Create* → pestaña **Pages** → **Upload assets**, poné el nombre del proyecto (ej. `copero`) y arrastrá la carpeta con los archivos del juego.
+  2. **Desde GitHub** (deploy automático en cada push): *Workers & Pages* → *Create* → **Pages** → *Connect to Git*, elegí el repo `copero`, dejá **Build command** vacío y en **Build output directory** poné `/`. La configuración ya está lista en `wrangler.toml`.
+  3. **Por consola con wrangler**: desde la carpeta del proyecto, `npx wrangler login` y después `npx wrangler pages deploy`.
 - **GitHub Pages**: subí los archivos a un repositorio y activá Pages.
 
 > ⚠️ No subas la carpeta con archivos de más: los archivos del juego son `index.html`, `styles.css`, `app.js`, `data.js`, `features.js`, `touch-controls.js`, `ranking-online.js`, `pwa.js`, `sw.js`, `manifest.webmanifest` y la carpeta `imagenes/`. El resto (`README-MOVIL.md`, `test-ranking-online.mjs`) no hace falta subirlo.

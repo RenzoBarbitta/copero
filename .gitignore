@@ -19,3 +19,6 @@ node_modules/
 *.zip
 *.rar
 *.mp4
+
+# Caché local de wrangler
+.wrangler/

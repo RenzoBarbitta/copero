@@ -1,0 +1,5 @@
+# Configuración de Cloudflare Pages para el juego (sitio estático, sin build).
+# Para publicar: npx wrangler pages deploy
+name = "copero"
+compatibility_date = "2026-09-01"
+pages_build_output_dir = "."
