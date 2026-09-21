@@ -488,4 +488,9 @@ if (typeof document !== "undefined") {
   document.addEventListener("DOMContentLoaded", function() {
     actualizarModoAplicacion();
   });
+  // La tarjeta de "Cuenta" en Comunidad refleja la sesión restaurada al
+  // recargar, al entrar o al cerrar sesión sin recargar la página.
+  document.addEventListener("cuenta:sesion-cambiada", function() {
+    if (typeof renderComunidad === "function") renderComunidad();
+  });
 }

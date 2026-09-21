@@ -3,25 +3,59 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
 const leer = nombre => fs.readFileSync(new URL(nombre, import.meta.url), 'utf8');
-const peticiones = [];
+
+// Stub del SDK oficial (@supabase/supabase-js) que registra lo que se envía.
+const signups = [];
+const clientes = [];
+const sdkStub = {
+  createClient(url, key) {
+    const miCliente = {
+      url, key,
+      auth: {
+        async signUp(opciones) {
+          signups.push({ url, key, opciones });
+          return { data: { user: { id: 'u-1' }, session: null }, error: null };
+        },
+        async signInWithPassword() {
+          return { data: { session: null }, error: { status: 400, code: 'invalid_credentials', message: 'Invalid login credentials' } };
+        },
+        async getSession() { return { data: { session: null }, error: null }; },
+        async getUser() { return { data: { user: null }, error: null }; },
+        async signOut() { return { error: null }; },
+        onAuthStateChange() { return { data: { subscription: { unsubscribe() {} } } }; }
+      },
+      from(nombre) {
+        return {
+          select() {
+            return { eq() { return { maybeSingle: async () => ({ data: null, error: null }) }; } };
+          },
+          upsert() { return { error: null }; }
+        };
+      }
+    };
+    clientes.push(miCliente);
+    return miCliente;
+  }
+};
+
 const contexto = vm.createContext({
   window: {}, COPERO_SUPABASE: { url: 'https://prueba.invalid', publishableKey: 'publica' },
+  supabase: sdkStub,
   AbortController, setTimeout, clearTimeout,
-  fetch: async (url, opciones) => {
-    peticiones.push({ url, body: JSON.parse(opciones.body) });
-    return { ok: true, text: async () => '{}' };
-  }
+  fetch: async () => ({ ok: true, text: async () => '{}' })
 });
 vm.runInContext(leer('cuenta-api.js'), contexto);
 const api = contexto.window.CoperoCuenta;
 for (const valor of [undefined, false, 'true', 1]) {
   await assert.rejects(api.registrar('test@example.com', 'password-test', valor), /privacidad/i);
 }
-assert.equal(peticiones.length, 0);
+assert.equal(signups.length, 0, 'Sin aceptar la política no debe llamarse al SDK.');
 await api.registrar('test@example.com', 'password-test', true);
-assert.equal(peticiones.length, 1);
-assert.equal(peticiones[0].body.data.privacy_version, '2026-09-17');
-assert.ok(Number.isFinite(Date.parse(peticiones[0].body.data.privacy_accepted_at)));
+assert.equal(signups.length, 1);
+const metadatos = signups[0].opciones.options.data;
+assert.equal(metadatos.privacy_version, '2026-09-17');
+assert.ok(Number.isFinite(Date.parse(metadatos.privacy_accepted_at)));
+assert.equal(clientes.length, 1, 'El cliente es único y comparte la protección de privacidad.');
 console.log('OK API: sin aceptar no hay red; aceptación incluye versión y fecha.');
 
 const elementos = new Map();

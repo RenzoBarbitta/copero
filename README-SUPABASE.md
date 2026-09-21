@@ -7,8 +7,11 @@ GET `/auth/v1/settings`: HTTP 200, email habilitado, confirmación de correo req
 El usuario confirmó la ejecución de `supabase/001-profiles.sql` en SQL Editor.
 La API de perfiles rechazó una lectura sin sesión con HTTP 401.
 `index.html` carga la configuración, `cuenta-api.js` y `cuenta-ui.js`: registro,
-inicio/cierre de sesión y creación/edición del apodo mediante REST nativo.
-La sesión vive solo en memoria: recargar requiere iniciar sesión otra vez.
+inicio/cierre de sesión y creación/edición del apodo mediante el cliente oficial
+(`@supabase/supabase-js`, SDK v2).
+La sesión se persiste en `localStorage` (`copero_auth_token`) y se restaura al
+recargar (F5): los tokens se renuevan solos en segundo plano y la app avisa al
+resto (`cuenta:sesion-cambiada`) cuando cambia o reaparece la sesión.
 
 Etapa 2 (ranking seguro): `supabase/002-ranking.sql` fue ejecutado (2026-09-21).
 El ranking global usa la tabla `copero_ranking` con RLS: lectura pública,
@@ -32,7 +35,11 @@ El cliente (`ranking-online.js`) ya no usa textdb.dev.
    y ejecutar Run (también transaccional y re-ejecutable). Crea `copero_ranking`
    con RLS: lectura pública, escritura solo autenticada sobre la fila propia y
    sin DELETE por API.
-6. Debe aparecer “Success. No rows returned”. No crear políticas de acceso
+6. SQL Editor → New query: pegar TODO el contenido de `supabase/004-fixes.sql`
+   y ejecutar Run. Es idempotente (se puede correr antes o después de
+   001/002/003): agrega `updated_at` a `copero_profiles`, garantiza ranking y
+   crea `copero_support` (porque 003 no se ejecutó en la base real).
+7. Debe aparecer “Success. No rows returned”. No crear políticas de acceso
    público de ESCRITURA: la defensa del ranking depende de que solo existan
    las tres políticas de 002-ranking.sql (read/insert/update con auth.uid()).
 
@@ -68,7 +75,8 @@ usuario, no desde SQL Editor (que tiene permisos administrativos).
 
 Para la prueba manual, servir esta carpeta con un servidor HTTP local, abrir
 “Mi cuenta”, crear una cuenta propia y confirmar el correo. Iniciar sesión, guardar
-el apodo y usar “Volver a leer perfil”. Recargar e iniciar sesión otra vez debe
-recuperar el mismo apodo. No compartir contraseñas ni tokens en el chat.
+el apodo y usar “Volver a leer perfil”. Recargar (F5): la sesión debe seguir
+iniciada y el apodo rellenarse solo en “Mi cuenta”. No compartir contraseñas ni
+tokens en el chat.
 
 No hacer cambios al ranking existente hasta completar y probar la nueva API.

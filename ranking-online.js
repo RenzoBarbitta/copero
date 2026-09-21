@@ -97,6 +97,26 @@ async function fetchConTimeout(url, opciones) {
   }
 }
 
+// Registra en consola el estado y el cuerpo real de un fallo de Supabase
+// (ej. 401, 403 RLS, 404 tabla, 429) para poder diagnosticarlo.
+function registrarFalloRanking(op, res) {
+  try {
+    console.error("[ranking-online] " + op, JSON.stringify({
+      operacion: op,
+      status: res && res.status,
+      estadoOk: !!(res && res.ok),
+      cuerpo: res ? "(leyendo cuerpo)" : null
+    }, null, 2));
+    if (!res) return;
+    (async function() {
+      try {
+        const texto = await res.text();
+        console.error("[ranking-online] " + op + " cuerpo", texto.slice(0, 2000));
+      } catch (e) { /* cuerpo no legible */ }
+    })();
+  } catch (e) { /* sin consola */ }
+}
+
 // ------------------- SUPABASE (CAPA SEGURA) -------------------
 
 function supabaseConfig() {
@@ -178,7 +198,10 @@ async function leerRankingNube() {
   const res = await fetchConTimeout(urlRanking(), {
     method: "GET", cache: "no-store", headers: headersRanking(null)
   });
-  if (!res.ok) throw new Error("HTTP " + res.status);
+  if (!res.ok) {
+    registrarFalloRanking("leerRankingNube", res);
+    throw new Error("HTTP " + res.status);
+  }
   return normalizarFilas(await res.json());
 }
 
@@ -192,6 +215,7 @@ async function publicarEnNube(registro) {
     token = await window.CoperoCuenta.token();
   } catch (e) {
     // Sin token (sesion inexistente): no se publica y el registro queda en cola.
+    try { console.error("[ranking-online] publicarEnNube sin token", e && e.message); } catch (e2) { /* silencio */ }
     return false;
   }
   // Defensa extra: SIEMPRE se publica sobre la fila del usuario en sesion,
@@ -205,8 +229,14 @@ async function publicarEnNube(registro) {
   // 401/403 (token vencido/revocado): el registro queda EN COLA para reintentar,
   // NUNCA se da de baja la sesion (puede ser un rechazo transitorio o de otra
   // pestaña). Cuando la sesion recupere validez se reenvia solo.
-  if (res.status === 401 || res.status === 403) return false;
-  if (!res.ok) throw new Error("HTTP " + res.status);
+  if (res.status === 401 || res.status === 403) {
+    registrarFalloRanking("publicarEnNube rechazado", res);
+    return false;
+  }
+  if (!res.ok) {
+    registrarFalloRanking("publicarEnNube", res);
+    throw new Error("HTTP " + res.status);
+  }
   return true;
 }
 
@@ -239,6 +269,7 @@ async function vaciarOutbox() {
     if (rankingAbierto) refrescarRankingVisible(); // mostrar la carrera recien publicada
     return true;
   } catch (e) {
+    try { console.error("[ranking-online] vaciarOutbox", e && e.message); } catch (e2) { /* silencio */ }
     return false; // queda en cola para reintentar
   } finally {
     RANKING_ENVIANDO = false;

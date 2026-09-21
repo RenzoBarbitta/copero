@@ -83,6 +83,8 @@ let modalInfo, modalDecision, modalFichajes, modalPenalInstance;
 let modalTLInstance, modalDominiosInstance, modalSSInstance;
 let modalRolInstance, modalPartidoInteractivoInstance, modalMomentosClaveInstance;
 let modalDardosInstance;
+let modalMinijuegoFPInstance;
+let instanciaFP = null;
 let modalEntrenamientoAtributos;
 let estadoPartidoEspecial = null;
 
@@ -243,6 +245,10 @@ document.addEventListener("DOMContentLoaded", () => {
   modalMomentosClaveInstance = new bootstrap.Modal(document.getElementById('modalMomentosClave'));
   modalEntrenamientoAtributos = new bootstrap.Modal(document.getElementById('modalEntrenamientoAtributos'));
   modalDardosInstance = new bootstrap.Modal(document.getElementById('modalDardos'));
+  modalMinijuegoFPInstance = new bootstrap.Modal(document.getElementById('modalMinijuegoFP'));
+  document.getElementById('modalMinijuegoFP').addEventListener('hidden.bs.modal', () => {
+    if (instanciaFP) { instanciaFP.destroy(); instanciaFP = null; }
+  });
 
   // Mostrar botón "Continuar" si hay partida guardada
   const btnContinuar = document.getElementById("btn-continuar");
@@ -269,40 +275,40 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // Configuración extendida de eventos sociales
 const configsEventos = {
-  SOSSA: { titulo: "Salida con Sossa", texto: "Sossa te invita a salir con la Popa a DORIAN previo al partido.<br><br>¿Aceptas salir?" },
-  RICKY: { titulo: "Trucos de Ricky", texto: "Ricky Centurión te ofrece sus CHEATS.<br><br>¿Aceptas usarlos?" },
-  BANDIDO: { titulo: "El Mágico", texto: "Bandido te invita un porro mágico antes de jugar.<br><br>¿Aceptas?" },
-  DNT: { titulo: "El Dicta", texto: "Dnt te invito a jugar unos amis con CALA.<br><br>¿Aceptas?" },
-  NACHO_LV: { titulo: "Entreno con Las Varillas", texto: "NachoLV te invita a hacer un entreno con Las Varillas.<br><br>¿Aceptas?" },
-  VALIEL: { titulo: "Promesa en MIX SA", texto: "Valiel te da la oportunidad de quedar como Aspirante tras unos partidos de prueba.<br><br>¿Aceptas jugarlas?" },
-  RANKEDS: { titulo: "Rankeds", texto: "Mojo te invita a jugar unas Rankeds del juego.<br><br>¿Qué decides hacer?" },
-  CHAGAS: { titulo: "Comer", texto: "Chagas te invita a una GRAN cena.<br><br>¿Aceptas ir a comer?" },
-  CASANA: { titulo: "Jugar IOSOCCER", texto: "Casana te invita a jugar IOSOCCER.<br><br>¿Aceptas la partida?" },
-  PIEDRA: { titulo: "Busco Piedra", texto: "Nico Piedra te invita a hacer un entreno con él para enseñarte a jugar de todas las posiciones.<br><br>¿Aceptas?" },
-  BEKKU: { titulo: "Mix con Bekku", texto: "Bekku te pide jugar mas suelto la mix. <br><br> ¿Aceptas?" },
-  CARNICERO: { titulo: "Carnicero de Neuquen", texto: "El Carnicero de Neuquén te invita a un asado.<br><br>¿Aceptas ir?" },
-  KULONETA: { titulo: "Kuloneta", texto: "Kurona te invita a su server de discord, a cambio de algo... <br><br>¿Se lo das?" },
-  MACHI: { titulo: "Giros", texto: "Te hablan de un jugador Machi que giraba mucho y te interesa probar su tecnica <br><br>¿La practicas?" },
-  PIPITA: { titulo: "Titulos Pipa", texto: "Pipita te esta boqueando los titulos que tiene <br><br>¿Que haces?" },
-  NOZ: { titulo: "Noz te invita", texto: "Noz te invita a salir previo al entrenamiento <br><br>¿Aceptas?" },
-  PYOJO: { titulo: "Salida a bar con Pyojo", texto: "Pyojo te invita a tomar un negroni con 2 rocas <br><br>¿Aceptas?" },
-  ORSINI: { titulo: "Paseo con Orsini", texto: "Orsini te pide que lo acompañes a buscar un frasco de flores <br><br>¿Aceptas?", textoRechazo: "Orsini te odia." },
-  NICOBAILARIN: { titulo: "A Bailar con Nico", texto: "Nico Bailarin te invita a bailar un enganchado de Fer Palacio <br><br>¿Te da?" },
-  RONNIE: { titulo: "Curso de Ronnie", texto: "Ronnie te vende un curso de 1337 <br><br>¿Lo compras?", textoRechazo: "Te llega un MD de Flowy diciendo que sos un fraca." },
-  BAREIRO: { titulo: "Oferta Bareiro", texto: "Bareiro te invita a jugar en Argentinos Juniors <br><br>¿Vas con el?" },
-  MUSA: { titulo: "El Establo de Musa", texto: "Musa te invita a su establo para que veas como entrena<br><br>¿Aceptas?", textoRechazo: "Te perdes las habilidades del CABA." },
-  KOLT: { titulo: "Frio con Grasa", texto: "Kolt te invita un finde semana a su pueblo natal <br><br>¿Vas?" },
-  VIEJO: { titulo: "Viejo y Carita", texto: "Viejo y Carita te invitan a jugar al Dark Souls <br><br>¿Jugas con ellos?", textoRechazo: "Carita te bloqueo de todos lados." },
-  PISA: { titulo: "Pase Pisa", texto: "Pisa te enseña a tirar su pase especial <br><br>¿Lo aprendes?" },
-  PERUANOS: { titulo: "Peruanos", texto: "Strahl y Cubarsi te invitan a Peru, pero tendrias que jugar un partido desde ahi <br><br>¿Vas?" },
-  PUSKAS: { titulo: "Componentes Puskas", texto: "Puskas te ofrece sus componentes <br><br>¿Los compras?" },
-  GLIZZI: { titulo: "Aprendes(? con Glizzi", texto: "Glizzi te quiere enseñar a jugar <br><br>¿Practicas con el?", textoRechazo: "No te perdiste de nada." },
-  PASO: { titulo: "Terraria", texto: "Paso te invita a jugar a Terraria con Marabola <br><br>¿Jugas con ellos?", textoRechazo: "Marabola te odia." },
-  MATUTE: { titulo: "Semillero Chaco", texto: "Matute te invita a su semillero Chaco For Ever <br><br>¿Vas a jugar?" },
+  SOSSA: { titulo: "🍻 Salida con Sossa", texto: "Sossa te invita a salir con la Popa a DORIAN previo al partido.<br><br>¿Aceptas salir?" },
+  RICKY: { titulo: "🎮 Trucos de Ricky", texto: "Ricky Centurión te ofrece sus CHEATS.<br><br>¿Aceptas usarlos?" },
+  BANDIDO: { titulo: "🌿 El Mágico", texto: "Bandido te invita un porro mágico antes de jugar.<br><br>¿Aceptas?" },
+  DNT: { titulo: "⚽ El Dicta", texto: "Dnt te invito a jugar unos amis con CALA.<br><br>¿Aceptas?" },
+  NACHO_LV: { titulo: "🏋️ Entreno con Las Varillas", texto: "NachoLV te invita a hacer un entreno con Las Varillas.<br><br>¿Aceptas?" },
+  VALIEL: { titulo: "⭐ Promesa en MIX SA", texto: "Valiel te da la oportunidad de quedar como Aspirante tras unos partidos de prueba.<br><br>¿Aceptas jugarlas?" },
+  RANKEDS: { titulo: "🕹️ Rankeds", texto: "Mojo te invita a jugar unas Rankeds del juego.<br><br>¿Qué decides hacer?" },
+  CHAGAS: { titulo: "🍽️ Comer", texto: "Chagas te invita a una GRAN cena.<br><br>¿Aceptas ir a comer?" },
+  CASANA: { titulo: "📱 Jugar IOSOCCER", texto: "Casana te invita a jugar IOSOCCER.<br><br>¿Aceptas la partida?" },
+  PIEDRA: { titulo: "🏃 Busco Piedra", texto: "Nico Piedra te invita a hacer un entreno con él para enseñarte a jugar de todas las posiciones.<br><br>¿Aceptas?" },
+  BEKKU: { titulo: "🏟️ Mix con Bekku", texto: "Bekku te pide jugar mas suelto la mix. <br><br> ¿Aceptas?" },
+  CARNICERO: { titulo: "🍖 Carnicero de Neuquen", texto: "El Carnicero de Neuquén te invita a un asado.<br><br>¿Aceptas ir?" },
+  KULONETA: { titulo: "💻 Kuloneta", texto: "Kurona te invita a su server de discord, a cambio de algo... <br><br>¿Se lo das?" },
+  MACHI: { titulo: "🌀 Giros", texto: "Te hablan de un jugador Machi que giraba mucho y te interesa probar su tecnica <br><br>¿La practicas?" },
+  PIPITA: { titulo: "👑 Titulos Pipa", texto: "Pipita te esta boqueando los titulos que tiene <br><br>¿Que haces?" },
+  NOZ: { titulo: "🥳 Noz te invita", texto: "Noz te invita a salir previo al entrenamiento <br><br>¿Aceptas?" },
+  PYOJO: { titulo: "🥃 Salida a bar con Pyojo", texto: "Pyojo te invita a tomar un negroni con 2 rocas <br><br>¿Aceptas?" },
+  ORSINI: { titulo: "🌸 Paseo con Orsini", texto: "Orsini te pide que lo acompañes a buscar un frasco de flores <br><br>¿Aceptas?", textoRechazo: "Orsini te odia." },
+  NICOBAILARIN: { titulo: "💃 A Bailar con Nico", texto: "Nico Bailarin te invita a bailar un enganchado de Fer Palacio <br><br>¿Te da?" },
+  RONNIE: { titulo: "🎓 Curso de Ronnie", texto: "Ronnie te vende un curso de 1337 <br><br>¿Lo compras?", textoRechazo: "Te llega un MD de Flowy diciendo que sos un fraca." },
+  BAREIRO: { titulo: "⚪ Oferta Bareiro", texto: "Bareiro te invita a jugar en Argentinos Juniors <br><br>¿Vas con el?" },
+  MUSA: { titulo: "🐎 El Establo de Musa", texto: "Musa te invita a su establo para que veas como entrena<br><br>¿Aceptas?", textoRechazo: "Te perdes las habilidades del CABA." },
+  KOLT: { titulo: "❄️ Frio con Grasa", texto: "Kolt te invita un finde semana a su pueblo natal <br><br>¿Vas?" },
+  VIEJO: { titulo: "🐉 Viejo y Carita", texto: "Viejo y Carita te invitan a jugar al Dark Souls <br><br>¿Jugas con ellos?", textoRechazo: "Carita te bloqueo de todos lados." },
+  PISA: { titulo: "💫 Pase Pisa", texto: "Pisa te enseña a tirar su pase especial <br><br>¿Lo aprendes?" },
+  PERUANOS: { titulo: "✈️ Peruanos", texto: "Strahl y Cubarsi te invitan a Peru, pero tendrias que jugar un partido desde ahi <br><br>¿Vas?" },
+  PUSKAS: { titulo: "🧪 Componentes Puskas", texto: "Puskas te ofrece sus componentes <br><br>¿Los compras?" },
+  GLIZZI: { titulo: "🧑‍🏫 Aprendes(? con Glizzi", texto: "Glizzi te quiere enseñar a jugar <br><br>¿Practicas con el?", textoRechazo: "No te perdiste de nada." },
+  PASO: { titulo: "⛏️ Terraria", texto: "Paso te invita a jugar a Terraria con Marabola <br><br>¿Jugas con ellos?", textoRechazo: "Marabola te odia." },
+  MATUTE: { titulo: "🌱 Semillero Chaco", texto: "Matute te invita a su semillero Chaco For Ever <br><br>¿Vas a jugar?" },
 
   // ============ EVENTOS NUEVOS V2 ============
   CERBE: {
-    titulo: "Clubes Pro",
+    titulo: "⚽ Clubes Pro",
     texto: "Cerbe te pide que le tires un pase para convertir él.<br><br>¿Se lo tirás?",
     dosOpciones: {
       a: { texto: "⚽ Se la tirás", desc: "Opción A" },
@@ -310,7 +316,7 @@ const configsEventos = {
     }
   },
   NERVA: {
-    titulo: "Pelea de Wachines",
+    titulo: "😤 Pelea de Wachines",
     texto: "Nerva se está peleando con Matias Fernandez.<br><br>¿Qué hacés?",
     dosOpciones: {
       a: { texto: "📱 Doxeás a los 2", desc: "Opción A" },
@@ -318,16 +324,16 @@ const configsEventos = {
     }
   },
   NITTOX: {
-    titulo: "Sargento Nittox",
+    titulo: "🎖️ Sargento Nittox",
     texto: "Nittox te quiere sacar el rol.<br><br>¿Volvés a jugar para defenderte?",
     dosOpciones: {
       a: { texto: "🎮 Volvés a jugar", desc: "Opción A" },
       b: { texto: "😴 No jugás más hasta que se le pase", desc: "Opción B" }
     }
   },
-  KROSTY: { titulo: "Invitación rara", texto: "Krosty te invita a jugar a Hasbullitah.<br><br>¿Vas?", textoRechazo: "Rechazaste la invitación de Krosty. Hasbullitah sigue esperando." },
+  KROSTY: { titulo: "🤨 Invitación rara", texto: "Krosty te invita a jugar a Hasbullitah.<br><br>¿Vas?", textoRechazo: "Rechazaste la invitación de Krosty. Hasbullitah sigue esperando." },
   PRIMOS: {
-    titulo: "Primos",
+    titulo: "👯 Primos",
     texto: "Benjita y Theo te dicen de ser primos.<br><br>¿Qué hacés?",
     dosOpciones: {
       a: { texto: "✋ Los mandás a cagar", desc: "Opción A" },
@@ -335,19 +341,19 @@ const configsEventos = {
     }
   },
   ACUSADO: {
-    titulo: "Acusado de Cheats",
+    titulo: "🚨 Acusado de Cheats",
     texto: "Después de una mix en la que hiciste 4 goles, te están acusando de cheats.<br><br>Estás OBLIGADO a hacerte una SS.<br><br>No hay vueltas: te hacen el SS ahora mismo.",
     sinRechazo: true
   },
-  TAMBUPA: { titulo: "Futbol 5 con Tambupa", 
+  TAMBUPA: { titulo: "⚽ Futbol 5 con Tambupa", 
     texto:"Tambupa te invita  a jugar un futbol 5.<br><br>¿Aceptas?",
   dosOpciones: {
     a: { texto: "⚽ Aceptás", desc: "Opción A" },
     b: { texto: "🙅 Rechazás", desc: "Opción B" }
     }
   },
-  COCCARO: { titulo: "Invitación por plata", texto: "Coccaro te invita a jugar a su equipo LAFERRERE a cambio de plata.<br><br>¿Aceptas?" },
-  CHILE: { titulo: "Viaje a Chile", texto: "Mati te invita a su casa en Chile.<br><br>¿Vas?" },
+  COCCARO: { titulo: "💰 Invitación por plata", texto: "Coccaro te invita a jugar a su equipo LAFERRERE a cambio de plata.<br><br>¿Aceptas?" },
+  CHILE: { titulo: "🇨🇱 Viaje a Chile", texto: "Mati te invita a su casa en Chile.<br><br>¿Vas?" },
 
   // ============ EVENTOS NUEVOS V3 (MINIJUEGOS + MORAL IMPORTANTE) ============
   LLE: {
@@ -377,11 +383,19 @@ const configsEventos = {
   DARDOS: {
     titulo: "🎯 Dardos con los Pibes",
     texto: "ChatGPT y Topo te invitan a jugar unos dardos en el vestuario, previa al partido, para relajar.<br><br>¿Aceptás?"
+  },
+  TUNEL: {
+    titulo: "🧤 Roce con la barra brava",
+    texto: "Terminó el partido y la barra brava te espera en la salida del túnel: entre empujones, cámaras y micrófonos, tenés que llegar al micro sin lío.<br><br>¿Salís por la misma salida y esquivás?"
+  },
+  LLUVIA: {
+    titulo: "🌧️ Carrera hacia el vestuario",
+    texto: "Llegaste tarde al estadio y se largó a llover: si corrés con todo llegás y jugás; si aflojás en el camino te reciben cuando ya arrancó el partido.<br><br>¿Corrés?"
   }
 };
 
 // V3: eventos nuevos con decisiones múltiples y minijuegos
-const EVENTOS_NUEVOS = ["LLE", "ENTR_EXTRA", "NOCHE_PARTIDO", "SPONSOR", "DARDOS", "DESAFIO", "HINCHADA"];
+const EVENTOS_NUEVOS = ["LLE", "ENTR_EXTRA", "NOCHE_PARTIDO", "SPONSOR", "TUNEL", "LLUVIA", "DARDOS", "DESAFIO", "HINCHADA"];
 
 function esEventoNuevo(id) {
   return EVENTOS_NUEVOS.indexOf(id) !== -1;
@@ -417,6 +431,14 @@ const opcionesEventosNuevos = {
   DARDOS: [
     { cod: "jugar", cls: "btn-warning", txt: "🎯 Doy una" },
     { cod: "pasar", cls: "btn-secondary", txt: "🙅 No, gracias" }
+  ],
+  TUNEL: [
+    { cod: "salir", cls: "btn-warning", txt: "🏃 Salgo y esquivás" },
+    { cod: "esperar", cls: "btn-secondary", txt: "⏳ Espero a que se calmen" }
+  ],
+  LLUVIA: [
+    { cod: "correr", cls: "btn-warning", txt: "⚡ Corro a fondo" },
+    { cod: "bajar", cls: "btn-secondary", txt: "🐢 Bajo el paso y listo" }
   ]
 };
 
@@ -431,7 +453,8 @@ function eventoEnIdioma(config) {
     ["¿Practicas", "Você pratica"], ["¿Lo compras?", "Você compra?"], ["¿Los compras?", "Você compra?"], ["¿Aceptas usarlos?", "Você aceita usá-los?"],
     ["¿Aceptas ir", "Você aceita ir"], ["¿Aceptas la partida?", "Você aceita a partida?"], ["¿Aceptas salir?", "Você aceita sair?"],
     ["¿Se lo das?", "Você entrega?"], ["¿La practicas?", "Você pratica?"], ["Aceptas", "Aceitar"], ["Rechazar", "Recusar"],
-    ["Jugar", "Jogar"], ["Comer", "Comer"], ["Giros", "Giros"], ["Primos", "Primos"], ["Rankeds", "Rankeds"]
+    ["Jugar", "Jogar"], ["Comer", "Comer"], ["Giros", "Giros"], ["Primos", "Primos"], ["Rankeds", "Rankeds"],
+    ["¿Salís por la misma salida y esquivás?", "Você sai pela mesma saída e desvia?"], ["¿Corrés?", "Você corre?"]
   ];
   function convertir(texto) {
     return reemplazos.reduce((actual, par) => actual.split(par[0]).join(par[1]), String(texto || ""));
@@ -2794,9 +2817,11 @@ function resolverEventoNuevo(id, opcion) {
     case "LLE":           resolverEventoNuevoLlegadaTarde(opcion); break;
     case "ENTR_EXTRA":    resolverEventoNuevoEntrenamiento(opcion); break;
     case "NOCHE_PARTIDO": resolverEventoNuevoNoche(opcion); break;
-    case "SPONSOR":       resolverEventoNuevoSponsor(opcion); break;
-    case "DARDOS":        resolverEventoNuevoDardos(opcion); break;
-    case "DESAFIO":       resolverEventoNuevoDesafio(opcion); break;
+case "SPONSOR":       resolverEventoNuevoSponsor(opcion); break;
+  case "DARDOS":        resolverEventoNuevoDardos(opcion); break;
+  case "TUNEL":         resolverEventoNuevoTunel(opcion); break;
+  case "LLUVIA":        resolverEventoNuevoLluvia(opcion); break;
+  case "DESAFIO":       resolverEventoNuevoDesafio(opcion); break;
     case "HINCHADA":      resolverEventoNuevoHinchada(opcion); break;
   }
 }
@@ -2982,6 +3007,125 @@ function resolverEventoNuevoHinchada(opcion) {
       return "😬 Te patinó la arenga y quedó la gente fría.<br><br><strong>-5 de moral.</strong>";
     }
   });
+}
+
+// 🧤 ROCE CON LA BARRA BRAVA (minijuego en primera persona 1)
+function resolverEventoNuevoTunel(opcion) {
+  if (opcion === "esperar") {
+    registrarEventoFinalizado();
+    avisarEventoNuevo("🧤 Roce con la barra brava", "Esperaste a que se calmen y saliste por otra puerta. Sin consecuencias.");
+    return;
+  }
+  registrarEventoFinalizado();
+  iniciarMinijuegoPrimeraPersona("tunnel");
+}
+
+// 🌧️ CARRERA HACIA EL VESTUARIO (minijuego en primera persona 2)
+function resolverEventoNuevoLluvia(opcion) {
+  if (opcion === "bajar") {
+    cambiarMoral(-5);
+    registrarEventoFinalizado();
+    guardarPartida();
+    avisarEventoNuevo("🌧️ Carrera hacia el vestuario", "Fuiste tranquilo y llegaste mojado pero sin apuro: el DT te miró raro.<br><br><strong>-5 de moral.</strong>");
+    return;
+  }
+  registrarEventoFinalizado();
+  iniciarMinijuegoPrimeraPersona("lateRun");
+}
+
+// Configuración de las dos variantes para el motor en primera persona.
+const CONFIG_VARIANTES_FP = (function () {
+  const shapesTunnel = [
+    { type: "person", colors: ["#d8b48a", "#7a1f2b"] },
+    { type: "person", colors: ["#8a5a3a", "#1f3a5f"] },
+    { type: "person", colors: ["#e6c89c", "#3a6ea5"] },
+    { type: "cam", colors: ["#23272e", "#5a86bd"] },
+    { type: "mic", colors: ["#2e3238", "#e8e8ec"] }
+  ];
+  const shapesRain = [
+    { type: "person", colors: ["#d8b48a", "#3b3f46"] },
+    { type: "car", colors: ["#b9533f", "#e8c05a"] },
+    { type: "car", colors: ["#4a6fa5", "#9cc3e6"] },
+    { type: "puddle", colors: ["#7fb2d9"] }
+  ];
+  return {
+    tunnel: {
+      titulo: "🧤 Salida del túnel",
+      indicacion: "Esquivá empujones, cámaras y micrófonos hasta llegar al micro.",
+      config: {
+        duration: 6000,
+        obstacleInterval: 1200,
+        obstacleIntervalReduction: 0.10,
+        reductionEvery: 2,
+        obstacleSpeed: 1000,
+        obstacleShapes: shapesTunnel,
+        background: "linear-gradient(to bottom, #0d0d14, #1d2436)",
+        showProgressBar: false,
+        rainEffect: false
+      }
+    },
+    lateRun: {
+      titulo: "🌧️ Corriendo bajo la lluvia",
+      indicacion: "Esquivá autos, charcos y gente para llegar al vestuario antes del pitazo.",
+      config: {
+        duration: 12000,
+        obstacleInterval: 900,
+        obstacleSpeed: 900,
+        obstacleShapes: shapesRain,
+        background: "linear-gradient(to bottom, #2b3546, #10141c)",
+        showProgressBar: true,
+        rainEffect: true
+      }
+    }
+  };
+})();
+
+function iniciarMinijuegoPrimeraPersona(kind) {
+  const variante = CONFIG_VARIANTES_FP[kind];
+  if (!variante) return;
+  const titulo = document.getElementById("tituloMinijuegoFP");
+  const indicacion = document.getElementById("indicacionMinijuegoFP");
+  const contenedor = document.getElementById("contenedorMinijuegoFP");
+  const resultado = document.getElementById("resultadoMinijuegoFP");
+  if (!contenedor) return;
+
+  if (titulo) titulo.textContent = variante.titulo;
+  if (indicacion) indicacion.textContent = variante.indicacion;
+  contenedor.innerHTML = "";
+  if (resultado) resultado.innerHTML = "";
+  if (instanciaFP) { instanciaFP.destroy(); instanciaFP = null; }
+
+  modalMinijuegoFPInstance.show();
+
+  const resolver = kind === "tunnel" ? resolveTunnelEvent : resolveLateRunEvent;
+  const cfg = Object.assign({}, variante.config, {
+    onFinish: (choques) => {
+      instanciaFP = null;
+      const res = resolver(choques);
+      if (res.moral != null) cambiarMoral(res.moral);
+      if (res.ovrTemporal != null) {
+        jugador.ovrTemporalProximoPartido = (jugador.ovrTemporalProximoPartido || 0) + res.ovrTemporal;
+      }
+      guardarPartida();
+      let deltas = "";
+      if (res.moral != null) {
+        deltas += "<strong class='" + (res.moral >= 0 ? "text-success" : "text-danger") + "'>" + (res.moral >= 0 ? "+" : "") + res.moral + " de moral.</strong>";
+      }
+      if (res.ovrTemporal != null) {
+        deltas += "<strong class='text-success'>+" + res.ovrTemporal + " OVR en tu próximo partido.</strong>";
+      }
+      if (resultado) {
+        resultado.innerHTML = "<p class='mb-1'>" + res.mensaje + "</p><p class='mb-0'>" + deltas + "</p>";
+      }
+      setTimeout(() => {
+        modalMinijuegoFPInstance.hide();
+        verificarCambioRol();
+        actualizarInterfaz();
+      }, CONFIG.TIMING.RESULTADO_MINIJUEGO_MS);
+    }
+  });
+
+  instanciaFP = createFirstPersonDodge(contenedor, cfg);
 }
 
 // 🎯 DARDOS CON LOS PIBES (evento de relax en el vestuario)
@@ -3309,7 +3453,7 @@ const TODOS_EVENTOS = [
   "PERUANOS", "PUSKAS", "GLIZZI", "PASO", "MATUTE", "RANKEDS",
   "CERBE", "NERVA", "NITTOX", "KROSTY", "PRIMOS",
   "TAMBUPA", "COCCARO", "CHILE",
-  "LLE", "ENTR_EXTRA", "NOCHE_PARTIDO", "SPONSOR", "DARDOS", "DESAFIO", "HINCHADA"
+  "LLE", "ENTR_EXTRA", "NOCHE_PARTIDO", "SPONSOR", "TUNEL", "LLUVIA", "DARDOS", "DESAFIO", "HINCHADA"
 ];
 
 function prepararSiguienteEvento() {

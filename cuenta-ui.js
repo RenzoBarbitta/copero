@@ -13,6 +13,20 @@
     const api = window.CoperoCuenta;
     let ocupado = false;
 
+    // Muestra el formulario o el perfil según haya sesión, y si hay sesión
+    // recién restaurada (p. ej. tras recargar con F5) relee el apodo.
+    function refrescarVistaCuenta() {
+      const activa = !!(api && typeof api.tieneSesion === "function" ? api.tieneSesion() : false);
+      acceso.hidden = activa;
+      perfil.hidden = !activa;
+      if (activa && !apodo.value && api && typeof api.perfil === "function") {
+        api.perfil().then(function(nombre) {
+          if (nombre === undefined || nombre === null) return;
+          if (api.tieneSesion()) apodo.value = String(nombre);
+        }).catch(function() { /* el apodo se rellena al abrir o con "Leer perfil" */ });
+      }
+    }
+
     async function ejecutar(accion) {
       if (ocupado) return;
       ocupado = true;
@@ -24,8 +38,7 @@
         estado.textContent = error.message;
       } finally {
         password.value = "";
-        acceso.hidden = api.tieneSesion();
-        perfil.hidden = !api.tieneSesion();
+        refrescarVistaCuenta();
         panel.querySelectorAll("button, input").forEach(function(el) { el.disabled = false; });
         ocupado = false;
       }
@@ -46,9 +59,20 @@
           privacidad.checked = false;
           return (typeof t === "function" ? t("cuentaRegistroOk") : "Solicitud enviada. Si corresponde crear la cuenta, recibirás un correo de confirmación.") + " Revisá también spam y luego iniciá sesión.";
         }
+        // Login: si la sesión quedó iniciada pero el perfil no se pudo leer,
+        // no mostramos un error de login: lo dejamos como advertencia aislada.
         await api.entrar(email.value, password.value);
         apodo.value = "";
-        const nombre = await api.perfil();
+        let nombre = null;
+        let perfilOk = true;
+        try {
+          nombre = await api.perfil();
+        } catch (e) {
+          perfilOk = false;
+        }
+        if (!perfilOk) {
+          return (typeof t === "function" ? t("cuentaSesionOk") : "Sesión iniciada.") + " No se pudo leer el perfil en este momento (revisá tu conexión). Podés usar «Leer perfil».";
+        }
         apodo.value = nombre || "";
         return nombre ? (typeof t === "function" ? t("cuentaSesionOk") : "Sesión iniciada.") + " Perfil leído correctamente." : (typeof t === "function" ? t("cuentaSesionOk") : "Sesión iniciada.") + " Elegí un apodo para crear tu perfil.";
       });
@@ -79,5 +103,10 @@
         return typeof t === "function" ? t("cuentaSesionCerrada") : "Sesión cerrada. Tu carrera local no cambió.";
       });
     });
+
+    // Al cargar la página y ante cada cambio de sesión (login, cierre o
+    // restauración tras F5), el panel refleja el estado real de la cuenta.
+    refrescarVistaCuenta();
+    document.addEventListener("cuenta:sesion-cambiada", refrescarVistaCuenta);
   });
 })();
