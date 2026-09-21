@@ -46,25 +46,20 @@
 
   // ---------------- CASACA (SVG celeste) ----------------
 
-  // Remera celeste lisa con nombre y numero en la espalda.
-  // El nombre se auto-ajusta (tamano de fuente + textLength) para que
-  // NUNCA se desborde de la casaca ni quede desfasado del torso.
   function camisetaSVG(nombre, dorsal, mostrarNombre, paleta) {
     paleta = paleta || PALETA_CAMISETA_DEFAULT;
     const num = clampDorsal(dorsal);
     const textoNombre = String(nombre || "").trim().toUpperCase();
     const nombreCorto = textoNombre ? escaparCam(textoNombre.slice(0, 12)) : "···";
-    const anchoMax = 42; // ancho util del torso (x 39-81)
+    const anchoMax = 42;
     const chars = (textoNombre.slice(0, 12) || "···").length;
     const fsNombre = Math.min(11, Math.max(8, anchoMax / (chars * 0.68 + 0.5)));
     const estimado = chars * fsNombre * 0.68 + (chars - 1) * 0.5;
-    // Fijar el ancho incluso para nombres cortos: las letras anchas y
-    // las fuentes del telefono no deben superar los limites del torso.
     const compresion = ' textLength="' + Math.min(anchoMax, estimado).toFixed(1) +
       '" lengthAdjust="spacingAndGlyphs"';
-    const yNombre = 60; // debajo del cuello, encima del numero
+    const yNombre = 60;
     const yNumero = mostrarNombre ? 90 : 86;
-    const fsNumero = mostrarNombre ? 24 : 40; // mini casaca sin nombre: conservar legibilidad
+    const fsNumero = mostrarNombre ? 24 : 40;
     const cuerpo =
       '<path d="M30 14 L48 6 Q60 18 72 6 L90 14 L104 26 L96 44 L84 38 L84 104 Q60 110 36 104 L36 38 L24 44 L16 26 Z" ' +
       'fill="' + paleta.principal + '" stroke="' + paleta.sombra + '" stroke-width="2.5" stroke-linejoin="round"/>' +
@@ -237,7 +232,6 @@
 
   // ---------------- WRAPPERS (patron del proyecto) ----------------
 
-  // iniciarCarrera: ademas asigna el dorsal elegido a la nueva carrera
   const _iniciarCarreraBaseCam = iniciarCarrera;
   iniciarCarrera = function() {
     const inputDorsal = document.getElementById("input-dorsal");
@@ -255,7 +249,6 @@
     } catch (e) { /* ignorar */ }
   };
 
-  // actualizarInterfaz: mantiene la mini casaca del header al dia
   const _actualizarInterfazBaseCam = actualizarInterfaz;
   actualizarInterfaz = function() {
     _actualizarInterfazBaseCam();
@@ -265,7 +258,6 @@
     } catch (e) { /* ignorar */ }
   };
 
-  // traducirInterfaz: actualiza los tooltips de las posiciones
   const _traducirInterfazBaseCam = traducirInterfaz;
   traducirInterfaz = function() {
     _traducirInterfazBaseCam();
@@ -280,5 +272,28 @@
     renderizarCamisetaPreview();
     refrescarCamisetaHeader();
   });
-})();
 
+  // ============================================================
+  //  EXPORTS para minijuegos (usado por minigame-camiseta.js)
+  // ============================================================
+  window.getCamisetaSVG = function(nombre, dorsal, mostrarNombre) {
+    return camisetaSVG(nombre, dorsal, mostrarNombre !== false, paletaCamiseta);
+  };
+  window.getPaletaCamiseta = function() {
+    return Object.assign({}, paletaCamiseta);
+  };
+  // Camiseta del equipo en el que está jugando hoy el jugador:
+  // usa los colores del club (paleta analizada del escudo) + nombre y dorsal.
+  window.getCamisetaDeEquipo = function() {
+    const j = (typeof jugador !== "undefined" && jugador) ? jugador : null;
+    if (!j) return null;
+    const club = j.clubActual;
+    const paleta = (club && club.imagen) ? paletaCamiseta : PALETA_CAMISETA_DEFAULT;
+    return camisetaSVG(
+      j.nombre || "",
+      (j.dorsal != null) ? j.dorsal : DORSAL_DEFAULT,
+      !!j.nombre,
+      paleta
+    );
+  };
+})();

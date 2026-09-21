@@ -83,8 +83,8 @@ let modalInfo, modalDecision, modalFichajes, modalPenalInstance;
 let modalTLInstance, modalDominiosInstance, modalSSInstance;
 let modalRolInstance, modalPartidoInteractivoInstance, modalMomentosClaveInstance;
 let modalDardosInstance;
-let modalMinijuegoFPInstance;
-let instanciaFP = null;
+let modalMinijuegoCamisetaInstance;
+let instanciaDodge = null;
 let modalEntrenamientoAtributos;
 let estadoPartidoEspecial = null;
 
@@ -245,9 +245,9 @@ document.addEventListener("DOMContentLoaded", () => {
   modalMomentosClaveInstance = new bootstrap.Modal(document.getElementById('modalMomentosClave'));
   modalEntrenamientoAtributos = new bootstrap.Modal(document.getElementById('modalEntrenamientoAtributos'));
   modalDardosInstance = new bootstrap.Modal(document.getElementById('modalDardos'));
-  modalMinijuegoFPInstance = new bootstrap.Modal(document.getElementById('modalMinijuegoFP'));
-  document.getElementById('modalMinijuegoFP').addEventListener('hidden.bs.modal', () => {
-    if (instanciaFP) { instanciaFP.destroy(); instanciaFP = null; }
+  modalMinijuegoCamisetaInstance = new bootstrap.Modal(document.getElementById('modalMinijuegoCamiseta'));
+  document.getElementById('modalMinijuegoCamiseta').addEventListener('hidden.bs.modal', () => {
+    if (instanciaDodge) { instanciaDodge.destroy(); instanciaDodge = null; }
   });
 
   // Mostrar botón "Continuar" si hay partida guardada
@@ -376,10 +376,6 @@ const configsEventos = {
     titulo: "🎮 Desafío de un compañero nuevo",
     texto: "Un compañero nuevo del plantel te desafía a una disputa de habilidad frente a todo el vestuario.<br><br>¿Aceptás el desafío?"
   },
-  HINCHADA: {
-    titulo: "⚽ Presión de hinchada en partido complicado",
-    texto: "Vas PERDIENDO al entretiempo y la hinchada te presiona para que levantes al equipo.<br><br>¿Salís a arengarlos o te quedás callado?"
-  },
   DARDOS: {
     titulo: "🎯 Dardos con los Pibes",
     texto: "ChatGPT y Topo te invitan a jugar unos dardos en el vestuario, previa al partido, para relajar.<br><br>¿Aceptás?"
@@ -395,7 +391,7 @@ const configsEventos = {
 };
 
 // V3: eventos nuevos con decisiones múltiples y minijuegos
-const EVENTOS_NUEVOS = ["LLE", "ENTR_EXTRA", "NOCHE_PARTIDO", "SPONSOR", "TUNEL", "LLUVIA", "DARDOS", "DESAFIO", "HINCHADA"];
+const EVENTOS_NUEVOS = ["LLE", "ENTR_EXTRA", "NOCHE_PARTIDO", "SPONSOR", "TUNEL", "LLUVIA", "DARDOS", "DESAFIO"];
 
 function esEventoNuevo(id) {
   return EVENTOS_NUEVOS.indexOf(id) !== -1;
@@ -423,10 +419,6 @@ const opcionesEventosNuevos = {
   DESAFIO: [
     { cod: "aceptar", cls: "btn-warning", txt: "🎮 Acepto el desafío" },
     { cod: "rechazar", cls: "btn-secondary", txt: "🙅 No gracias" }
-  ],
-  HINCHADA: [
-    { cod: "arengar", cls: "btn-warning", txt: "📢 Salgo a arengar" },
-    { cod: "callado", cls: "btn-secondary", txt: "🤐 Me quedo callado" }
   ],
   DARDOS: [
     { cod: "jugar", cls: "btn-warning", txt: "🎯 Doy una" },
@@ -838,12 +830,12 @@ function finalizarMinijuegoDominios(exito, msg) {
 
   if (exito) {
     resDiv.className = "text-success fw-bold fs-5 mt-2";
-    resDiv.innerText = msg;
+    resDiv.innerHTML = msg;
     sumarMedia(CONFIG.DOMINIOS.SUBIDA_OVR);
     sonidoExito();
   } else {
     resDiv.className = "text-danger fw-bold fs-5 mt-2";
-    resDiv.innerText = msg;
+    resDiv.innerHTML = msg;
     sonidoError();
   }
 
@@ -2651,7 +2643,7 @@ function iniciarMinijuegoSecuenciaFlechas(opts) {
       resDiv.className = "text-danger fw-bold fs-5 mt-2";
       sonidoError();
     }
-    resDiv.innerText = msg;
+    resDiv.innerHTML = msg;
     const despues = exito ? opts.despuesExito : opts.despuesFallo;
     guardarPartida();
     setTimeout(() => {
@@ -2734,8 +2726,7 @@ function iniciarMinijuegoResistencia(opts) {
       resDiv.className = "text-danger fw-bold fs-5 mt-2";
       sonidoError();
     }
-    resDiv.innerHTML = "";
-    resDiv.innerText = msg;
+    resDiv.innerHTML = msg;
     const despues = exito ? opts.despuesExito : opts.despuesFallo;
     guardarPartida();
     setTimeout(() => {
@@ -2821,8 +2812,7 @@ case "SPONSOR":       resolverEventoNuevoSponsor(opcion); break;
   case "DARDOS":        resolverEventoNuevoDardos(opcion); break;
   case "TUNEL":         resolverEventoNuevoTunel(opcion); break;
   case "LLUVIA":        resolverEventoNuevoLluvia(opcion); break;
-  case "DESAFIO":       resolverEventoNuevoDesafio(opcion); break;
-    case "HINCHADA":      resolverEventoNuevoHinchada(opcion); break;
+case "DESAFIO":       resolverEventoNuevoDesafio(opcion); break;
   }
 }
 
@@ -2983,33 +2973,7 @@ function resolverEventoNuevoDesafio(opcion) {
   });
 }
 
-// ⚽ PRESIÓN DE LA HINCHADA EN PARTIDO COMPLICADO
-function resolverEventoNuevoHinchada(opcion) {
-  if (opcion === "callado") {
-    cambiarMoral(-5);
-    registrarEventoFinalizado();
-    avisarEventoNuevo("⚽ Presión de la hinchada", "Te quedaste callado y el vestuario se sintió solo en la adversidad.<br><br><strong>-5 de moral.</strong>");
-    return;
-  }
-  registrarEventoFinalizado();
-  iniciarMinijuegoZona({
-    titulo: "📢 Arenga a la hinchada",
-    indicacion: "Vas perdiendo y la hinchada te pide un gesto: detené la barra en el MOMENTO JUSTO (zona verde).",
-    zona: (CONFIG.ZONA_EVENTO && CONFIG.ZONA_EVENTO.NORMAL) || { min: 40, max: 60 },
-    onExito: () => {
-      cambiarMoral(8);
-      jugador.boostHinchadaProximoPartido = 3;
-      guardarPartida();
-      return "📢 ¡LA HINCHADA EXPLOTÓ! Tu arenga levanta al equipo para la segunda mitad.<br><br><strong>+8 de moral y +3 OVR en tu próximo partido.</strong>";
-    },
-    onFallo: () => {
-      cambiarMoral(-5);
-      return "😬 Te patinó la arenga y quedó la gente fría.<br><br><strong>-5 de moral.</strong>";
-    }
-  });
-}
-
-// 🧤 ROCE CON LA BARRA BRAVA (minijuego en primera persona 1)
+// 🧤 ROCE CON LA BARRA BRAVA (minijuego de esquivar con la camiseta 1)
 function resolverEventoNuevoTunel(opcion) {
   if (opcion === "esperar") {
     registrarEventoFinalizado();
@@ -3017,10 +2981,10 @@ function resolverEventoNuevoTunel(opcion) {
     return;
   }
   registrarEventoFinalizado();
-  iniciarMinijuegoPrimeraPersona("tunnel");
+  iniciarMinijuegoCamiseta("tunnel");
 }
 
-// 🌧️ CARRERA HACIA EL VESTUARIO (minijuego en primera persona 2)
+// 🌧️ CARRERA HACIA EL VESTUARIO (minijuego de esquivar con la camiseta 2)
 function resolverEventoNuevoLluvia(opcion) {
   if (opcion === "bajar") {
     cambiarMoral(-5);
@@ -3030,11 +2994,11 @@ function resolverEventoNuevoLluvia(opcion) {
     return;
   }
   registrarEventoFinalizado();
-  iniciarMinijuegoPrimeraPersona("lateRun");
+  iniciarMinijuegoCamiseta("lateRun");
 }
 
-// Configuración de las dos variantes para el motor en primera persona.
-const CONFIG_VARIANTES_FP = (function () {
+// Configuración de las dos variantes para el motor de esquivar con la camiseta.
+const CONFIG_VARIANTES_CAMISETA = (function () {
   const shapesTunnel = [
     { type: "person", colors: ["#d8b48a", "#7a1f2b"] },
     { type: "person", colors: ["#8a5a3a", "#1f3a5f"] },
@@ -3055,10 +3019,11 @@ const CONFIG_VARIANTES_FP = (function () {
       config: {
         variant: "tunnel",
         duration: 6000,
-        obstacleInterval: 1200,
-        obstacleIntervalReduction: 0.10,
+        obstacleInterval: 800,
+        obstacleIntervalReduction: 0.15,
         reductionEvery: 2,
-        obstacleSpeed: 1000,
+        obstacleSpeed: 720,
+        acceleration: 40,
         obstacleShapes: shapesTunnel,
         background: "linear-gradient(to bottom, #0d0d14, #1d2436)",
         showProgressBar: false,
@@ -3070,9 +3035,10 @@ const CONFIG_VARIANTES_FP = (function () {
       indicacion: "Esquivá autos, charcos y gente para llegar al vestuario antes del pitazo.",
       config: {
         variant: "rain",
-        duration: 12000,
-        obstacleInterval: 900,
-        obstacleSpeed: 900,
+        duration: 16000,
+        obstacleInterval: 650,
+        obstacleSpeed: 700,
+        acceleration: 34,
         obstacleShapes: shapesRain,
         background: "linear-gradient(to bottom, #2b3546, #10141c)",
         showProgressBar: true,
@@ -3082,27 +3048,27 @@ const CONFIG_VARIANTES_FP = (function () {
   };
 })();
 
-function iniciarMinijuegoPrimeraPersona(kind) {
-  const variante = CONFIG_VARIANTES_FP[kind];
+function iniciarMinijuegoCamiseta(kind) {
+  const variante = CONFIG_VARIANTES_CAMISETA[kind];
   if (!variante) return;
-  const titulo = document.getElementById("tituloMinijuegoFP");
-  const indicacion = document.getElementById("indicacionMinijuegoFP");
-  const contenedor = document.getElementById("contenedorMinijuegoFP");
-  const resultado = document.getElementById("resultadoMinijuegoFP");
+  const titulo = document.getElementById("tituloMinijuegoCamiseta");
+  const indicacion = document.getElementById("indicacionMinijuegoCamiseta");
+  const contenedor = document.getElementById("contenedorMinijuegoCamiseta");
+  const resultado = document.getElementById("resultadoMinijuegoCamiseta");
   if (!contenedor) return;
 
   if (titulo) titulo.textContent = variante.titulo;
   if (indicacion) indicacion.textContent = variante.indicacion;
   contenedor.innerHTML = "";
   if (resultado) resultado.innerHTML = "";
-  if (instanciaFP) { instanciaFP.destroy(); instanciaFP = null; }
+  if (instanciaDodge) { instanciaDodge.destroy(); instanciaDodge = null; }
 
-  modalMinijuegoFPInstance.show();
+  modalMinijuegoCamisetaInstance.show();
 
   const resolver = kind === "tunnel" ? resolveTunnelEvent : resolveLateRunEvent;
   const cfg = Object.assign({}, variante.config, {
     onFinish: (choques) => {
-      instanciaFP = null;
+      instanciaDodge = null;
       const res = resolver(choques);
       if (res.moral != null) cambiarMoral(res.moral);
       if (res.ovrTemporal != null) {
@@ -3120,14 +3086,14 @@ function iniciarMinijuegoPrimeraPersona(kind) {
         resultado.innerHTML = "<p class='mb-1'>" + res.mensaje + "</p><p class='mb-0'>" + deltas + "</p>";
       }
       setTimeout(() => {
-        modalMinijuegoFPInstance.hide();
+        modalMinijuegoCamisetaInstance.hide();
         verificarCambioRol();
         actualizarInterfaz();
       }, CONFIG.TIMING.RESULTADO_MINIJUEGO_MS);
     }
   });
 
-  instanciaFP = createFirstPersonDodge(contenedor, cfg);
+  instanciaDodge = createDodgeCamiseta(contenedor, cfg);
 }
 
 // 🎯 DARDOS CON LOS PIBES (evento de relax en el vestuario)
@@ -3236,63 +3202,115 @@ function iniciarMinijuegoDardos() {
     const uid = "diana" + (dianaId++);
     const c = 170;
     const face = 150;
-    // Anillos de afuera hacia adentro (mismo orden que anillos[]).
-    const bandas = [
-      { up: anillos[3].hasta, lo: anillos[2].hasta, c1: "#273041", c2: "#141a24", wire: true },
-      { up: anillos[2].hasta, lo: anillos[1].hasta, c1: "#d7c49a", c2: "#a58f63", wire: true },
-      { up: anillos[1].hasta, lo: anillos[0].hasta, c1: "#1e7a55", c2: "#0f4d35", wire: true },
-      { up: anillos[0].hasta, lo: 0, c1: "#c22a35", c2: "#6f141d", wire: false }
-    ];
-    let marcas = "";
-    for (let k = 0; k < 16; k++) {
-      const a = (k / 16) * Math.PI * 2;
-      marcas += "<line x1='" + (c + Math.cos(a) * face * 0.62) + "' y1='" + (c + Math.sin(a) * face * 0.62) +
-        "' x2='" + (c + Math.cos(a) * face * 0.3) + "' y2='" + (c + Math.sin(a) * face * 0.3) +
-        "' stroke='#8a6f3f' stroke-width='0.8' opacity='0.28'/>";
+
+    // Numeración clásica de la diana (20 arriba, en sentido horario).
+    const nums = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
+
+    // Radios (en unidades del SVG) de las zonas de puntaje.
+    const rBull = 0.14 * face;      // toro rojo
+    const rBullVerde = 0.30 * face; // toro verde (anillo exterior)
+    const rTripleIn = rBullVerde;
+    const rTripleOut = 0.34 * face;
+    const rSingle = 0.72 * face;
+    const rDobleIn = rSingle;
+    const rDobleOut = 0.79 * face;
+    const rNum = 0.905 * face;
+    const rBordeNum = 0.9875 * face;
+
+    const sector = (k) => {
+      const a = ((k * 18) - 90 + 9) * Math.PI / 180;
+      return { x: c + Math.cos(a) * 143, y: c + Math.sin(a) * 143 };
+    };
+    const arcoSector = (rA, rB, k) => {
+      const a0 = ((k * 18) - 90) * Math.PI / 180;
+      const a1 = ((k * 18) - 90 + 18) * Math.PI / 180;
+      const x1 = (c + Math.cos(a0) * rA).toFixed(2);
+      const y1 = (c + Math.sin(a0) * rA).toFixed(2);
+      const x2 = (c + Math.cos(a0) * rB).toFixed(2);
+      const y2 = (c + Math.sin(a0) * rB).toFixed(2);
+      const x3 = (c + Math.cos(a1) * rB).toFixed(2);
+      const y3 = (c + Math.sin(a1) * rB).toFixed(2);
+      const x4 = (c + Math.cos(a1) * rA).toFixed(2);
+      const y4 = (c + Math.sin(a1) * rA).toFixed(2);
+      return "M" + x1 + " " + y1 + " L" + x2 + " " + y2 +
+        " A" + rB.toFixed(2) + " " + rB.toFixed(2) + " 0 0 1 " + x3 + " " + y3 +
+        " L" + x4 + " " + y4 +
+        " A" + rA.toFixed(2) + " " + rA.toFixed(2) + " 0 0 0 " + x1 + " " + y1 + " Z";
+    };
+
+    const baseColor = (i) => (i % 2 === 0 ? "#171a21" : "#e9e2cf");
+    const bedColor = (i) => (i % 2 === 0 ? "#c8102e" : "#0e7d3a");
+
+    let cuerpo = "";
+    for (let i = 0; i < 20; i++) {
+      cuerpo +=
+        '<path d="' + arcoSector(rTripleOut, rSingle, i) + '" fill="' + baseColor(i) + '"/>' +
+        '<path d="' + arcoSector(rDobleOut, rNum, i) + '" fill="' + baseColor(i) + '"/>' +
+        '<path d="' + arcoSector(rTripleIn, rTripleOut, i) + '" fill="' + bedColor(i) + '"/>' +
+        '<path d="' + arcoSector(rDobleIn, rDobleOut, i) + '" fill="' + bedColor(i) + '"/>';
     }
-    let anillosSvg = "";
-    for (let i = 0; i < bandas.length; i++) {
-      const up = bandas[i].up * face;
-      const lo = bandas[i].lo * face;
-      anillosSvg +=
-        '<radialGradient id="' + uid + "g" + i + '" cx="0.4" cy="0.38" r="0.85">' +
-        '<stop offset="0" stop-color="' + bandas[i].c1 + '"/><stop offset="1" stop-color="' + bandas[i].c2 + '"/>' +
-        "</radialGradient>";
-      anillosSvg += "<circle cx='" + c + "' cy='" + c + "' r='" + up.toFixed(2) + "' fill='url(#" + uid + "g" + i + ")'/>";
-      if (bandas[i].wire) {
-        anillosSvg += "<circle cx='" + c + "' cy='" + c + "' r='" + up.toFixed(2) + "' fill='none' stroke='#e7dcc4' stroke-width='1.6' opacity='0.75'/>";
-      }
+    // Toros (rojo 50 adentro, verde 25 afuera).
+    cuerpo +=
+      "<circle cx='" + c + "' cy='" + c + "' r='" + rBullVerde.toFixed(2) + "' fill='#2d7a3b'/>" +
+      "<circle cx='" + c + "' cy='" + c + "' r='" + rBull.toFixed(2) + "' fill='#c8102e'/>" +
+      "<circle cx='" + c + "' cy='" + c + "' r='7' fill='#7c1320'/>";
+
+    // Alambre (spider): separadores radiales y anillos doble/triple/toros.
+    let spider = "";
+    for (let k = 0; k < 20; k++) {
+      const a = ((k * 18) - 90) * Math.PI / 180;
+      const rIn = rTripleOut > rBullVerde ? rTripleOut : rBullVerde;
+      spider +=
+        "<line x1='" + (c + Math.cos(a) * rIn).toFixed(2) + "' y1='" + (c + Math.sin(a) * rIn).toFixed(2) +
+        "' x2='" + (c + Math.cos(a) * rDobleOut).toFixed(2) + "' y2='" + (c + Math.sin(a) * rDobleOut).toFixed(2) +
+        "' stroke='#cfcabc' stroke-width='1.5'/>";
     }
-    // Centro del toro (telar).
-    anillosSvg += "<circle cx='" + c + "' cy='" + c + "' r='" + (face * anillos[0].hasta * 0.32).toFixed(2) + "' fill='#7c1320'/>";
-    // Telar de alambre decorativo en el anillo beige.
-    anillosSvg += marcas;
+    spider +=
+      "<circle cx='" + c + "' cy='" + c + "' r='" + rTripleIn.toFixed(2) + "' fill='none' stroke='#cfcabc' stroke-width='1.5'/>" +
+      "<circle cx='" + c + "' cy='" + c + "' r='" + rTripleOut.toFixed(2) + "' fill='none' stroke='#cfcabc' stroke-width='1.5'/>" +
+      "<circle cx='" + c + "' cy='" + c + "' r='" + rDobleIn.toFixed(2) + "' fill='none' stroke='#cfcabc' stroke-width='1.5'/>" +
+      "<circle cx='" + c + "' cy='" + c + "' r='" + rDobleOut.toFixed(2) + "' fill='none' stroke='#cfcabc' stroke-width='1.5'/>" +
+      "<circle cx='" + c + "' cy='" + c + "' r='" + rBullVerde.toFixed(2) + "' fill='none' stroke='#cfcabc' stroke-width='1.3'/>" +
+      "<circle cx='" + c + "' cy='" + c + "' r='" + rBull.toFixed(2) + "' fill='none' stroke='#cfcabc' stroke-width='1.3'/>";
+
+    // Anillo de números, numerados los 20 sectores.
+    let numeros = "";
+    for (let k = 0; k < 20; k++) {
+      const p = sector(k);
+      numeros +=
+        "<text x='" + p.x.toFixed(2) + "' y='" + p.y.toFixed(2) +
+        "' text-anchor='middle' dominant-baseline='middle' font-size='15' font-weight='800' fill='#f2ead2'>" +
+        nums[k] + "</text>";
+    }
+
     return (
       '<svg class="dart-board-svg" viewBox="0 0 340 340" role="img" aria-label="Tablero de dardos">' +
-      "<defs>" + anillosSvg +
+      "<defs>" +
       '<radialGradient id="' + uid + 'mader" cx="0.5" cy="0.42" r="0.7">' +
-      '<stop offset="0" stop-color="#5a3b22"/><stop offset="0.62" stop-color="#3a2413"/><stop offset="1" stop-color="#241407"/>' +
+      '<stop offset="0" stop-color="#4a331f"/><stop offset="0.62" stop-color="#2e1d0f"/><stop offset="1" stop-color="#191006"/>' +
       "</radialGradient>" +
       '<radialGradient id="' + uid + 'sheen" cx="0.5" cy="0.5" r="0.5">' +
       '<stop offset="0.62" stop-color="rgba(255,255,255,0)" /><stop offset="0.97" stop-color="rgba(255,255,255,0.14)"/><stop offset="1" stop-color="rgba(255,255,255,0)"/>' +
       "</radialGradient>" +
       "</defs>" +
-      // marco de madera
-      "<circle cx='" + c + "' cy='" + c + "' r='169' fill='#0b0603'/>" +
-      "<circle cx='" + c + "' cy='" + c + "' r='166' fill='url(#" + uid + "mader)'/>" +
-      "<circle cx='" + c + "' cy='" + c + "' r='152' fill='#05080c'/>" +
-      "<circle cx='" + c + "' cy='" + c + "' r='150' fill='#10151c'/>" +
-      // banda del anillo más externo (5) y el resto se dibuja sobre el fondo
-      // (los círculos internos se pintan encima de este)
-      "<circle cx='" + c + "' cy='" + c + "' r='" + (face).toFixed(2) + "' fill='url(#" + uid + "g0)'/>" +
-      "<circle cx='" + c + "' cy='" + c + "' r='" + (face * bandas[0].lo).toFixed(2) + "' fill='#10151c'/>" +
+      // fondo del marco (madera)
+      "<circle cx='" + c + "' cy='" + c + "' r='169' fill='#0a0503'/>" +
+      "<circle cx='" + c + "' cy='" + c + "' r='165' fill='url(#" + uid + "mader)'/>" +
+      // cara de la diana
+      "<circle cx='" + c + "' cy='" + c + "' r='" + rBordeNum.toFixed(2) + "' fill='#0b0d12'/>" +
+      "<circle cx='" + c + "' cy='" + c + "' r='" + rNum.toFixed(2) + "' fill='#15171d'/>" +
+      cuerpo +
+      spider +
+      numeros +
+      // borde metálico que separa la diana del marco
+      "<circle cx='" + c + "' cy='" + c + "' r='" + rBordeNum.toFixed(2) + "' fill='none' stroke='#cfcabc' stroke-width='2'/>" +
       // tornillos del marco
       "<circle cx='28' cy='28' r='5' fill='#8d8d94'/><circle cx='28' cy='28' r='2' fill='#22242a'/>" +
       "<circle cx='312' cy='28' r='5' fill='#8d8d94'/><circle cx='312' cy='28' r='2' fill='#22242a'/>" +
       "<circle cx='28' cy='312' r='5' fill='#8d8d94'/><circle cx='28' cy='312' r='2' fill='#22242a'/>" +
       "<circle cx='312' cy='312' r='5' fill='#8d8d94'/><circle cx='312' cy='312' r='2' fill='#22242a'/>" +
       // brillo global sutil
-      "<circle cx='" + c + "' cy='" + c + "' r='166' fill='url(#" + uid + "sheen)'/>" +
+      "<circle cx='" + c + "' cy='" + c + "' r='165' fill='url(#" + uid + "sheen)'/>" +
       "</svg>"
     );
   }
@@ -3608,7 +3626,7 @@ const TODOS_EVENTOS = [
   "PERUANOS", "PUSKAS", "GLIZZI", "PASO", "MATUTE", "RANKEDS",
   "CERBE", "NERVA", "NITTOX", "KROSTY", "PRIMOS",
   "TAMBUPA", "COCCARO", "CHILE",
-  "LLE", "ENTR_EXTRA", "NOCHE_PARTIDO", "SPONSOR", "TUNEL", "LLUVIA", "DARDOS", "DESAFIO", "HINCHADA"
+  "LLE", "ENTR_EXTRA", "NOCHE_PARTIDO", "SPONSOR", "TUNEL", "LLUVIA", "DARDOS", "DESAFIO"
 ];
 
 function prepararSiguienteEvento() {

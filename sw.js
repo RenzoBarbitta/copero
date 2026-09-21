@@ -6,7 +6,7 @@
 //  Para publicar una version nueva, subir CACHE_NOMBRE (v1->v2).
 // ============================================================
 
-const CACHE_NOMBRE = "pso-carrera-v31";
+const CACHE_NOMBRE = "pso-carrera-v33";
 
 const ARCHIVOS_BASE = [
   "./",
@@ -28,8 +28,8 @@ const ARCHIVOS_BASE = [
   "./ui.js",
   "./pwa.js",
   "./event-outcomes.js",
-  "./minigame-firstperson.js",
-  "./minigame-firstperson.css",
+  "./minigame-camiseta.js",
+  "./minigame-camiseta.css",
   "./manifest.webmanifest",
   "./imagenes/logo.png",
   "./imagenes/logopsoarg.png",

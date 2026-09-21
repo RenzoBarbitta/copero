@@ -1,7 +1,7 @@
 // ============================================================
 //  EVENT OUTCOMES - event-outcomes.js
 //  Decide resultados narrativos a partir del minijuego de
-//  primera persona (event-outcomes).
+//  esquivar con la camiseta del equipo (event-outcomes).
 //
 //  Las funciones SOLO devuelven el resultado: NUNCA tocan el
 //  estado del jugador directamente. El sistema de carrera es el
