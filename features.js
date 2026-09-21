@@ -845,21 +845,31 @@ function generarRedesDespuesPartido() {
 
 function renderizarFeedRedes() {
   asegurarEstadoRedes();
-  const contenedores = [document.getElementById("redes-feed"), document.getElementById("redes-feed-lateral")].filter(Boolean);
+  const modalEl = document.getElementById("redes-feed");
+  const lateralEl = document.getElementById("redes-feed-lateral");
+  const contenedores = [modalEl, lateralEl].filter(Boolean);
   if (!contenedores.length) return;
-  const posts = jugador.redesSociales.feed.slice(-3).reverse();
-  if (!posts.length) {
-    const vacio = "<div class='vacio'><div class='vacio-icono' aria-hidden='true'><svg viewBox='0 0 24 24' width='22' height='22' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0V4'/><path d='M18 14h-8M15 18h-5M10 6h8v4h-8z'/></svg></div><div class='vacio-titulo'>" + t("sinNoticiasTitulo") + "</div><div class='vacio-texto'>" + t("sinNoticiasTexto") + "</div><button type='button' class='btn btn-outline-danger btn-sm fw-bold' onclick='mostrarRedesSociales()'>" + t("redesTitulo") + "</button></div>";
-    contenedores.forEach(function(cont) { cont.innerHTML = vacio; });
-    return;
-  }
-  const html = posts.map(function(post) {
+
+  const maxModal = (CONFIG && CONFIG.REDES && CONFIG.REDES.MAX_DECLARACIONES_FEED) || 10;
+  const postsModal = jugador.redesSociales.feed.slice(-maxModal).reverse();
+  const postsLateral = jugador.redesSociales.feed.slice(-5).reverse();
+
+  const htmlPost = function(post) {
     const respuestas = (post.respuestas || []).map(function(res) {
       return "<div class='border-start border-warning ps-2 mt-2 small'><strong>" + escRed(res.autor) + "</strong> <span class='text-secondary'>" + escRed(t("redesResponde")) + "</span><br>" + escRed(res.texto) + "<br><span class='text-danger'>🔥 " + res.viralidad + " " + escRed(t("viralidad")) + "</span></div>";
     }).join("");
     return "<article class='red-social-post border rounded p-2 mb-2'><div class='d-flex justify-content-between gap-2'><strong>@" + escRed(post.autor) + "</strong><span class='badge text-bg-" + (post.estilo === "muy_picante" ? "danger" : post.estilo === "picante" ? "warning" : "secondary") + "'>" + escRed(post.estilo) + "</span></div><div class='small text-secondary'>" + post.temporada + " · " + escRed(post.momento) + " · " + escRed(post.contexto.club) + " vs " + escRed(post.contexto.rival) + "</div><p class='mb-1 mt-1'>" + escRed(post.texto) + "</p><span class='small text-danger'>🔥 " + post.viralidad + " " + escRed(t("viralidad")) + "</span>" + respuestas + "</article>";
-  }).join("");
-  contenedores.forEach(function(cont) { cont.innerHTML = html; });
+  };
+  const armarVacio = function() {
+    return "<div class='vacio'><div class='vacio-icono' aria-hidden='true'><svg viewBox='0 0 24 24' width='22' height='22' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0V4'/><path d='M18 14h-8M15 18h-5M10 6h8v4h-8z'/></svg></div><div class='vacio-titulo'>" + t("sinNoticiasTitulo") + "</div><div class='vacio-texto'>" + t("sinNoticiasTexto") + "</div><button type='button' class='btn btn-outline-danger btn-sm fw-bold' onclick='mostrarRedesSociales()'>" + t("redesTitulo") + "</button></div>";
+  };
+
+  if (lateralEl) {
+    lateralEl.innerHTML = postsLateral.length ? postsLateral.map(htmlPost).join("") : armarVacio();
+  }
+  if (modalEl) {
+    modalEl.innerHTML = postsModal.length ? postsModal.map(htmlPost).join("") : armarVacio();
+  }
 }
 
 function mostrarRedesSociales() {

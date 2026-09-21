@@ -1445,10 +1445,12 @@ function calcularBasicoTemporada() {
   let subidaRendimiento = 0;
   let participaciones = goles + asistencias;
 
-  if (jugador.posicion === "DEL" && participaciones >= 12) subidaRendimiento = Math.floor(Math.random() * 2) + 1;
-  else if (jugador.posicion === "CM" && participaciones >= 8) subidaRendimiento = Math.floor(Math.random() * 2) + 1;
-  else if (jugador.posicion === "DEF" && partidos >= 25) subidaRendimiento = Math.floor(Math.random() * 2) + 1;
-  else if (jugador.posicion === "GK" && partidos >= 28) subidaRendimiento = Math.floor(Math.random() * 2) + 1;
+  // Subida más accesible por temporada (umbrales más bajos y +1 a +3 OVR),
+  // siempre recortada al techo del club actual (maxMedia) para no excederse.
+  if (jugador.posicion === "DEL" && participaciones >= 8) subidaRendimiento = Math.floor(Math.random() * 3) + 1;
+  else if (jugador.posicion === "CM" && participaciones >= 5) subidaRendimiento = Math.floor(Math.random() * 3) + 1;
+  else if (jugador.posicion === "DEF" && partidos >= 16) subidaRendimiento = Math.floor(Math.random() * 3) + 1;
+  else if (jugador.posicion === "GK" && partidos >= 18) subidaRendimiento = Math.floor(Math.random() * 3) + 1;
 
   const maxMedia = (typeof REGLAS_MEDIA !== "undefined" && REGLAS_MEDIA[rep]) || CONFIG.OVR_MAX;
   if (subidaRendimiento > 0 && jugador.media < maxMedia) {
