@@ -1416,6 +1416,20 @@ function ocultarPanelCuenta() {
 // ============================================================
 //  SIMULACIÓN DE TEMPORADA
 // ============================================================
+// Declive de media por edad amortiguado por el rendimiento de la temporada.
+// A partir de los 31 el paso del tiempo resta, pero una buena temporada
+// recorta parte de esa caída: cada punto de subida por rendimiento (desde +2)
+// amortigua 1 punto de declive, con tope en base-1 (el declive nunca se anula).
+// Así un veterano destacado puede seguir GANANDO media por temporada y no solo
+// por eventos o entrenamientos.
+function declivePorEdadYRendimiento(edad, subidaRendimiento) {
+  const base = calcularDecliveEdad(edad);
+  if (base <= 0) return { base: 0, amortiguado: 0, efectiva: 0 };
+  const rendimiento = Math.max(0, subidaRendimiento || 0);
+  const amortiguado = rendimiento > 1 ? Math.max(0, Math.min(base - 1, rendimiento - 1)) : 0;
+  return { base: base, amortiguado: amortiguado, efectiva: base - amortiguado };
+}
+
 // Calcula la base de la temporada simulada (partidos + rendimiento + títulos
 // por estadística y declive por edad). Lo usan tanto simularTemporada como
 // jugarPartidoContraRival para conservar la misma lógica en ambos caminos.
@@ -1453,13 +1467,16 @@ function calcularBasicoTemporada() {
   else if (jugador.posicion === "GK" && partidos >= 18) subidaRendimiento = Math.floor(Math.random() * 3) + 1;
 
   const maxMedia = (typeof REGLAS_MEDIA !== "undefined" && REGLAS_MEDIA[rep]) || CONFIG.OVR_MAX;
-  if (subidaRendimiento > 0 && jugador.media < maxMedia) {
-    sumarMedia(Math.min(subidaRendimiento, maxMedia - jugador.media));
-  }
+  const subidaAplicada = (subidaRendimiento > 0 && jugador.media < maxMedia)
+    ? Math.min(subidaRendimiento, maxMedia - jugador.media)
+    : 0;
+  if (subidaAplicada > 0) sumarMedia(subidaAplicada);
 
   // --- DECLIVE POR EDAD ---
-  // Desde los 31 empieza el declive; después de los 31 se acentúa más.
-  const bajaEdad = calcularDecliveEdad(jugador.edad);
+  // Desde los 31 empieza el declive; después de los 31 se acentúa, pero el
+  // rendimiento de la temporada lo amortigua (ver declivePorEdadYRendimiento).
+  const declive = declivePorEdadYRendimiento(jugador.edad, subidaRendimiento);
+  const bajaEdad = declive.efectiva;
   if (bajaEdad > 0) {
     sumarMedia(-Math.min(bajaEdad, jugador.media - CONFIG.OVR_MIN));
   }
@@ -1476,7 +1493,19 @@ function calcularBasicoTemporada() {
     trofeosGanadosEstaTemp.push("🥇 Balón de Oro");
   }
 
-  return { rep, partidos, goles, asistencias, subidaRendimiento, bajaEdad, esPrimera, trofeosGanadosEstaTemp };
+  return {
+    rep,
+    partidos,
+    goles,
+    asistencias,
+    subidaRendimiento,
+    subidaAplicada,
+    bajaEdad,
+    bajaEdadBase: declive.base,
+    decliveAmortiguado: declive.amortiguado,
+    esPrimera,
+    trofeosGanadosEstaTemp
+  };
 }
 
 // ============================================================
@@ -1575,11 +1604,12 @@ function cerrarTemporadaFinalizada() {
     b.partidos + (a.partidos || 0),
     b.goles + (a.goles || 0),
     b.asistencias + (a.asistencias || 0),
-    b.subidaRendimiento,
+    b.subidaAplicada,
     b.trofeosGanadosEstaTemp,
     b.esPrimera,
     b.bajaEdad,
-    (a.ganados || 0) >= 2
+    (a.ganados || 0) >= 2,
+    b.decliveAmortiguado
   );
 }
 
@@ -1647,7 +1677,7 @@ function resolverCopasDeTemporada(trofeos, esPrimera) {
   }
 }
 
-function resolverCierreTemporada(partidos, goles, asistencias, subidaRendimiento, trofeosBase, esPrimera, bajaEdad = 0, ganastePartido = false) {
+function resolverCierreTemporada(partidos, goles, asistencias, subidaRendimiento, trofeosBase, esPrimera, bajaEdad = 0, ganastePartido = false, decliveAmortiguado = 0) {
   const esDelOcentrocampista = (jugador.posicion === "DEL" || jugador.posicion === "CM");
   const rep = jugador.clubActual.reputacion;
   const requiereMinijuegoDescenso = esDelOcentrocampista && rep <= 3 && Math.random() < CONFIG.SIM.PROB_MINIJUEGO_DESCENSO;
@@ -1659,7 +1689,7 @@ function resolverCierreTemporada(partidos, goles, asistencias, subidaRendimiento
   // liga + copa nacional + copa de campeones en la misma temporada.
   const cerrarConCopas = () => {
     resolverCopasDeTemporada(trofeos, esPrimera);
-    finalizarResumenTemporada(partidos, goles, asistencias, subidaRendimiento, trofeos, esPrimera, bajaEdad);
+    finalizarResumenTemporada(partidos, goles, asistencias, subidaRendimiento, trofeos, esPrimera, bajaEdad, decliveAmortiguado);
   };
 
   if (requiereMinijuegoDescenso) {
@@ -1700,7 +1730,7 @@ function resolverCierreTemporada(partidos, goles, asistencias, subidaRendimiento
   cerrarConCopas();
 }
 
-function finalizarResumenTemporada(partidos, goles, asistencias, subidaRendimiento, trofeosGanadosEstaTemp, esPrimera, bajaEdad = 0) {
+function finalizarResumenTemporada(partidos, goles, asistencias, subidaAplicada, trofeosGanadosEstaTemp, esPrimera, bajaEdad = 0, decliveAmortiguado = 0) {
   const divTexto = esPrimera ? "Primera" : "Segunda";
 
   // ---- MOVIMIENTOS DE DIVISIÓN (2 ascienden de Segunda, 2 descienden de Primera) ----
@@ -1774,11 +1804,14 @@ function finalizarResumenTemporada(partidos, goles, asistencias, subidaRendimien
     textoResumen += `<span class="text-danger fw-bold">⬇️ Descendiste a Segunda División.</span><br>`;
   }
 
-  if (subidaRendimiento > 0) {
-    textoResumen += `<span class="text-success fw-bold">¡Destacado! +${subidaRendimiento} OVR</span><br>`;
+  if (subidaAplicada > 0) {
+    textoResumen += `<span class="text-success fw-bold">¡Destacado! +${subidaAplicada} OVR</span><br>`;
   }
   if (bajaEdad > 0) {
     textoResumen += `<span class="text-danger fw-bold">📉 Declive físico por edad: -${bajaEdad} OVR</span><br>`;
+  }
+  if (decliveAmortiguado > 0) {
+    textoResumen += `<span class="text-success fw-bold">💪 Tu rendimiento amortiguó ${decliveAmortiguado} punto${decliveAmortiguado === 1 ? "" : "s"} del declive por edad.</span><br>`;
   }
 
   if (jugador.temporadasForzadoSegunda > 0 && !causoDescenso) {
