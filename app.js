@@ -2845,16 +2845,23 @@ function actualizarInterfaz() {
 
   const btnEvento = document.getElementById("btn-evento-unico");
   const msgEspera = document.getElementById("mensaje-espera-eventos");
+  const cardEvento = document.getElementById("evento-card");
+  const nombreEvento = document.getElementById("evento-nombre");
 
   if (jugador.eventoDisponibleActual) {
     btnEvento.classList.remove("hidden");
     msgEspera.classList.add("hidden");
     const evConfig = eventoEnIdioma(configsEventos[jugador.eventoDisponibleActual]);
-    btnEvento.innerText = evConfig ? `⭐ Evento: ${evConfig.titulo}` : "⭐ Evento Social";
+    const tituloEvento = evConfig ? evConfig.titulo : "Evento Social";
+    btnEvento.innerText = `⭐ Jugar evento: ${tituloEvento}`;
+    if (nombreEvento) nombreEvento.innerText = tituloEvento;
+    if (cardEvento) cardEvento.classList.add("tiene-evento");
   } else {
     btnEvento.classList.add("hidden");
     msgEspera.classList.remove("hidden");
-    msgEspera.innerText = "No hay eventos sociales esta temporada.";
+    msgEspera.innerText = (typeof t === "function") ? t("sinEventos") : "No hay eventos sociales esta temporada.";
+    if (nombreEvento) nombreEvento.innerText = (typeof t === "function") ? t("sinEventosTitulo") : "Sin eventos por ahora";
+    if (cardEvento) cardEvento.classList.remove("tiene-evento");
   }
 
   renderizarHistorialIncremental();

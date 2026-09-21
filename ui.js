@@ -368,20 +368,6 @@ function renderComunidad() {
     if (btn) btn.onclick = abrirPantallaDuelo;
   }
 
-  const re = document.getElementById("redes-vista");
-  const feedFuente = document.getElementById("redes-feed-lateral");
-  if (re) {
-    re.innerHTML = '<div class="d-flex justify-content-between align-items-center mb-2">' +
-      '<strong>' + tfn("redesTitulo", "Redes Sociales") + '</strong>' +
-      '<button type="button" class="btn btn-sm btn-outline-danger fw-bold" onclick="mostrarRedesSociales()">' + tfn("redesAbrir", "Ver redes") + '</button></div>' +
-      '<div id="redes-feed-comunidad"></div>';
-    const fc = document.getElementById("redes-feed-comunidad");
-    if (fc) {
-      if (typeof renderizarFeedRedes === "function") renderizarFeedRedes();
-      fc.innerHTML = feedFuente ? feedFuente.innerHTML : '';
-    }
-  }
-
   const cv = document.getElementById("cuenta-vista");
   if (cv) {
     let sesionActiva = false;

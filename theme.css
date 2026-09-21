@@ -204,10 +204,20 @@ body.app-juego #sidebar {
   display: flex !important;
   flex-direction: column;
 }
-body.app-juego #contenido-juego { padding-top: 1rem; }
-@media (min-width: 992px) {
-  body.app-juego #contenido-juego { margin-left: 232px; }
+/* El juego usa toda la capacidad del ancho al lado del sidebar */
+body.app-juego #contenido-juego {
+  padding-top: 1rem;
+  width: 100%;
+  max-width: none;
 }
+@media (min-width: 992px) {
+  body.app-juego #contenido-juego {
+    width: calc(100% - 232px);
+    margin-left: 232px;
+  }
+}
+/* Formularios (inicio / cuenta): ancho cómodo aunque el juego use todo el ancho */
+#pantalla-inicio, #cuenta-panel { max-width: 960px; margin-left: auto; margin-right: auto; }
 
 .sb-marca {
   display: flex;
@@ -507,6 +517,51 @@ body.app-juego #contenido-juego { padding-top: 1rem; }
 .vacio .vacio-titulo { font-weight: 700; color: var(--texto-2); font-size: 0.9rem; }
 .vacio .vacio-texto { color: var(--texto-3); font-size: 0.78rem; max-width: 340px; }
 
+/* ---------- VISTA CARRERA: evento social destacado ---------- */
+.evento-card {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(420px 150px at 12% -25%, rgba(255, 212, 59, 0.10), transparent 65%),
+    var(--card-bg);
+  transition: border-color var(--transicion), box-shadow var(--transicion);
+}
+.evento-card.tiene-evento {
+  border-color: rgba(255, 212, 59, 0.55);
+  box-shadow: 0 0 0 1px rgba(255, 212, 59, 0.16), 0 22px 46px -28px rgba(255, 212, 59, 0.6);
+}
+.evento-card.tiene-evento::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--dorado), #ff9f1c);
+}
+.evento-estrella {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(255, 212, 59, 0.12);
+  border: 1px solid rgba(255, 212, 59, 0.28);
+  font-size: 1rem;
+}
+.evento-card.tiene-evento .evento-estrella { animation: evento-pulso 1.9s ease-in-out infinite; }
+@keyframes evento-pulso {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 212, 59, 0.45); }
+  50% { transform: scale(1.08); box-shadow: 0 0 0 9px rgba(255, 212, 59, 0); }
+}
+.evento-nombre {
+  font-family: var(--display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--texto-3);
+}
+.evento-card.tiene-evento .evento-nombre { color: var(--dorado); }
+
 /* ---------- VISTA ENTRENAMIENTO: tarjetas de atributos ---------- */
 .attr-card {
   position: relative;
@@ -649,13 +704,12 @@ footer a:hover { color: var(--azul-2); }
 
 /* ---------- FEED DE REDES (posts) ---------- */
 #redes-feed-lateral {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 0.6rem;
-  min-height: 160px;
+  min-height: 120px;
 }
-#redes-feed-lateral > .vacio { margin: auto; width: 100%; }
+#redes-feed-lateral > .vacio { grid-column: 1 / -1; margin: 0; width: 100%; }
 #redes-feed-lateral .red-social-post { margin-bottom: 0 !important; }
 .red-social-post {
   background: var(--card-bg-2);
