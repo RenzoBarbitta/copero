@@ -146,6 +146,28 @@
     #12080c, #241019 60%, #12080c);
 }
 
+/* En la lluvia no hay bardas: son fachadas nocturnas con vidrieras. */
+.mg-ffp-wrap[data-variant="rain"] .mg-ffp-wall-surface {
+  background:
+    radial-gradient(40% 60% at 12% 14%, rgba(255,214,150,.12), transparent 60%),
+    linear-gradient(90deg, #0a0e15, #121a26 50%, #0a0e15);
+  box-shadow: inset 0 0 30px rgba(140,190,255,.06);
+}
+.mg-ffp-wrap[data-variant="rain"] .mg-ffp-wall-surface::before {
+  content: "";
+  position: absolute;
+  inset: 9% 12% 14%;
+  border-radius: 3px;
+  background:
+    repeating-linear-gradient(90deg,
+      rgba(255,214,150,.05) 0 4px,
+      rgba(10,14,20,0) 4px 26px),
+    linear-gradient(180deg,
+      rgba(255,190,90,.22), rgba(255,190,90,.03) 28%, rgba(8,12,18,0) 34%),
+    rgba(20,28,40,.4);
+  box-shadow: 0 0 22px rgba(180,120,60,.08);
+}
+
 .mg-ffp-wall-light {
   position: absolute;
   top: 12%;
@@ -237,6 +259,92 @@
   background: linear-gradient(to bottom, rgba(255,220,130,.3), rgba(255,220,130,.05));
 }
 
+/* ============================================================
+   META DE LA LLUVIA: el vestuario iluminado al fondo del pasillo
+   ============================================================ */
+
+.mg-ffp-goal {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 260px;
+  height: 330px;
+  will-change: transform;
+  pointer-events: none;
+}
+.mg-ffp-goal-art {
+  position: absolute;
+  inset: 0;
+  animation: mg-ffp-goal-pulse 2.6s ease-in-out infinite;
+}
+.mg-ffp-goal-beam {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 300px;
+  height: 340px;
+  transform: translateX(-50%);
+  background: linear-gradient(to top,
+    rgba(190,225,255,.55),
+    rgba(150,200,255,.18) 55%,
+    rgba(150,200,255,0));
+  clip-path: polygon(42% 100%, 58% 100%, 88% 0, 12% 0);
+  opacity: .55;
+}
+.mg-ffp-goal-halo {
+  position: absolute;
+  left: 50%;
+  bottom: 20px;
+  width: 220px;
+  height: 70px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(200,230,255,.5), transparent 70%);
+  filter: blur(6px);
+}
+.mg-ffp-goal-post {
+  position: absolute;
+  top: 0;
+  bottom: 96px;
+  width: 10px;
+  border-radius: 5px;
+  background: linear-gradient(to top, #1b232e, #4a5a6e);
+  box-shadow: 0 0 14px rgba(170,210,255,.35);
+}
+.mg-ffp-goal-post.left  { left: 52px; }
+.mg-ffp-goal-post.right { right: 52px; }
+.mg-ffp-goal-door {
+  position: absolute;
+  left: 66px;
+  right: 66px;
+  bottom: 96px;
+  height: 210px;
+  border-radius: 105px 105px 8px 8px;
+  background: linear-gradient(to top, rgba(255,244,214,.9), rgba(200,228,255,.35));
+  box-shadow: 0 0 40px rgba(220,240,255,.55), inset 0 0 18px rgba(255,255,255,.5);
+}
+.mg-ffp-goal-sign {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  padding: 5px 14px;
+  border-radius: 7px;
+  background: rgba(6,10,16,.85);
+  border: 1px solid rgba(200,225,255,.35);
+  color: #e8f2ff;
+  font-size: 44px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  white-space: nowrap;
+  text-shadow: 0 0 16px rgba(160,205,255,.9);
+  box-shadow: 0 0 24px rgba(120,180,255,.28);
+}
+@keyframes mg-ffp-goal-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .78; }
+}
+
 @keyframes mg-ffp-flicker {
   0%, 100% { opacity: 1; }
   92% { opacity: 1; }
@@ -296,9 +404,9 @@
   position: absolute;
   left: 0;
   top: 0;
-  width: 2px;
+  width: 2.4px;
   height: 18px;
-  border-radius: 2px;
+  border-radius: 6px;
   background: linear-gradient(to top, rgba(190,214,235,0), rgba(196,220,240,.85));
   will-change: transform;
 }
@@ -327,12 +435,12 @@
 
 /* Altura de diseño por tipo de obstáculo. */
 .mg-ffp-obs.person .mg-ffp-obs-art     { width: 70px;  height: 150px; }
-.mg-ffp-obs.pedestrian .mg-ffp-obs-art { width: 70px;  height: 144px; }
+.mg-ffp-obs.pedestrian .mg-ffp-obs-art { width: 74px;  height: 150px; }
 .mg-ffp-obs.cam .mg-ffp-obs-art        { width: 100px; height: 152px; }
 .mg-ffp-obs.mic .mg-ffp-obs-art        { width: 78px;  height: 146px; }
-.mg-ffp-obs.car .mg-ffp-obs-art        { width: 150px; height: 82px; }
-.mg-ffp-obs.van .mg-ffp-obs-art        { width: 170px; height: 92px; }
-.mg-ffp-obs.puddle .mg-ffp-obs-art     { width: 150px; height: 56px; }
+.mg-ffp-obs.car .mg-ffp-obs-art        { width: 170px; height: 90px; }
+.mg-ffp-obs.van .mg-ffp-obs-art        { width: 190px; height: 100px; }
+.mg-ffp-obs.puddle .mg-ffp-obs-art     { width: 170px; height: 62px; }
 
 /* Sombra de suelo (elipse que escala con el objeto). */
 .mg-ffp-obs-shade {
@@ -364,6 +472,18 @@
 }
 .mg-ffp-wrap[data-variant="rain"] .mg-ffp-obs-glow {
   background: radial-gradient(50% 44% at 50% 46%, rgba(170,215,255,.32), transparent 70%);
+}
+/* Los charcos se leen como agua brillante, no como huecos. */
+.mg-ffp-wrap[data-variant="rain"] .mg-ffp-obs.puddle .mg-ffp-obs-art {
+  filter: brightness(1.45) saturate(1.25);
+  animation: mg-ffp-puddle-shimmer 1.9s ease-in-out infinite;
+}
+.mg-ffp-wrap[data-variant="rain"] .mg-ffp-obs.puddle .mg-ffp-obs-glow {
+  background: radial-gradient(50% 44% at 50% 46%, rgba(175,228,255,.55), transparent 70%);
+}
+@keyframes mg-ffp-puddle-shimmer {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .82; }
 }
 .mg-ffp-obs.car .mg-ffp-obs-glow,
 .mg-ffp-obs.van .mg-ffp-obs-glow {

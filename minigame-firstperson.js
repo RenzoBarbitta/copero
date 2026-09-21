@@ -381,22 +381,24 @@
   }
 
   function rainPuddleArt() {
-    // Charco con reflejo en el asfalto.
+    // Charco con reflejo brillante en el asfalto mojado.
     var uid = nextUid();
     var g1 = uid + "a", g2 = uid + "b";
     return svgRaw(uid, 200, 74,
       "<defs>" +
       '<radialGradient id="' + g1 + '" cx="0.5" cy="0.5" r="0.6">' +
-      '<stop offset="0" stop-color="#9fc3e0"/><stop offset="0.7" stop-color="#33506e"/><stop offset="1" stop-color="rgba(30,48,70,0)"/>' +
+      '<stop offset="0" stop-color="#cfe4ef"/><stop offset="0.55" stop-color="#5b86a6"/><stop offset="1" stop-color="rgba(30,48,70,0)"/>' +
       "</radialGradient>" +
       '<linearGradient id="' + g2 + '" x1="0" y1="0" x2="0" y2="1">' +
-      '<stop offset="0" stop-color="rgba(255,255,255,0.5)"/><stop offset="1" stop-color="rgba(255,255,255,0)"/>' +
+      '<stop offset="0" stop-color="rgba(255,255,255,0.85)"/><stop offset="1" stop-color="rgba(255,255,255,0)"/>' +
       "</linearGradient>" +
       "</defs>" +
-      '<ellipse cx="100" cy="37" rx="92" ry="30" fill="url(#' + g1 + ')"/>' +
-      '<path d="M40 30 Q80 22 120 26 Q150 28 172 22" stroke="url(#' + g2 + ')" stroke-width="3" fill="none" stroke-linecap="round"/>' +
-      '<circle cx="64" cy="42" r="2" fill="rgba(255,255,255,0.7)"/><circle cx="150" cy="48" r="1.6" fill="rgba(255,255,255,0.5)"/>' +
-      '<circle cx="116" cy="20" r="1.4" fill="rgba(255,255,255,0.4)"/>'
+      '<ellipse cx="100" cy="37" rx="94" ry="32" fill="url(#' + g1 + ')"/>' +
+      '<ellipse cx="100" cy="37" rx="94" ry="32" fill="none" stroke="rgba(215,240,255,0.55)" stroke-width="1.6"/>' +
+      '<path d="M40 30 Q80 22 120 26 Q150 28 172 22" stroke="url(#' + g2 + ')" stroke-width="4" fill="none" stroke-linecap="round"/>' +
+      '<path d="M62 46 Q104 40 146 48" stroke="url(#' + g2 + ')" stroke-width="2.4" fill="none" stroke-linecap="round" opacity="0.7"/>' +
+      '<circle cx="64" cy="42" r="2.6" fill="rgba(255,255,255,0.9)"/><circle cx="150" cy="48" r="2" fill="rgba(255,255,255,0.75)"/>' +
+      '<circle cx="116" cy="20" r="1.8" fill="rgba(255,255,255,0.6)"/><circle cx="30" cy="24" r="1.4" fill="rgba(255,255,255,0.5)"/>'
     );
   }
 
@@ -503,6 +505,22 @@
       lampEls.push(lamp);
     }
 
+    // Meta visible al fondo (variante lluvia): el vestuario iluminado.
+    var goalEl = null;
+    if (isRain) {
+      goalEl = el("div", "mg-ffp-goal");
+      goalEl.innerHTML =
+        '<div class="mg-ffp-goal-art">' +
+        '<div class="mg-ffp-goal-beam"></div>' +
+        '<div class="mg-ffp-goal-halo"></div>' +
+        '<div class="mg-ffp-goal-post left"></div>' +
+        '<div class="mg-ffp-goal-post right"></div>' +
+        '<div class="mg-ffp-goal-door"></div>' +
+        '<div class="mg-ffp-goal-sign">VESTUARIO</div>' +
+        "</div>";
+      decor.appendChild(goalEl);
+    }
+
     // ------------------- CAPAS DE ATMÓSFERA (humo / niebla / lluvia) -------------------
     var fog = el("div", "mg-ffp-fog");
     for (i = 0; i < 3; i++) fog.appendChild(el("div", "mg-ffp-fogblob"));
@@ -511,7 +529,7 @@
     var rain = el("div", "mg-ffp-rain");
     var raindrops = [];
     if (isRain) {
-      for (i = 0; i < 44; i++) {
+      for (i = 0; i < 26; i++) {
         var drop = el("div", "mg-ffp-drop");
         rain.appendChild(drop);
         raindrops.push({ e: drop, x: 0, y: 0, len: 0, dy: 0, dx: 0, blur: 0, op: 0, init: false });
@@ -799,17 +817,17 @@
           var sway = Math.sin(now * 0.002 + o.born) * 0.9;
           place(o.node, depth, WORLD_LANES[o.lane] + sway * 0.008, GROUND_OFF, k);
 
-          // Profundidad de campo sutil: leve blur lejano + leve en cercanías.
+          // Profundidad de campo solo en el túnel (en la calle los autos
+          // se ven nítidos desde lejos con sus luces encendidas).
           var f = 0;
-          if (depth > 1200) f = (depth - 1200) / (DEPTH_FAR - 1200) * 1.1;
-          else if (depth < 300) f = (300 - depth) / 300 * 0.9;
-          var dim = depth > 1300 ? 1 - (depth - 1300) / 700 * 0.22 : 1;
-          o.art.style.filter = (f > 0.02 ? "blur(" + f.toFixed(2) + "px)" : "none") +
-            (dim < 1 ? " brightness(" + dim.toFixed(2) + ")" : "");
+          if (!isRain && depth > 1200) f = (depth - 1200) / (DEPTH_FAR - 1200) * 1.1;
+          else if (!isRain && depth < 300) f = (300 - depth) / 300 * 0.9;
+          o.art.style.filter = (f > 0.02 ? "blur(" + f.toFixed(2) + "px)" : "none");
 
-          // Luz cercana: el objeto se "enciende" al acercarse.
+          // Los faros de autos y peatones iluminados se ven desde lejos.
           var prox = 1 - clamp((depth - 260) / 1200, 0, 1);
-          o.glow.style.opacity = (prox * 0.85).toFixed(2);
+          var glowBase = (o.kind === "car" || o.kind === "van" || o.kind === "pedestrian") ? 0.2 : 0;
+          o.glow.style.opacity = Math.max(glowBase, prox * 0.85).toFixed(2);
           o.shade.style.opacity = clamp(0.34 + (1 - p) * 0.3, 0.2, 0.6).toFixed(2);
         } else {
           // Esquive o crash: fundido, desliza a un costado y retrocede.
@@ -853,6 +871,9 @@
         var dl = DEPTH_NEAR + ((loff + l * 700) % (4 * 700));
         place(lampEls[l], Math.max(80, dl), l % 2 === 0 ? -0.5 : 0.5, -100, 1);
       }
+
+      // El vestuario queda fijo al fondo del pasillo.
+      if (goalEl) place(goalEl, DEPTH_FAR, 0, GROUND_OFF, 1);
     }
 
     // ------------------- CAMARA -------------------
@@ -900,11 +921,10 @@
           d.init = true;
           d.y = Math.random() * H;
           d.x = Math.random() * W;
-          d.len = 10 + Math.random() * 16;
-          d.dy = 8 + Math.random() * 7;
+          d.len = 14 + Math.random() * 20;
+          d.dy = 9 + Math.random() * 7;
           d.dx = d.dy * 0.34;
-          d.blur = (Math.random() * 1.2).toFixed(2);
-          d.op = (0.28 + Math.random() * 0.42).toFixed(2);
+          d.op = (0.32 + Math.random() * 0.4).toFixed(2);
         }
         d.x += d.dx * dt / 16;
         d.y += d.dy * dt / 16;
@@ -915,9 +935,8 @@
         var ang = Math.atan2(-d.dy, -d.dx) * 180 / Math.PI;
         d.e.style.transform =
           "translate3d(" + d.x.toFixed(1) + "px," + d.y.toFixed(1) + "px,0) " +
-          "rotate(" + ang.toFixed(1) + "deg) scaleY(" + (d.len / 18).toFixed(2) + ")";
+          "rotate(" + ang.toFixed(1) + "deg) scaleY(" + (d.len / 24).toFixed(2) + ")";
         d.e.style.opacity = d.op;
-        d.e.style.filter = "blur(" + d.blur + "px)";
       }
       void now;
     }
@@ -970,13 +989,17 @@
       var sub = document.getElementById("mg-ffp-end-sub");
       if (title) {
         title.textContent = crashes === 0
-          ? (isRain ? "LLEGASTE AL MICRO" : "SALIDA LIMPIA")
-          : (isRain ? "LLEGASTE CHOCADO" : "SALIDA CON ROZONES");
+          ? (isRain ? "LLEGASTE AL VESTUARIO" : "LLEGASTE AL MICRO")
+          : (isRain ? "LLEGASTE CHOCADO" : "LLEGASTE CON ROZONES");
       }
       if (sub) {
         sub.textContent = crashes === 0
-          ? "Sin empujones. El plantel te espera."
-          : crashes + " empujón" + (crashes > 1 ? "es" : "") + " registrado" + (crashes > 1 ? "s" : "") + ".";
+          ? (isRain
+              ? "Sin choques. Entrás seco, a tiempo y con la banda tranquila."
+              : "Sin empujones. Subís al micro y el plantel arranca.")
+          : (isRain
+              ? crashes + (crashes > 1 ? " choques" : " choque") + "... llegás justo, mojado y con la cara marcada."
+              : crashes + " empujón" + (crashes > 1 ? "es" : "") + " en la salida... pero estás en el micro.");
       }
       endOverlay.classList.add("show");
 
