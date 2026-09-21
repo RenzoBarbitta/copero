@@ -232,6 +232,55 @@ const TEXTOS_ENTRENAMIENTO = {
   ]
 };
 
+// 4b. FRASES DE JUGADORES SEGÚN LA CARACTERÍSTICA A ENTRENAR
+const TEXTOS_ENTRENAMIENTO_ATRIBUTO = {
+  VEL: [
+    "Si tenés velocidad, los centrales ni te ven. Sprint los lunes y el resto te sigue.",
+    "Los primeros diez metros definen la carrera. Trabajá la explosión.",
+    "Corré o mirá: en esta cancha el que llega primero define."
+  ],
+  PAS: [
+    "Dámela limpia a la media luna que yo me encargo del resto.",
+    "El pase es la mitad del gol, no la regales al medio.",
+    "Jugá de primera, el fútbol no espera a nadie."
+  ],
+  REM: [
+    "El remate no se piensa: pegale antes de que te cierren.",
+    "Abajo al palo, que los arqueros esperan siempre el bombazo arriba.",
+    "Definición de primera al segundo palo, ahí se rompen los arcos."
+  ],
+  DEF: [
+    "Atrás no se negocia: cuerpo, timing y cierre.",
+    "Temporizá el cruce y quedate parado, el delantero se va solo.",
+    "La defensa gana campeonatos."
+  ],
+  REG: [
+    "Encará siempre y, si vas, hacelo convencido hasta el final.",
+    "El amague largo deja al marcador mirando el cartel.",
+    "Cambiá el ritmo a mitad de carrera y escondete."
+  ],
+  RES: [
+    "El partido se gana a los ochenta, cuando el resto baja los brazos.",
+    "Llegar al área corriendo, no caminando: eso separa titulares.",
+    "Banquero cada segundo, el segundo tiempo es de los que resisten."
+  ],
+  REF: [
+    "El reflejo se entrena antes de la pelota: la reacción gana duelos.",
+    "Quedate de pie hasta el último segundo, el remate llega siempre.",
+    "En los mano a mano no hay empate: atajás o atajan."
+  ],
+  MAN: [
+    "Achicá el ángulo y no caigas al piso antes de tiempo.",
+    "Un arquero valiente corta la jugada antes de que pateen.",
+    "Estirada a mano cambiada: mové esos guantes, no se gastan solo."
+  ],
+  SAL: [
+    "Con los pies también se ataja: salida limpia y contra rápida.",
+    "Anticipá los cortes largos y ordená a la defensa con tu voz.",
+    "El arquero moderno juega con los pies, aprendé a sacar jugando."
+  ]
+};
+
 // 5. SISTEMA DE ROLES
 // Las imagenes de los badges estan en /imagenes:
 //   inmortal.png (escudo dorado), master.png (escudo rojo), normal.png (circulo con X)
@@ -278,7 +327,7 @@ const TEXTOS_UI = {
     iniciar: "Iniciar Carrera", continuar: "▶️ Continuar Carrera Guardada", modoDesafio: "🎲 Modo Desafío",
     ranking: "🏆 Ranking", slots: "💾 Slots", modoOscuroTitulo: "Modo oscuro", dueloBoton: "⚔️ 1v1 Online (Duelo)",
     edad: "Edad:", anios: "años", media: "Media:", club: "Club:", moral: "Moral:", acciones: "Acciones",
-    entrenar: "Entrenar Tradicional", dominios: "⚽ Desafío Dominios", entrenamiento: "⚽ Entrenamiento",
+    entrenar: "Entrenar", dominios: "⚽ Desafío Dominios", entrenamiento: "⚽ Entrenamiento",
     masMinijuegos: "🎮 Más Minijuegos", logros: "🏅 Logros", stats: "📊 Stats", sinEventos: "No hay eventos sociales esta temporada.",
     simular: "Simular Temporada", reiniciar: "Reiniciar Carrera", historial: "Historial de Carrera",
     thTemp: "Temp", thClub: "Club", thPJ: "PJ", thGoles: "Goles", thAsist: "Asist.", thTitulos: "Títulos / Logros",
@@ -298,16 +347,16 @@ const TEXTOS_UI = {
     btnEntendido: "Entendido", btnRechazar: "Rechazar", btnAceptar: "Aceptar", btnContinuar: "Continuar", btnCerrar: "Cerrar", btnEntendido2: "¡Entendido!",
     mercadoTitulo: "Mercado de Pases", penalTitulo: "⚽ ¡FINAL DRAMÁTICA!", penalTexto: "El partido está empatado. Tienes en tus pies el penal para definir el título.",
     minijuegoIndicacion: "Seguí la indicación de este minijuego:", tiempoRestante: "Tiempo restante:", ssTitulo: "🔍 REVISIÓN EN VIVO (SS)", ssTexto: "Revisando carpetas y archivos sospechosos...",
-    rolDesbloqueado: "🔓 ROL DESBLOQUEADO", avisoMinijuego: "Ya jugaste el minijuego de esta temporada. Solo se puede jugar 1 minijuego por temporada, además del entrenamiento tradicional. Avanzá a la próxima temporada para jugar otro."
+    rolDesbloqueado: "🔓 ROL DESBLOQUEADO", avisoMinijuego: "Ya jugaste el minijuego de esta temporada. Solo se puede jugar 1 minijuego por temporada, además del entrenamiento por atributos. Avanzá a la próxima temporada para jugar otro."
   },
   en: {
     titulo: "PSO CAREER", nombreJugador: "Player Name:", placeholderNombre: "Ex: Caseros", posCancha: "📍 Position on the pitch", tuCasaca: "👕 Your shirt", dorsal: "🔢 Shirt number",
     posDEL: "Forward (DEL)", posCM: "Midfielder (CM)", posDEF: "Defender (DEF)", posGK: "Goalkeeper (GK)", iniciar: "Start Career", continuar: "▶️ Continue Saved Career", modoDesafio: "🎲 Challenge Mode", ranking: "🏆 Ranking", slots: "💾 Slots", modoOscuroTitulo: "Dark mode", dueloBoton: "⚔️ 1v1 Online (Duel)",
     edad: "Age:", anios: "years", media: "Rating:", club: "Club:", moral: "Morale:", acciones: "Actions", entrenar: "Train", dominios: "⚽ Domains Challenge", entrenamiento: "⚽ Training", masMinijuegos: "🎮 More Minigames", logros: "🏅 Achievements", stats: "📊 Stats", sinEventos: "No social events this season.", simular: "Simulate Season", reiniciar: "Restart Career", historial: "Career History", thTemp: "Season", thClub: "Club", thPJ: "MP", thGoles: "Goals", thAsist: "Assists", thTitulos: "Titles / Achievements", retiro: "🏁 Professional Retirement", partidos: "Matches:", goles: "Goals:", asistencias: "Assists:", jugarDeNuevo: "Play Again", rankTitulo: "🏆 Ranking", rankTabGlobal: "🌍 Global (Online)", rankTabLocal: "📱 This device", rankColJugador: "Player", rankColMedia: "Rating", rankColTitulos: "Titles", rankColAnio: "Year", rankCargando: "Loading online ranking...", rankErrorOnline: "Could not connect to the online ranking. Check your connection.", rankReintentar: "🔄 Retry", rankActualizar: "🔄 Refresh", rankVacioOnline: "No careers in the global ranking yet. Finish a career and be the first!", rankVacioLocal: "No careers registered on this device yet.", rankSincronizado: "🟢 Online ranking synced", rankPendiente: "📤 Your career was saved and will be sent when you're back online", btnInstalar: "📥 Install App", desarrollado: "Developed by:", colaboracion: "Collaboration:", privacidadLink: "Privacy Policy",
-    cuentaTitulo: "👤 My account (optional)", cuentaInfo: "Your career is still saved on this device. Supabase manages your email, authentication and nickname. When you reload the page you will have to sign in again.", cuentaEmail: "Email", cuentaPass: "Password", cuentaAcepto1: "I have read and accept the", cuentaPrivacidadLink: "Privacy Policy (opens a new tab)", cuentaAcepto2: "to create my account.", cuentaAyuda: "Required only when signing up. We use the email and authentication to manage your account and the nickname for your profile. This acceptance does not allow advertising or optional measurement.", cuentaLogin: "Sign in", cuentaCrear: "Create account", cuentaRegistroAyuda: "To sign up, use at least 8 characters. Confirm the email you received before signing in.", cuentaApodo: "Profile nickname", cuentaGuardarApodo: "Save nickname", cuentaLeerPerfil: "Read profile again", cuentaSalir: "Sign out", btnEntendido: "Got it", btnRechazar: "Reject", btnAceptar: "Accept", btnContinuar: "Continue", btnCerrar: "Close", btnEntendido2: "Got it!", mercadoTitulo: "Transfer Market", penalTitulo: "⚽ DRAMATIC FINAL!", penalTexto: "The match is tied. The penalty to decide the title is at your feet.", minijuegoIndicacion: "Follow this minigame's instruction:", tiempoRestante: "Time left:", ssTitulo: "🔍 LIVE REVIEW (SS)", ssTexto: "Checking suspicious folders and files...", rolDesbloqueado: "🔓 ROLE UNLOCKED", avisoMinijuego: "You already played this season's minigame. You can only play 1 minigame per season, in addition to traditional training. Advance to the next season to play another."
+    cuentaTitulo: "👤 My account (optional)", cuentaInfo: "Your career is still saved on this device. Supabase manages your email, authentication and nickname. When you reload the page you will have to sign in again.", cuentaEmail: "Email", cuentaPass: "Password", cuentaAcepto1: "I have read and accept the", cuentaPrivacidadLink: "Privacy Policy (opens a new tab)", cuentaAcepto2: "to create my account.", cuentaAyuda: "Required only when signing up. We use the email and authentication to manage your account and the nickname for your profile. This acceptance does not allow advertising or optional measurement.", cuentaLogin: "Sign in", cuentaCrear: "Create account", cuentaRegistroAyuda: "To sign up, use at least 8 characters. Confirm the email you received before signing in.", cuentaApodo: "Profile nickname", cuentaGuardarApodo: "Save nickname", cuentaLeerPerfil: "Read profile again", cuentaSalir: "Sign out", btnEntendido: "Got it", btnRechazar: "Reject", btnAceptar: "Accept", btnContinuar: "Continue", btnCerrar: "Close", btnEntendido2: "Got it!", mercadoTitulo: "Transfer Market", penalTitulo: "⚽ DRAMATIC FINAL!", penalTexto: "The match is tied. The penalty to decide the title is at your feet.", minijuegoIndicacion: "Follow this minigame's instruction:", tiempoRestante: "Time left:", ssTitulo: "🔍 LIVE REVIEW (SS)", ssTexto: "Checking suspicious folders and files...", rolDesbloqueado: "🔓 ROLE UNLOCKED", avisoMinijuego: "You already played this season's minigame. You can only play 1 minigame per season, in addition to attribute training. Move on to the next season to play another."
   },
   pt: {
-    titulo: "CARREIRA PSO", nombreJugador: "Nome do jogador:", placeholderNombre: "Ex.: Caseros", posCancha: "📍 Posição em campo", tuCasaca: "👕 Sua camisa", dorsal: "🔢 Número", posDEL: "Atacante (DEL)", posCM: "Meio-campista (CM)", posDEF: "Zagueiro (DEF)", posGK: "Goleiro (GK)", iniciar: "Iniciar carreira", continuar: "▶️ Continuar carreira salva", modoDesafio: "🎲 Modo desafio", ranking: "🏆 Ranking", slots: "💾 Slots", modoOscuroTitulo: "Modo escuro", dueloBoton: "⚔️ 1v1 online (Duelo)", edad: "Idade:", anios: "anos", media: "Média:", club: "Clube:", moral: "Moral:", acciones: "Ações", entrenar: "Treinamento tradicional", dominios: "⚽ Desafio de domínio", entrenamiento: "⚽ Treinamento", masMinijuegos: "🎮 Mais minijogos", logros: "🏅 Conquistas", stats: "📊 Estatísticas", sinEventos: "Não há eventos sociais nesta temporada.", simular: "Simular temporada", reiniciar: "Reiniciar carreira", historial: "Histórico da carreira", thTemp: "Temp.", thClub: "Clube", thPJ: "PJ", thGoles: "Gols", thAsist: "Assist.", thTitulos: "Títulos / Conquistas", retiro: "🏁 Aposentadoria profissional", partidos: "Partidas:", goles: "Gols:", asistencias: "Assistências:", jugarDeNuevo: "Jogar novamente", rankTitulo: "🏆 Ranking", rankTabGlobal: "🌍 Global (online)", rankTabLocal: "📱 Este dispositivo", rankColJugador: "Jogador", rankColMedia: "Média", rankColTitulos: "Títulos", rankColAnio: "Ano", rankCargando: "Carregando ranking online...", rankErrorOnline: "Não foi possível conectar ao ranking online. Verifique sua conexão.", rankReintentar: "🔄 Tentar novamente", rankActualizar: "🔄 Atualizar", rankVacioOnline: "Ainda não há carreiras no ranking global. Termine uma carreira e seja o primeiro!", rankVacioLocal: "Ainda não há carreiras registradas neste dispositivo.", rankSincronizado: "🟢 Ranking online sincronizado", rankPendiente: "📤 Sua carreira foi salva e será enviada quando houver internet", btnInstalar: "📥 Instalar aplicativo", desarrollado: "Desenvolvido por:", colaboracion: "Colaboração:", privacidadLink: "Política de privacidade", cuentaTitulo: "👤 Minha conta (opcional)", cuentaInfo: "Sua carreira continua salva neste dispositivo. O Supabase gerencia seu e-mail, autenticação e apelido. Ao recarregar a página, você terá que entrar novamente.", cuentaEmail: "E-mail", cuentaPass: "Senha", cuentaAcepto1: "Li e aceito a", cuentaPrivacidadLink: "Política de privacidade (abre em outra aba)", cuentaAcepto2: "para criar minha conta.", cuentaAyuda: "Obrigatório apenas no cadastro. Usamos o e-mail e a autenticação para gerenciar sua conta e o apelido do seu perfil. Esta aceitação não autoriza publicidade nem medição opcional.", cuentaLogin: "Entrar", cuentaCrear: "Criar conta", cuentaRegistroAyuda: "Para se cadastrar, use pelo menos 8 caracteres. Confirme o e-mail recebido antes de entrar.", cuentaApodo: "Apelido do perfil", cuentaGuardarApodo: "Salvar apelido", cuentaLeerPerfil: "Ler perfil novamente", cuentaSalir: "Sair da conta", btnEntendido: "Entendi", btnRechazar: "Recusar", btnAceptar: "Aceitar", btnContinuar: "Continuar", btnCerrar: "Fechar", btnEntendido2: "Entendi!", mercadoTitulo: "Mercado de transferências", penalTitulo: "⚽ FINAL DRAMÁTICA!", penalTexto: "A partida está empatada. O pênalti para decidir o título está nos seus pés.", minijuegoIndicacion: "Siga a instrução deste minijogo:", tiempoRestante: "Tempo restante:", ssTitulo: "🔍 REVISÃO AO VIVO (SS)", ssTexto: "Verificando pastas e arquivos suspeitos...", rolDesbloqueado: "🔓 FUNÇÃO DESBLOQUEADA", avisoMinijuego: "Você já jogou o minijogo desta temporada. Só é possível jogar 1 minijogo por temporada, além do treinamento tradicional. Avance para a próxima temporada para jogar outro."
+    titulo: "CARREIRA PSO", nombreJugador: "Nome do jogador:", placeholderNombre: "Ex.: Caseros", posCancha: "📍 Posição em campo", tuCasaca: "👕 Sua camisa", dorsal: "🔢 Número", posDEL: "Atacante (DEL)", posCM: "Meio-campista (CM)", posDEF: "Zagueiro (DEF)", posGK: "Goleiro (GK)", iniciar: "Iniciar carreira", continuar: "▶️ Continuar carreira salva", modoDesafio: "🎲 Modo desafio", ranking: "🏆 Ranking", slots: "💾 Slots", modoOscuroTitulo: "Modo escuro", dueloBoton: "⚔️ 1v1 online (Duelo)", edad: "Idade:", anios: "anos", media: "Média:", club: "Clube:", moral: "Moral:", acciones: "Ações", entrenar: "Treinar", dominios: "⚽ Desafio de domínio", entrenamiento: "⚽ Treinamento", masMinijuegos: "🎮 Mais minijogos", logros: "🏅 Conquistas", stats: "📊 Estatísticas", sinEventos: "Não há eventos sociais nesta temporada.", simular: "Simular temporada", reiniciar: "Reiniciar carreira", historial: "Histórico da carreira", thTemp: "Temp.", thClub: "Clube", thPJ: "PJ", thGoles: "Gols", thAsist: "Assist.", thTitulos: "Títulos / Conquistas", retiro: "🏁 Aposentadoria profissional", partidos: "Partidas:", goles: "Gols:", asistencias: "Assistências:", jugarDeNuevo: "Jogar novamente", rankTitulo: "🏆 Ranking", rankTabGlobal: "🌍 Global (online)", rankTabLocal: "📱 Este dispositivo", rankColJugador: "Jogador", rankColMedia: "Média", rankColTitulos: "Títulos", rankColAnio: "Ano", rankCargando: "Carregando ranking online...", rankErrorOnline: "Não foi possível conectar ao ranking online. Verifique sua conexão.", rankReintentar: "🔄 Tentar novamente", rankActualizar: "🔄 Atualizar", rankVacioOnline: "Ainda não há carreiras no ranking global. Termine uma carreira e seja o primeiro!", rankVacioLocal: "Ainda não há carreiras registradas neste dispositivo.", rankSincronizado: "🟢 Ranking online sincronizado", rankPendiente: "📤 Sua carreira foi salva e será enviada quando houver internet", btnInstalar: "📥 Instalar aplicativo", desarrollado: "Desenvolvido por:", colaboracion: "Colaboração:", privacidadLink: "Política de privacidade", cuentaTitulo: "👤 Minha conta (opcional)", cuentaInfo: "Sua carreira continua salva neste dispositivo. O Supabase gerencia seu e-mail, autenticação e apelido. Ao recarregar a página, você terá que entrar novamente.", cuentaEmail: "E-mail", cuentaPass: "Senha", cuentaAcepto1: "Li e aceito a", cuentaPrivacidadLink: "Política de privacidade (abre em outra aba)", cuentaAcepto2: "para criar minha conta.", cuentaAyuda: "Obrigatório apenas no cadastro. Usamos o e-mail e a autenticação para gerenciar sua conta e o apelido do seu perfil. Esta aceitação não autoriza publicidade nem medição opcional.", cuentaLogin: "Entrar", cuentaCrear: "Criar conta", cuentaRegistroAyuda: "Para se cadastrar, use pelo menos 8 caracteres. Confirme o e-mail recebido antes de entrar.", cuentaApodo: "Apelido do perfil", cuentaGuardarApodo: "Salvar apelido", cuentaLeerPerfil: "Ler perfil novamente", cuentaSalir: "Sair da conta", btnEntendido: "Entendi", btnRechazar: "Recusar", btnAceptar: "Aceitar", btnContinuar: "Continuar", btnCerrar: "Fechar", btnEntendido2: "Entendi!", mercadoTitulo: "Mercado de transferências", penalTitulo: "⚽ FINAL DRAMÁTICA!", penalTexto: "A partida está empatada. O pênalti para decidir o título está nos seus pés.", minijuegoIndicacion: "Siga a instrução deste minijogo:", tiempoRestante: "Tempo restante:", ssTitulo: "🔍 REVISÃO AO VIVO (SS)", ssTexto: "Verificando pastas e arquivos suspeitos...", rolDesbloqueado: "🔓 FUNÇÃO DESBLOQUEADA", avisoMinijuego: "Você já jogou o minijogo desta temporada. Só é possível jogar 1 minijogo por temporada, além do treinamento por atributos. Avance para a próxima temporada para jogar outro."
   }
 };
 

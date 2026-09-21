@@ -1121,6 +1121,18 @@ body.app-juego footer { margin-bottom: 60px; }
 #temporada-actual { font-weight: 700; }
 #carrera-partidos-aprox { letter-spacing: 0.5px; }
 
+/* --- Acciones rápidas: botones del mismo tamaño --- */
+#acciones-rapidas > [class*="col-"] { display: flex; }
+#acciones-rapidas .btn {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  text-align: center;
+  white-space: normal;
+}
+
 /* --- Resumen de temporada --- */
 .rt-label {
   display: block;

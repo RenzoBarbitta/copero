@@ -2446,44 +2446,10 @@ function obtenerMentorAleatorio(pos) {
   return lista[Math.floor(Math.random() * lista.length)];
 }
 
-function obtenerTextoAleatorio(pos) {
-  if (typeof TEXTOS_ENTRENAMIENTO === "undefined") return "Sigue practicando duro.";
-  const lista = TEXTOS_ENTRENAMIENTO[pos] || TEXTOS_ENTRENAMIENTO.CM;
-  return lista[Math.floor(Math.random() * lista.length)];
-}
-
-function entrenar() {
-  if (jugador.carreraTerminada || jugador.entrenamientosUsadosEstaTemporada >= CONFIG.ENTRENAMIENTOS_POR_TEMPORADA) return;
-
-  const esLegendario = Math.random() < 0.2;
-  const mentor = esLegendario ? obtenerMentorAleatorio("GLOBAL") : obtenerMentorAleatorio(jugador.posicion);
-  const instruccion = obtenerTextoAleatorio(jugador.posicion);
-  const incremento = esLegendario ? 3 : 2;
-  const exitoProb = esLegendario ? 0.5 : 0.7;
-
-  let txtRes = `<strong>${mentor}</strong> dice:<br><em>"${instruccion}"</em><br><br>`;
-
-  if (Math.random() <= exitoProb) {
-    const maxMedia = (typeof REGLAS_MEDIA !== "undefined" && REGLAS_MEDIA[jugador.clubActual.reputacion]) || CONFIG.OVR_MAX;
-    if (jugador.media < maxMedia) {
-      sumarMedia(Math.min(incremento, maxMedia - jugador.media));
-      txtRes += `<span class="text-success fw-bold">¡Progreso! Aumentaste tu nivel.</span>`;
-      sonidoExito();
-    } else {
-      txtRes += `<span class="text-primary">Llegaste al techo del club actual.</span>`;
-    }
-  } else {
-    txtRes += `<span class="text-danger">Práctica sin frutos.</span>`;
-    sonidoError();
-  }
-
-  jugador.entrenamientosUsadosEstaTemporada = 1;
-  guardarPartida();
-  mostrarNotificacion("Centro de Entrenamiento", txtRes, () => {
-    verificarCambioRol();
-    actualizarInterfaz();
-  });
-  actualizarInterfaz();
+function obtenerFraseEntrenamientoAtributo(attr) {
+  if (typeof TEXTOS_ENTRENAMIENTO_ATRIBUTO === "undefined") return "Seguí practicando, se nota el esfuerzo.";
+  const lista = TEXTOS_ENTRENAMIENTO_ATRIBUTO[attr];
+  return lista ? lista[Math.floor(Math.random() * lista.length)] : "Seguí practicando, se nota el esfuerzo.";
 }
 
 // ============================================================
@@ -2552,9 +2518,13 @@ function entrenarAtributoVisible(attr) {
   const nombre = (typeof window.nombreAtributo === "function") ? window.nombreAtributo(attr) : attr;
   const tAtributo = typeof t === "function" ? t : function(c) { return c; };
 
+  const mentor = obtenerMentorAleatorio(jugador.posicion);
+  const frase = obtenerFraseEntrenamientoAtributo(attr);
+  const cita = `<p class="mb-2 text-secondary" style="font-style:italic">💬 <strong>${mentor}</strong> dice:<br><span class="fw-semibold text-dark">“${frase}”</span></p>`;
+
   if (contenedorResultado) {
     if (resultado.exitoso) {
-      contenedorResultado.innerHTML = `
+      contenedorResultado.innerHTML = cita + `
         <div class="border rounded p-3 bg-success bg-opacity-10">
           <h6 class="text-center mb-2 fw-bold text-success">🎯 ${nombre.toUpperCase()}</h6>
           <p class="text-center mb-1 fs-4">
@@ -2568,9 +2538,9 @@ function entrenarAtributoVisible(attr) {
       sonidoExito();
       verificarCambioRol();
     } else if (resultado.motivo === "techo") {
-      contenedorResultado.innerHTML = `<div class="border rounded p-3 bg-warning bg-opacity-10"><p class="text-center mb-0 fw-bold text-warning">⛔ ${tAtributo("entrenamientoTecho")}</p></div>`;
+      contenedorResultado.innerHTML = cita + `<div class="border rounded p-3 bg-warning bg-opacity-10"><p class="text-center mb-0 fw-bold text-warning">⛔ ${tAtributo("entrenamientoTecho")}</p></div>`;
     } else {
-      contenedorResultado.innerHTML = `<div class="border rounded p-3 bg-warning bg-opacity-10"><p class="text-center mb-0 fw-bold text-warning">😕 ${tAtributo("entrenamientoFallido")}</p></div>`;
+      contenedorResultado.innerHTML = cita + `<div class="border rounded p-3 bg-warning bg-opacity-10"><p class="text-center mb-0 fw-bold text-warning">😕 ${tAtributo("entrenamientoFallido")}</p></div>`;
       sonidoError();
     }
   }
@@ -2772,10 +2742,6 @@ function actualizarInterfaz() {
   }
 
   const entrenamientoAgotado = jugador.entrenamientosUsadosEstaTemporada >= CONFIG.ENTRENAMIENTOS_POR_TEMPORADA;
-  const btnEntrenar = document.getElementById("btn-entrenar");
-  if (btnEntrenar) {
-    btnEntrenar.disabled = entrenamientoAgotado;
-  }
   const btnEntrenarAtributos = document.getElementById("btn-entrenar-atributos");
   if (btnEntrenarAtributos) {
     btnEntrenarAtributos.disabled = entrenamientoAgotado;
