@@ -1416,9 +1416,10 @@ function ocultarPanelCuenta() {
 // ============================================================
 //  SIMULACIÓN DE TEMPORADA
 // ============================================================
-function simularTemporada() {
-  if (jugador.carreraTerminada) return;
-
+// Calcula la base de la temporada simulada (partidos + rendimiento + títulos
+// por estadística y declive por edad). Lo usan tanto simularTemporada como
+// jugarPartidoContraRival para conservar la misma lógica en ambos caminos.
+function calcularBasicoTemporada() {
   const rep = jugador.clubActual.reputacion;
   const diferenciaNivel = jugador.media - (rep * 10);
 
@@ -1472,6 +1473,54 @@ function simularTemporada() {
     jugador.trofeos.balonDeOro++;
     trofeosGanadosEstaTemp.push("🥇 Balón de Oro");
   }
+
+  return { rep, partidos, goles, asistencias, subidaRendimiento, bajaEdad, esPrimera, trofeosGanadosEstaTemp };
+}
+
+// ============================================================
+//  JUGAR EL PRÓXIMO PARTIDO (el del VS)
+//  Juega un partido interactivo contra el rival mostrado en la
+//  tarjeta (jugador.rivalPartidoActual). El resultado del partido
+//  se suma a la base de la temporada y después se cierra igual
+//  que cuando se juega un partido especial dentro de la simulación.
+// ============================================================
+function jugarPartidoContraRival() {
+  if (!jugador || jugador.carreraTerminada) return;
+  const b = calcularBasicoTemporada();
+  const partido = generarPartidoInteractivo();
+  if (!partido) return;
+  const rival = jugador.rivalPartidoActual || clubRivalProbable();
+  if (rival && rival.nombre && (!partido.club || rival.nombre !== partido.club.nombre)) {
+    partido.rival = rival;
+  }
+  abrirModalPartidoInteractivo(partido, function(resultado) {
+    const bonus = resultado.bonus || { goles: 0, asistencias: 0, partidos: 0 };
+    const ganastePartido = !!(resultado.marcador && resultado.marcador.club > resultado.marcador.rival);
+    resolverCierreTemporada(
+      b.partidos + (bonus.partidos || 0),
+      b.goles + (bonus.goles || 0),
+      b.asistencias + (bonus.asistencias || 0),
+      b.subidaRendimiento,
+      b.trofeosGanadosEstaTemp,
+      b.esPrimera,
+      b.bajaEdad,
+      ganastePartido
+    );
+  });
+}
+
+function simularTemporada() {
+  if (jugador.carreraTerminada) return;
+
+  const b = calcularBasicoTemporada();
+  const rep = b.rep;
+  const partidos = b.partidos;
+  const goles = b.goles;
+  const asistencias = b.asistencias;
+  const subidaRendimiento = b.subidaRendimiento;
+  const trofeosGanadosEstaTemp = b.trofeosGanadosEstaTemp;
+  const esPrimera = b.esPrimera;
+  const bajaEdad = b.bajaEdad;
 
   const esDelOcentrocampista = (jugador.posicion === "DEL" || jugador.posicion === "CM");
   const requiereMinijuegoDescenso = esDelOcentrocampista && rep <= 3 && Math.random() < CONFIG.SIM.PROB_MINIJUEGO_DESCENSO;

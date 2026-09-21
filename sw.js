@@ -6,7 +6,7 @@
 //  Para publicar una version nueva, subir CACHE_NOMBRE (v1->v2).
 // ============================================================
 
-const CACHE_NOMBRE = "pso-carrera-v26";
+const CACHE_NOMBRE = "pso-carrera-v27";
 
 const ARCHIVOS_BASE = [
   "./",

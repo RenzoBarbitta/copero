@@ -180,6 +180,7 @@ function renderCarrera() {
   if (!jugador || !jugador.clubActual) return;
   const club = jugador.clubActual;
   const rival = clubRivalProbable();
+  jugador.rivalPartidoActual = rival;
   const setVal = function(pid, v) {
     const el = document.getElementById(pid);
     if (el) el.innerText = (v == null ? "" : String(v));
@@ -262,6 +263,7 @@ function panelPartido(icono, titulo, texto, boton) {
 function renderPartido() {
   const club = jugador && jugador.clubActual ? jugador.clubActual : null;
   const rival = club ? clubRivalProbable() : null;
+  if (club && jugador) jugador.rivalPartidoActual = rival;
   if (club) {
     const cl = document.getElementById("partido-club-local");
     if (cl) cl.innerText = club.nombre;

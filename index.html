@@ -230,9 +230,9 @@
       <section id="vista-carrera" class="cp-vista">
         <div class="row g-3">
 
-          <!-- PRÓXIMO PARTIDO (VS) -->
-          <div class="col-lg-7">
-            <div class="card card-custom vs-card h-100 d-flex flex-column">
+          <!-- COLUMNA IZQUIERDA: PRÓXIMO PARTIDO + ACCIONES -->
+          <div class="col-lg-7 d-flex flex-column gap-3">
+            <div class="card card-custom vs-card flex-grow-1 d-flex flex-column">
               <div class="d-flex justify-content-between align-items-center">
                 <span class="vs-etiqueta" data-i18n="proximoPartido">Próximo partido</span>
                 <span class="badge bg-primary">T<strong id="temporada-actual">1</strong></span>
@@ -255,16 +255,29 @@
                 <strong id="carrera-partidos-aprox">25–30</strong>
               </div>
               <div class="mt-auto pt-3">
-                <button id="btn-jugar-partido" type="button" class="btn btn-pso btn-lg fw-bold w-100" onclick="simularTemporada()">
-                  <span data-i18n="simular">SIMULAR TEMPORADA</span>
+                <button id="btn-jugar-partido" type="button" class="btn btn-pso btn-lg fw-bold w-100" onclick="jugarPartidoContraRival()">
+                  <span data-i18n="jugarPartido">JUGAR PARTIDO</span>
                 </button>
+              </div>
+            </div>
+
+            <!-- ACCIONES RÁPIDAS -->
+            <div class="card card-custom">
+              <h5 data-i18n="accionesRapidas">Acciones rápidas</h5>
+              <div class="row g-2" id="acciones-rapidas">
+                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-pso w-100 fw-bold" onclick="simularTemporada()"><span class="rap-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6.3 3.4 10.5 8.55a.5.5 0 0 1 0 .8L6.3 21.3a.5.5 0 0 1-.8-.4V3.8a.5.5 0 0 1 .8-.4z" transform="rotate(-15 12 12)"/></svg></span><span data-i18n="simular">Simular temporada</span></button></div>
+                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-outline-primary w-100 fw-bold" onclick="irA('entrenamiento')"><span class="rap-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5v17"/><path d="M17.5 3.5v17"/><path d="M2.5 8v8"/><path d="M21.5 8v8"/><path d="M6.5 12h11"/></svg></span><span data-i18n="entrenar">Entrenar</span></button></div>
+                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-outline-success w-100 fw-bold" onclick="generarOfertasDeFichaje()"><span class="rap-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></svg></span><span data-i18n="mercadoPases">Mercado</span></button></div>
+                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-outline-info w-100 fw-bold" onclick="irA('progreso')"><span class="rap-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M8 17v-5"/><path d="M13 17V8"/><path d="M18 17v-8"/></svg></span><span data-i18n="stats">Stats</span></button></div>
+                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-outline-secondary w-100 fw-bold" onclick="irA('partido')"><span class="rap-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span><span data-i18n="calendario">Calendario</span></button></div>
+                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-outline-danger w-100 fw-bold" onclick="mostrarRedesSociales()"><span class="rap-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0V4"/><path d="M18 14h-8M15 18h-5M10 6h8v4h-8z"/></svg></span><span data-i18n="noticiasCarrera">Noticias</span></button></div>
               </div>
             </div>
           </div>
 
-          <!-- RESUMEN DE TEMPORADA -->
-          <div class="col-lg-5">
-            <div class="card card-custom h-100">
+          <!-- COLUMNA DERECHA: RESUMEN + REDES -->
+          <div class="col-lg-5 d-flex flex-column gap-3">
+            <div class="card card-custom">
               <h5 data-i18n="resumenTemporada">Resumen de temporada</h5>
               <div class="row g-2 text-center resumen-temp">
                 <div class="col-4"><span class="rt-label" data-i18n="thPJ">PJ</span><strong id="res-pj">0</strong></div>
@@ -279,26 +292,9 @@
                 <button id="btn-evento-unico" type="button" class="btn btn-warning w-100 hidden fw-bold" onclick="abrirModalEvento()"></button>
               </div>
             </div>
-          </div>
 
-          <!-- ACCIONES RÁPIDAS -->
-          <div class="col-lg-12">
-            <div class="card card-custom">
-              <h5 data-i18n="accionesRapidas">Acciones rápidas</h5>
-              <div class="row g-2" id="acciones-rapidas">
-                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-pso w-100 fw-bold" onclick="simularTemporada()"><span class="rap-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6.3 3.4 10.5 8.55a.5.5 0 0 1 0 .8L6.3 21.3a.5.5 0 0 1-.8-.4V3.8a.5.5 0 0 1 .8-.4z" transform="rotate(-15 12 12)"/></svg></span><span data-i18n="simular">Simular temporada</span></button></div>
-                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-outline-primary w-100 fw-bold" onclick="irA('entrenamiento')"><span class="rap-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5v17"/><path d="M17.5 3.5v17"/><path d="M2.5 8v8"/><path d="M21.5 8v8"/><path d="M6.5 12h11"/></svg></span><span data-i18n="entrenar">Entrenar</span></button></div>
-                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-outline-success w-100 fw-bold" onclick="generarOfertasDeFichaje()"><span class="rap-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></svg></span><span data-i18n="mercadoPases">Mercado</span></button></div>
-                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-outline-info w-100 fw-bold" onclick="irA('progreso')"><span class="rap-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M8 17v-5"/><path d="M13 17V8"/><path d="M18 17v-8"/></svg></span><span data-i18n="stats">Stats</span></button></div>
-                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-outline-secondary w-100 fw-bold" onclick="irA('partido')"><span class="rap-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span><span data-i18n="calendario">Calendario</span></button></div>
-                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-outline-danger w-100 fw-bold" onclick="mostrarRedesSociales()"><span class="rap-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0V4"/><path d="M18 14h-8M15 18h-5M10 6h8v4h-8z"/></svg></span><span data-i18n="noticiasCarrera">Noticias</span></button></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- NOTICIAS / ACTIVIDAD -->
-          <div class="col-lg-12">
-            <div class="card card-custom">
+            <!-- NOTICIAS / ACTIVIDAD -->
+            <div class="card card-custom flex-grow-1 d-flex flex-column">
               <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="m-0" data-i18n="noticiasCarrera">Noticias de tu carrera</h5>
                 <button type="button" class="btn btn-sm btn-outline-danger fw-bold" onclick="mostrarRedesSociales()"><span data-i18n="redesTitulo">Redes</span></button>
@@ -333,7 +329,7 @@
                   </div>
                 </div>
                 <div class="vs-info" id="partido-info-base"></div>
-                <button type="button" class="btn btn-pso btn-lg fw-bold w-100" onclick="simularTemporada()"><span data-i18n="simular">SIMULAR TEMPORADA</span></button>
+                <button type="button" class="btn btn-pso btn-lg fw-bold w-100" onclick="jugarPartidoContraRival()"><span data-i18n="jugarPartido">JUGAR PARTIDO</span></button>
                 <button id="btn-partido-evento" type="button" class="btn btn-warning w-100 hidden fw-bold" onclick="abrirModalEvento()"></button>
               </div>
               <div class="mt-3">
