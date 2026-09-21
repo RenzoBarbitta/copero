@@ -191,9 +191,7 @@ async function publicarEnNube(registro) {
   try {
     token = await window.CoperoCuenta.token();
   } catch (e) {
-    // La sesion no se pudo refrescar (vencio/revoco): descartarla para que
-    // la UI avise "Iniciá sesión" en vez de prometer un envio que no llega.
-    if (typeof window.CoperoCuenta.descartarSesion === "function") window.CoperoCuenta.descartarSesion();
+    // Sin token (sesion inexistente): no se publica y el registro queda en cola.
     return false;
   }
   // Defensa extra: SIEMPRE se publica sobre la fila del usuario en sesion,
@@ -204,13 +202,10 @@ async function publicarEnNube(registro) {
     headers: Object.assign(headersRanking(token), { Prefer: "resolution=merge-duplicates" }),
     body: JSON.stringify(cuerpo)
   });
-  // El upsert viaja con el token de la sesion: si el servidor lo rechaza la
-  // sesion quedo sin validez (vencida/revocada). Mejor limpiarla y que el
-  // jugador vuelva a entrar, en vez de quedar "pendiente" para siempre.
-  if (res.status === 401 || res.status === 403) {
-    if (typeof window.CoperoCuenta.descartarSesion === "function") window.CoperoCuenta.descartarSesion();
-    return false;
-  }
+  // 401/403 (token vencido/revocado): el registro queda EN COLA para reintentar,
+  // NUNCA se da de baja la sesion (puede ser un rechazo transitorio o de otra
+  // pestaña). Cuando la sesion recupere validez se reenvia solo.
+  if (res.status === 401 || res.status === 403) return false;
   if (!res.ok) throw new Error("HTTP " + res.status);
   return true;
 }
@@ -363,13 +358,14 @@ function detenerRefrescoRanking() {
 }
 
 // Cuando la sesión cambia (inicio/cierre de cuenta), actualizar estado y,
-// si hay sesión, intentar vaciar lo que quedó en cola de ranking.
+// si hay sesión, intentar vaciar lo que quedó en cola de ranking. NO se
+// genera un registro nuevo acá: eso solo pasa al TERMINAR una carrera.
 function onSesionCambiada() {
   try { actualizarEstadoSync(); } catch (e) { /* silencio */ }
-  if (sesionRanking() && typeof intentarEnviarRankingOnline === "function") {
+  if (sesionRanking() && typeof vaciarOutbox === "function") {
     (async function () {
       try {
-        const ok = await intentarEnviarRankingOnline();
+        const ok = await vaciarOutbox();
         if (ok) {
           try { actualizarEstadoSync(); } catch (e) { /* silencio */ }
           if (rankingAbierto) refrescarRankingVisible();

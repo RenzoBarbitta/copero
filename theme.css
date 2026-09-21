@@ -791,3 +791,22 @@ hr { border-color: var(--borde-suave); opacity: 1; }
   h1 { font-size: 1.7rem; }
   .tj-ovr-num { font-size: 2.6rem; }
 }
+
+/* ---------- DARDOS CON LOS PIBES ---------- */
+.contedor-dardos {
+  width: 100%;
+  max-width: 290px;
+  margin: 0 auto;
+}
+.contedor-dardos canvas {
+  display: block;
+  margin: 0 auto;
+  border-radius: 10px;
+  touch-action: manipulation;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+#btnTirarDardo {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}

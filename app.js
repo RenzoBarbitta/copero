@@ -82,6 +82,7 @@ let ofertasActuales = [];
 let modalInfo, modalDecision, modalFichajes, modalPenalInstance;
 let modalTLInstance, modalDominiosInstance, modalSSInstance;
 let modalRolInstance, modalPartidoInteractivoInstance, modalMomentosClaveInstance;
+let modalDardosInstance;
 let modalEntrenamientoAtributos;
 let estadoPartidoEspecial = null;
 
@@ -241,6 +242,7 @@ document.addEventListener("DOMContentLoaded", () => {
   modalPartidoInteractivoInstance = new bootstrap.Modal(document.getElementById('modalPartidoInteractivo'));
   modalMomentosClaveInstance = new bootstrap.Modal(document.getElementById('modalMomentosClave'));
   modalEntrenamientoAtributos = new bootstrap.Modal(document.getElementById('modalEntrenamientoAtributos'));
+  modalDardosInstance = new bootstrap.Modal(document.getElementById('modalDardos'));
 
   // Mostrar botón "Continuar" si hay partida guardada
   const btnContinuar = document.getElementById("btn-continuar");
@@ -364,10 +366,6 @@ const configsEventos = {
     titulo: "📸 Oferta de sponsor dudoso",
     texto: "Una marca de dudosa procedencia te ofrece plata por promocionarlos con una foto polémica.<br><br>¿Aceptás?"
   },
-  MOLESTIA: {
-    titulo: "🩹 Molestia física antes del partido",
-    texto: "Sentís una molestia en el cuerpo justo antes del partido importante.<br><br>¿Hacés la vista gorda y jugás igual, o pedís el cambio?"
-  },
   DESAFIO: {
     titulo: "🎮 Desafío de un compañero nuevo",
     texto: "Un compañero nuevo del plantel te desafía a una disputa de habilidad frente a todo el vestuario.<br><br>¿Aceptás el desafío?"
@@ -375,11 +373,15 @@ const configsEventos = {
   HINCHADA: {
     titulo: "⚽ Presión de hinchada en partido complicado",
     texto: "Vas PERDIENDO al entretiempo y la hinchada te presiona para que levantes al equipo.<br><br>¿Salís a arengarlos o te quedás callado?"
+  },
+  DARDOS: {
+    titulo: "🎯 Dardos con los Pibes",
+    texto: "ChatGPT y Topo te invitan a jugar unos dardos en el vestuario, previa al partido, para relajar.<br><br>¿Aceptás?"
   }
 };
 
 // V3: eventos nuevos con decisiones múltiples y minijuegos
-const EVENTOS_NUEVOS = ["LLE", "ENTR_EXTRA", "NOCHE_PARTIDO", "SPONSOR", "MOLESTIA", "DESAFIO", "HINCHADA"];
+const EVENTOS_NUEVOS = ["LLE", "ENTR_EXTRA", "NOCHE_PARTIDO", "SPONSOR", "DARDOS", "DESAFIO", "HINCHADA"];
 
 function esEventoNuevo(id) {
   return EVENTOS_NUEVOS.indexOf(id) !== -1;
@@ -404,10 +406,6 @@ const opcionesEventosNuevos = {
     { cod: "aceptar", cls: "btn-warning", txt: "📸 Acepto" },
     { cod: "rechazar", cls: "btn-secondary", txt: "🙅 Rechazo" }
   ],
-  MOLESTIA: [
-    { cod: "jugar", cls: "btn-warning", txt: "⚽ Juego igual" },
-    { cod: "cambio", cls: "btn-secondary", txt: "🪑 Pido el cambio" }
-  ],
   DESAFIO: [
     { cod: "aceptar", cls: "btn-warning", txt: "🎮 Acepto el desafío" },
     { cod: "rechazar", cls: "btn-secondary", txt: "🙅 No gracias" }
@@ -415,6 +413,10 @@ const opcionesEventosNuevos = {
   HINCHADA: [
     { cod: "arengar", cls: "btn-warning", txt: "📢 Salgo a arengar" },
     { cod: "callado", cls: "btn-secondary", txt: "🤐 Me quedo callado" }
+  ],
+  DARDOS: [
+    { cod: "jugar", cls: "btn-warning", txt: "🎯 Doy una" },
+    { cod: "pasar", cls: "btn-secondary", txt: "🙅 No, gracias" }
   ]
 };
 
@@ -2640,9 +2642,10 @@ function iniciarMinijuegoSecuenciaFlechas(opts) {
 
 // --- Resistencia: pulsar rapidísimo para que la barra no baje ---
 function iniciarMinijuegoResistencia(opts) {
-  const cfgR = CONFIG.RESISTENCIA || { DURACION: 6.0, TICK_MS: 100, INICIO: 50, DRAIN_POR_TICK: 2.2, SUBIDA_POR_PULSO: 14 };
+  const cfgR = CONFIG.RESISTENCIA || { DURACION: 6.0, TICK_MS: 100, INICIO: 50, DRAIN_POR_TICK: 4.0, DRAIN_RETEN: 0.08, SUBIDA_POR_PULSO: 14 };
   const duracion = (opts.duracion != null) ? opts.duracion : cfgR.DURACION;
   let energia = cfgR.INICIO;
+  let ticks = 0;
   let terminada = false;
   let timer = null;
   const inicio = Date.now();
@@ -2677,7 +2680,10 @@ function iniciarMinijuegoResistencia(opts) {
   timer = setInterval(() => {
     if (terminada) return;
     if ((Date.now() - inicio) / 1000 >= duracion) { finalizar(true); return; }
-    energia = Math.max(0, energia - cfgR.DRAIN_POR_TICK);
+    // La barra drena rapido y se pone PEOR con el paso del tiempo (dificultad progresiva)
+    const drenaje = cfgR.DRAIN_POR_TICK + (cfgR.DRAIN_RETEN || 0) * ticks;
+    energia = Math.max(0, energia - drenaje);
+    ticks++;
     pintarBarra();
     if (energia <= 0) finalizar(false);
   }, cfgR.TICK_MS);
@@ -2789,7 +2795,7 @@ function resolverEventoNuevo(id, opcion) {
     case "ENTR_EXTRA":    resolverEventoNuevoEntrenamiento(opcion); break;
     case "NOCHE_PARTIDO": resolverEventoNuevoNoche(opcion); break;
     case "SPONSOR":       resolverEventoNuevoSponsor(opcion); break;
-    case "MOLESTIA":      resolverEventoNuevoMolestia(opcion); break;
+    case "DARDOS":        resolverEventoNuevoDardos(opcion); break;
     case "DESAFIO":       resolverEventoNuevoDesafio(opcion); break;
     case "HINCHADA":      resolverEventoNuevoHinchada(opcion); break;
   }
@@ -2929,35 +2935,6 @@ function resolverEventoNuevoSponsor(opcion) {
   }
 }
 
-// 🩹 MOLESTIA FÍSICA ANTES DEL PARTIDO
-function resolverEventoNuevoMolestia(opcion) {
-  if (opcion === "cambio") {
-    cambiarMoral(-5);
-    registrarEventoFinalizado();
-    avisarEventoNuevo("🩹 Molestia física", "Pediste el cambio y te cuidaste: la molestia no pasó a más.<br><br><strong>-5 de moral.</strong>");
-    return;
-  }
-  registrarEventoFinalizado();
-  iniciarMinijuegoZona({
-    titulo: "🩹 Jugás con molestia",
-    indicacion: "Vas a jugar igual: el margen es CHIQUITO. Detené la barra justo en la zona verde bien ajustada.",
-    zona: (CONFIG.ZONA_EVENTO && CONFIG.ZONA_EVENTO.REDUCIDA) || { min: 43, max: 57 },
-    onExito: () => {
-      jugador.ovrTemporalProximoPartido = Math.max(jugador.ovrTemporalProximoPartido || 0, 2);
-      guardarPartida();
-      return "🩹🦸 ¡GUERRERO! Jugás igual con la molestia y te bancás TODO el partido.<br><br><strong>+2 OVR temporal en tu próximo partido.</strong>";
-    },
-    onFallo: () => {
-      if (Math.random() < 0.5) {
-        jugador.temporadasForzadoSegunda += 2;
-        guardarPartida();
-        return "💥 La molestia era una LESIÓN de verdad: la forzaste y quedás <strong>afuera 2 temporadas</strong>.";
-      }
-      return "🩹 Fue solo un susto: aguantaste el dolor pero sin lucirte. Saliste a tiempo.";
-    }
-  });
-}
-
 // 🎮 DESAFÍO DEL COMPAÑERO NUEVO
 function resolverEventoNuevoDesafio(opcion) {
   if (opcion === "rechazar") {
@@ -3004,6 +2981,240 @@ function resolverEventoNuevoHinchada(opcion) {
       cambiarMoral(-5);
       return "😬 Te patinó la arenga y quedó la gente fría.<br><br><strong>-5 de moral.</strong>";
     }
+  });
+}
+
+// 🎯 DARDOS CON LOS PIBES (evento de relax en el vestuario)
+function resolverEventoNuevoDardos(opcion) {
+  if (opcion === "pasar") {
+    registrarEventoFinalizado();
+    avisarEventoNuevo("🎯 Dardos con los Pibes", "Preferís quedar con la cabeza en el partido. Sin consecuencias.");
+    return;
+  }
+  registrarEventoFinalizado();
+  iniciarMinijuegoDardos();
+}
+
+function iniciarMinijuegoDardos() {
+  const cfgD = CONFIG.DARTS || {};
+  const tirosTotal = cfgD.TIROS || 3;
+  const periodo = cfgD.PERIODO_MS || 3000;
+  const espera = cfgD.ESPERA_ENTRE_TIROS_MS || 900;
+  const umbralMoral = cfgD.PUNTAJE_MORAL || 40;
+  const bonusMoral = cfgD.MORAL_BONUS || 5;
+  const anillos = cfgD.ANILLOS || [
+    { hasta: 0.14, puntos: 50 },
+    { hasta: 0.30, puntos: 25 },
+    { hasta: 0.62, puntos: 10 },
+    { hasta: 1.00, puntos: 5 }
+  ];
+
+  let tiros = 0;
+  let puntos = 0;
+  let terminado = false;
+  let tiroEnCurso = true;
+  let rafDardos = null;
+  let esperaTimer = null;
+  let inicioTiro = Date.now();
+  let angulo = Math.PI / 2;
+  const hoyos = [];
+
+  const modalEl = document.getElementById("modalDardos");
+  const contenedor = document.getElementById("contenedorDardos");
+  const marcador = document.getElementById("marcadorDardos");
+  const resultado = document.getElementById("resultadoDardos");
+  const btnTirar = document.getElementById("btnTirarDardo");
+  const instruccion = document.getElementById("instruccionDardos");
+
+  contenedor.innerHTML = "";
+  const canvas = document.createElement("canvas");
+  contenedor.appendChild(canvas);
+  const ctx = canvas.getContext("2d");
+
+  function tamano() { return Math.max(150, Math.min(280, contenedor.clientWidth || 240)); }
+  const centro = () => tamano() / 2;
+  const radio = () => tamano() / 2 - 8;
+  const colores = ["#e65c54", "#2fbf8a", "#f2e3c4", "#3d6ba8"];
+
+  // Ajusta el tamaño del canvas a su contenedor (responsive, DPI-aware).
+  function ensureDims() {
+    const tam = tamano();
+    const dpr = window.devicePixelRatio || 1;
+    if (canvas.width === Math.round(tam * dpr) && canvas.style.width === tam + "px") return;
+    canvas.width = Math.round(tam * dpr);
+    canvas.height = Math.round(tam * dpr);
+    canvas.style.width = tam + "px";
+    canvas.style.height = tam + "px";
+  }
+
+  function anilloPara(fraccionDesdeCentro) {
+    for (let i = 0; i < anillos.length; i++) {
+      if (fraccionDesdeCentro <= anillos[i].hasta) return anillos[i].puntos;
+    }
+    return anillos[anillos.length - 1].puntos;
+  }
+
+  // Posición del péndulo: 0 (borde) -> 1 (centro) -> 0 (ida y vuelta).
+  function posPendulo() {
+    const t = Date.now() - inicioTiro;
+    return 0.5 * (1 - Math.cos((t / periodo) * Math.PI * 2));
+  }
+
+  function dibujar() {
+    ensureDims();
+    const tam = tamano();
+    const c = centro();
+    const r = radio();
+    ctx.setTransform(window.devicePixelRatio || 1, 0, 0, window.devicePixelRatio || 1, 0, 0);
+    ctx.clearRect(0, 0, tam, tam);
+
+    // Marco exterior de la diana
+    ctx.fillStyle = "#10141c";
+    ctx.beginPath(); ctx.arc(c, c, r + 8, 0, Math.PI * 2); ctx.fill();
+
+    // Anillos concéntricos de puntaje (de afuera hacia adentro)
+    for (let i = anillos.length - 1; i >= 0; i--) {
+      const rOut = r * anillos[i].hasta;
+      const rIn = i > 0 ? r * anillos[i - 1].hasta : 0;
+      ctx.beginPath();
+      ctx.arc(c, c, rOut, 0, Math.PI * 2);
+      ctx.arc(c, c, rIn, 0, Math.PI * 2, true);
+      ctx.fillStyle = colores[i % colores.length];
+      ctx.fill();
+    }
+    ctx.strokeStyle = "rgba(255,255,255,0.16)";
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(c, c, r, 0, Math.PI * 2); ctx.stroke();
+
+    // Puntos por anillo (etiquetas en diagonal)
+    ctx.fillStyle = "rgba(255,255,255,0.65)";
+    ctx.font = "11px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    for (let i = 0; i < anillos.length; i++) {
+      const frac = i === 0 ? 0 : (anillos[i - 1].hasta + anillos[i].hasta) / 2;
+      const ang = -Math.PI / 4;
+      ctx.fillText(anillos[i].puntos, c + Math.cos(ang) * r * frac, c + Math.sin(ang) * r * frac + 4);
+    }
+
+    // Hoyos de tiros anteriores
+    hoyos.forEach((h) => {
+      const hr = r * (1 - h.p);
+      const hx = c + Math.cos(h.ang) * hr;
+      const hy = c + Math.sin(h.ang) * hr;
+      ctx.fillStyle = "#171b24";
+      ctx.beginPath(); ctx.arc(hx, hy, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "rgba(255,255,255,0.75)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(hx, hy, 4, 0, Math.PI * 2); ctx.stroke();
+    });
+
+    // Indicador pendular: el dardo apunta desde el centro hacia su punta.
+    if (tiroEnCurso) {
+      const p = posPendulo();
+      const tipR = r * (1 - p);
+      const tx = c + Math.cos(angulo) * tipR;
+      const ty = c + Math.sin(angulo) * tipR;
+      ctx.strokeStyle = "rgba(255,255,255,0.65)";
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(c, c); ctx.lineTo(tx, ty); ctx.stroke();
+      ctx.fillStyle = "#ffde3d";
+      ctx.beginPath(); ctx.arc(tx, ty, 6, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(tx, ty, 6, 0, Math.PI * 2); ctx.stroke();
+    }
+  }
+
+  function tirar() {
+    if (terminado || !tiroEnCurso) return;
+    const p = Math.max(0, Math.min(1, posPendulo()));
+    const pts = anilloPara(1 - p);
+    tiros++;
+    puntos += pts;
+    hoyos.push({ p: p, ang: angulo });
+    tiroEnCurso = false;
+    if (marcador) marcador.textContent = "Tiro " + tiros + "/" + tirosTotal + " · Puntos: " + puntos;
+    if (tiros < tirosTotal) {
+      if (resultado) resultado.innerHTML = "<span class='text-success fw-bold fs-5'>🎯 +" + pts + " puntos</span>";
+      esperaTimer = setTimeout(prepararTiro, espera);
+    } else {
+      if (resultado) resultado.innerHTML = "";
+      finalizar();
+    }
+  }
+
+  function prepararTiro() {
+    if (terminado) return;
+    tiroEnCurso = true;
+    inicioTiro = Date.now();
+    angulo = Math.random() * Math.PI * 2;
+    if (resultado) resultado.innerHTML = "";
+    if (instruccion) instruccion.textContent = "Tiro " + (tiros + 1) + "/" + tirosTotal + " — ¡tocá en el momento justo!";
+  }
+
+  function finalizar() {
+    if (terminado) return;
+    terminado = true;
+    if (rafDardos) { cancelAnimationFrame(rafDardos); rafDardos = null; }
+    if (esperaTimer) { clearTimeout(esperaTimer); esperaTimer = null; }
+
+    const salio = puntos >= umbralMoral;
+    if (salio) cambiarMoral(bonusMoral);
+    guardarPartida();
+
+    if (resultado) {
+      resultado.innerHTML = salio
+        ? "<div class='text-success fw-bold fs-4'>🎯 " + puntos + " puntos</div>" +
+          "<p class='mb-0'>La banda quedó relajada antes del partido. <strong>+" + bonusMoral + " de moral.</strong></p>"
+        : "<div class='text-secondary fw-bold fs-4'>🎯 " + puntos + " puntos</div>" +
+          "<p class='mb-0'>Le ganaron ChatGPT y Topo, pero no pasa nada: era una previa de relax. Sin consecuencias.</p>";
+    }
+
+    setTimeout(() => {
+      modalDardosInstance.hide();
+      verificarCambioRol();
+      actualizarInterfaz();
+    }, CONFIG.TIMING.RESULTADO_MINIJUEGO_MS);
+  }
+
+  function manejarTecla(e) {
+    if (e.code === "Space" || e.code === "Enter") {
+      e.preventDefault();
+      tirar();
+    }
+  }
+
+  function manejarTouch(e) {
+    e.preventDefault();
+    tirar();
+  }
+
+  // Si cierran el modal antes de tiempo (Escape/backdrop) se corta todo.
+  function limpiar() {
+    if (!terminado) {
+      terminado = true;
+      if (rafDardos) { cancelAnimationFrame(rafDardos); rafDardos = null; }
+      if (esperaTimer) { clearTimeout(esperaTimer); esperaTimer = null; }
+    }
+    window.removeEventListener("keydown", manejarTecla);
+    btnTirar.removeEventListener("click", tirar);
+    canvas.removeEventListener("touchstart", manejarTouch);
+    modalEl.removeEventListener("hidden.bs.modal", limpiar);
+  }
+
+  btnTirar.disabled = false;
+  btnTirar.addEventListener("click", tirar);
+  canvas.addEventListener("touchstart", manejarTouch, { passive: false });
+  window.addEventListener("keydown", manejarTecla);
+  modalEl.addEventListener("hidden.bs.modal", limpiar);
+  if (marcador) marcador.textContent = "Tiro 1/" + tirosTotal + " · Puntos: 0";
+  if (instruccion) instruccion.textContent = "Tiro 1/" + tirosTotal + " — ¡tocá en el momento justo!";
+  prepararTiro();
+  modalDardosInstance.show();
+  rafDardos = requestAnimationFrame(function loopDardos() {
+    if (terminado) { rafDardos = null; return; }
+    rafDardos = requestAnimationFrame(loopDardos);
+    dibujar();
   });
 }
 
@@ -3098,7 +3309,7 @@ const TODOS_EVENTOS = [
   "PERUANOS", "PUSKAS", "GLIZZI", "PASO", "MATUTE", "RANKEDS",
   "CERBE", "NERVA", "NITTOX", "KROSTY", "PRIMOS",
   "TAMBUPA", "COCCARO", "CHILE",
-  "LLE", "ENTR_EXTRA", "NOCHE_PARTIDO", "SPONSOR", "MOLESTIA", "DESAFIO", "HINCHADA"
+  "LLE", "ENTR_EXTRA", "NOCHE_PARTIDO", "SPONSOR", "DARDOS", "DESAFIO", "HINCHADA"
 ];
 
 function prepararSiguienteEvento() {

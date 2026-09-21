@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demo · Minijuegos en primera persona</title>
+  <link rel="stylesheet" href="minigame-firstperson.css">
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+    }
+    .page {
+      width: 100%;
+      max-width: 720px;
+      padding: 24px 16px 48px;
+    }
+    h1 { font-size: 22px; margin: 0 0 4px; }
+    .sub { color: #8b949e; font-size: 14px; margin-bottom: 20px; }
+    .variant-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .variant-buttons button {
+      flex: 1 1 auto;
+      min-width: 160px;
+      padding: 12px 14px;
+      border: 1px solid rgba(88, 166, 255, 0.45);
+      border-radius: 10px;
+      background: rgba(88, 166, 255, 0.12);
+      color: #e6edf3;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .variant-buttons button:hover { background: rgba(88, 166, 255, 0.22); }
+    .variant-buttons button.danger {
+      border-color: rgba(255, 92, 92, 0.5);
+      background: rgba(255, 92, 92, 0.12);
+    }
+    .variant-buttons button.danger:hover { background: rgba(255, 92, 92, 0.22); }
+    #stage {
+      background: #10151d;
+      border: 1px solid #21262d;
+      border-radius: 12px;
+      padding: 12px;
+      min-height: 200px;
+    }
+    #stage .empty {
+      color: #8b949e;
+      text-align: center;
+      padding: 70px 0;
+      font-size: 14px;
+    }
+    #outcome {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      background: rgba(70, 210, 150, 0.08);
+      border: 1px solid rgba(70, 210, 150, 0.3);
+      display: none;
+    }
+    #outcome.show { display: block; }
+    #outcome .choques { font-size: 13px; color: #c9d1d9; margin-bottom: 4px; }
+    #outcome .mensaje { font-weight: 700; font-size: 15px; margin-bottom: 6px; }
+    #outcome .deltas { font-size: 13px; color: #8b949e; }
+    #outcome .deltas span { font-variant-numeric: tabular-nums; }
+    .pos { color: #46d296; }
+    .neg { color: #f47067; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1>Minijuegos en primera persona</h1>
+    <p class="sub">Motor base reutilizable (canvas 2D) · demo aislada de las dos variantes.</p>
+
+    <div class="variant-buttons">
+      <button id="btn-tunnel">VARIANTE 1 · Roce con la barra brava</button>
+      <button id="btn-rain">VARIANTE 2 · Carrera bajo lluvia</button>
+      <button id="btn-close" class="danger">✕ Cerrar (destroy)</button>
+    </div>
+
+    <div id="stage"><div class="empty">Elegí una variante para arrancar el minijuego.</div></div>
+
+    <div id="outcome">
+      <div class="choques" id="out-choques"></div>
+      <div class="mensaje" id="out-mensaje"></div>
+      <div class="deltas" id="out-deltas"></div>
+    </div>
+  </div>
+
+  <script src="event-outcomes.js"></script>
+  <script src="minigame-firstperson.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var stage = document.getElementById("stage");
+      var outcome = document.getElementById("outcome");
+      var instancia = null;
+
+      // Formas de fallback por variante (obstacleSprites = null).
+      var shapesTunnel = [
+        { type: "person", colors: ["#d8b48a", "#7a1f2b"] },
+        { type: "person", colors: ["#8a5a3a", "#1f3a5f"] },
+        { type: "person", colors: ["#e6c89c", "#3a6ea5"] },
+        { type: "cam", colors: ["#23272e", "#5a86bd"] },
+        { type: "mic", colors: ["#2e3238", "#e8e8ec"] }
+      ];
+      var shapesRain = [
+        { type: "person", colors: ["#d8b48a", "#3b3f46"] },
+        { type: "car", colors: ["#b9533f", "#e8c05a"] },
+        { type: "car", colors: ["#4a6fa5", "#9cc3e6"] },
+        { type: "puddle", colors: ["#7fb2d9"] }
+      ];
+
+      // VARIANTE 1 - "Roce con la barra brava"
+      function configTunnel(onFinish) {
+        return {
+          duration: 6000,
+          obstacleInterval: 1200,
+          obstacleIntervalReduction: 0.10, // baja 10% cada 2 obstáculos
+          reductionEvery: 2,
+          obstacleSpeed: 1000,
+          obstacleSprites: null,
+          obstacleShapes: shapesTunnel,
+          background: "linear-gradient(to bottom, #0d0d14, #1d2436)",
+          showProgressBar: false,
+          rainEffect: false,
+          onFinish: onFinish
+        };
+      }
+
+      // VARIANTE 2 - "Carrera hacia el vestuario bajo lluvia"
+      function configRain(onFinish) {
+        return {
+          duration: 12000,
+          obstacleInterval: 900,
+          obstacleSpeed: 900,
+          obstacleSprites: null,
+          obstacleShapes: shapesRain,
+          background: "linear-gradient(to bottom, #2b3546, #10141c)",
+          showProgressBar: true,
+          rainEffect: true,
+          onFinish: onFinish
+        };
+      }
+
+      function lanzar(config, resolveFn, varianteTexto) {
+        if (instancia) instancia.destroy();
+        instancia = null;
+        stage.innerHTML = "";
+        outcome.classList.remove("show");
+
+        instancia = createFirstPersonDodge(stage, config((function (resolver, txt) {
+          return function (choques) {
+            var res = resolver(choques);
+            mostrarTextoEnStage(choques, res, txt);
+            instancia = null;
+          };
+        })(resolveFn, varianteTexto)));
+      }
+
+      function mostrarTextoEnStage(choques, res, txt) {
+        stage.innerHTML = "";
+        var div = document.createElement("div");
+        div.className = "empty";
+        div.innerHTML = "<strong>" + txt + " · " + choques + " choques</strong><br>Gestión del resultado (ver panel de abajo).";
+        stage.appendChild(div);
+      }
+
+      document.getElementById("btn-tunnel").addEventListener("click", function () {
+        lanzar(configTunnel, resolveTunnelEvent, "VARIANTE 1");
+      });
+      document.getElementById("btn-rain").addEventListener("click", function () {
+        lanzar(configRain, resolveLateRunEvent, "VARIANTE 2");
+      });
+      document.getElementById("btn-close").addEventListener("click", function () {
+        if (instancia) { instancia.destroy(); instancia = null; }
+        stage.innerHTML = "<div class='empty'>Cerrado (destroy ejecutado). Elegí una variante para arrancar de nuevo.</div>";
+      });
+    })();
+  </script>
+</body>
+</html>
