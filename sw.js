@@ -6,7 +6,7 @@
 //  Para publicar una version nueva, subir CACHE_NOMBRE (v1->v2).
 // ============================================================
 
-const CACHE_NOMBRE = "pso-carrera-v19";
+const CACHE_NOMBRE = "pso-carrera-v20";
 
 const ARCHIVOS_BASE = [
   "./",
@@ -15,6 +15,7 @@ const ARCHIVOS_BASE = [
   "./styles.css",
   "./app.js",
   "./data.js",
+  "./progression.js",
   "./features.js",
   "./duelo.js",
   "./camiseta.js",

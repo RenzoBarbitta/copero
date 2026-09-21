@@ -60,8 +60,8 @@ const CLUBES = [
     { nombre: "Nitegy", reputacion: 7, imagen: "imagenes/nitegy.png" },
     { nombre: "Night Ravens", reputacion: 8, imagen: "imagenes/nightravens.png" },
     { nombre: "Laferrere", reputacion: 1, imagen: "imagenes/laferrere.png" },
-    { nombre: "POD", reputacion: 7, imagen: "imagenes/podfc.png" }
-
+    { nombre: "POD", reputacion: 7, imagen: "imagenes/podfc.png" },
+    { nombre: "Xheaston", reputacion: 5, imagen: "imagenes/xheaston.png" }
 ];
 
 // Fuerza de rivalidad: 1-10 (10 = máxima rivalidad histórica)
@@ -312,13 +312,13 @@ const TEXTOS_UI = {
 };
 
 Object.assign(TEXTOS_UI.es, {
-  eventoRechazar: "Rechazar", eventoAceptar: "Aceptar", partidoTitulo: "⚽ Partido Especial Detectado", partidoTexto: "Se presenta un momento clave en la temporada. ¿Cómo querés resolverlo?", jugarMomentos: "⚽ JUGAR MOMENTOS CLAVE", simularPartido: "🎲 SIMULAR PARTIDO", tiroLibreTitulo: "🎯 Tiro Libre de Precisión", tiroLibreIndicacion: "Presiona ¡DISPARAR! cuando la barra esté en el centro.", tiroLibreBoton: "¡DISPARAR!", peleaIndicacion: "¡Presioná ESPACIO (o hacé clic) rapidísimo para defenderte!", redesTitulo: "📱 Redes Sociales", redesVacio: "Todavía no hay declaraciones sobre tu carrera.", redesResponde: "responde", viralidad: "viralidad", logrosTitulo: "🏅 Logros", logroCompletado: "✅ Completado", logroPendiente: "⬜ Pendiente", cuentaPrivacidadError: "Para crear la cuenta, leé y aceptá la Política de privacidad.", cuentaConectando: "Conectando…", cuentaRegistroOk: "Solicitud enviada. Si corresponde crear la cuenta, recibirás un correo de confirmación.", cuentaSesionOk: "Sesión iniciada.", cuentaPerfilOk: "Apodo guardado y verificado.", cuentaSesionCerrada: "Sesión cerrada. Tu carrera local no cambió.", cuentaError429: "Demasiados intentos. Esperá unos minutos antes de reintentar.", cuentaErrorAuth: "No se autorizó la operación. Revisá tu sesión y la confirmación del correo.", cuentaErrorGeneral: "No se pudo completar la operación. Revisá los datos o intentá más tarde.", cuentaErrorConexion: "No se pudo conectar con las cuentas. Revisá internet e intentá otra vez.", cuentaErrorSesion: "El servidor no devolvió una sesión válida.", cuentaErrorIniciar: "Iniciá sesión para usar tu perfil.", cuentaErrorCambio: "La sesión cambió. Iniciá sesión otra vez.", cuentaErrorCredenciales: "Completá correo y contraseña.", cuentaErrorPassword: "Usá una contraseña de al menos 8 caracteres.", cuentaErrorCancelado: "Se canceló el inicio de sesión.", cuentaErrorApodo: "El apodo debe tener entre 2 y 30 caracteres.", cuentaErrorReintentar: "La sesión cambió. Reintentá."
+  eventoRechazar: "Rechazar", eventoAceptar: "Aceptar", partidoTitulo: "⚽ Partido Especial Detectado", partidoTexto: "Se presenta un momento clave en la temporada. ¿Cómo querés resolverlo?", jugarMomentos: "⚽ JUGAR MOMENTOS CLAVE", simularPartido: "🎲 SIMULAR PARTIDO", tiroLibreTitulo: "🎯 Tiro Libre de Precisión", tiroLibreIndicacion: "Presiona ¡DISPARAR! cuando la barra esté en el centro.", tiroLibreBoton: "¡DISPARAR!", peleaIndicacion: "¡Presioná ESPACIO (o hacé clic) rapidísimo para defenderte!", redesTitulo: "📱 Redes Sociales", redesVacio: "Todavía no hay declaraciones sobre tu carrera.", redesResponde: "responde", viralidad: "viralidad", logrosTitulo: "🏅 Logros", logroCompletado: "✅ Completado", logroPendiente: "⬜ Pendiente", entrenarAtributos: "🏋️ Entrenar Atributos", entrenamientoTitulo: "🏋️ Centro de Entrenamiento", entrenamientoElige: "Elegí un atributo para entrenar esta temporada. Verás el progreso antes y después.", entrenamientoAgotado: "Ya entrenaste en esta temporada. Avanzá a la próxima para volver a entrenar.", entrenamientoFallido: "Práctica sin frutos hoy. El atributo no subió, pero la sesión quedó usada.", entrenamientoTecho: "Este atributo ya llegó a su tope del club actual.", atributoOVR: "OVR", cuentaPrivacidadError: "Para crear la cuenta, leé y aceptá la Política de privacidad.", cuentaConectando: "Conectando…", cuentaRegistroOk: "Solicitud enviada. Si corresponde crear la cuenta, recibirás un correo de confirmación.", cuentaSesionOk: "Sesión iniciada.", cuentaPerfilOk: "Apodo guardado y verificado.", cuentaSesionCerrada: "Sesión cerrada. Tu carrera local no cambió.", cuentaError429: "Demasiados intentos. Esperá unos minutos antes de reintentar.", cuentaErrorAuth: "No se autorizó la operación. Revisá tu sesión y la confirmación del correo.", cuentaErrorGeneral: "No se pudo completar la operación. Revisá los datos o intentá más tarde.", cuentaErrorConexion: "No se pudo conectar con las cuentas. Revisá internet e intentá otra vez.", cuentaErrorSesion: "El servidor no devolvió una sesión válida.", cuentaErrorIniciar: "Iniciá sesión para usar tu perfil.", cuentaErrorCambio: "La sesión cambió. Iniciá sesión otra vez.", cuentaErrorCredenciales: "Completá correo y contraseña.", cuentaErrorPassword: "Usá una contraseña de al menos 8 caracteres.", cuentaErrorCancelado: "Se canceló el inicio de sesión.", cuentaErrorApodo: "El apodo debe tener entre 2 y 30 caracteres.", cuentaErrorReintentar: "La sesión cambió. Reintentá."
 });
 Object.assign(TEXTOS_UI.en, {
-  eventoRechazar: "Reject", eventoAceptar: "Accept", partidoTitulo: "⚽ Special Match Detected", partidoTexto: "A key moment appears in the season. How do you want to resolve it?", jugarMomentos: "⚽ PLAY KEY MOMENTS", simularPartido: "🎲 SIMULATE MATCH", tiroLibreTitulo: "🎯 Precision Free Kick", tiroLibreIndicacion: "Press SHOOT when the bar is in the center.", tiroLibreBoton: "SHOOT!", peleaIndicacion: "Press SPACE (or click) as fast as you can to defend yourself!", redesTitulo: "📱 Social Media", redesVacio: "There are no statements about your career yet.", redesResponde: "replies", viralidad: "virality", logrosTitulo: "🏅 Achievements", logroCompletado: "✅ Completed", logroPendiente: "⬜ Pending", cuentaPrivacidadError: "To create the account, read and accept the Privacy Policy.", cuentaConectando: "Connecting…", cuentaRegistroOk: "Request sent. If the account can be created, you will receive a confirmation email.", cuentaSesionOk: "Signed in.", cuentaPerfilOk: "Nickname saved and verified.", cuentaSesionCerrada: "Signed out. Your local career was not changed.", cuentaError429: "Too many attempts. Wait a few minutes before trying again.", cuentaErrorAuth: "The operation was not authorized. Check your session and email confirmation.", cuentaErrorGeneral: "The operation could not be completed. Check the data and try again later.", cuentaErrorConexion: "Could not connect to accounts. Check your internet and try again.", cuentaErrorSesion: "The server did not return a valid session.", cuentaErrorIniciar: "Sign in to use your profile.", cuentaErrorCambio: "The session changed. Sign in again.", cuentaErrorCredenciales: "Complete your email and password.", cuentaErrorPassword: "Use a password with at least 8 characters.", cuentaErrorCancelado: "Sign-in was canceled.", cuentaErrorApodo: "The nickname must be between 2 and 30 characters.", cuentaErrorReintentar: "The session changed. Try again."
+  eventoRechazar: "Reject", eventoAceptar: "Accept", partidoTitulo: "⚽ Special Match Detected", partidoTexto: "A key moment appears in the season. How do you want to resolve it?", jugarMomentos: "⚽ PLAY KEY MOMENTS", simularPartido: "🎲 SIMULATE MATCH", tiroLibreTitulo: "🎯 Precision Free Kick", tiroLibreIndicacion: "Press SHOOT when the bar is in the center.", tiroLibreBoton: "SHOOT!", peleaIndicacion: "Press SPACE (or click) as fast as you can to defend yourself!", redesTitulo: "📱 Social Media", redesVacio: "There are no statements about your career yet.", redesResponde: "replies", viralidad: "virality", logrosTitulo: "🏅 Achievements", logroCompletado: "✅ Completed", logroPendiente: "⬜ Pending", entrenarAtributos: "🏋️ Train Attributes", entrenamientoTitulo: "🏋️ Training Center", entrenamientoElige: "Choose an attribute to train this season. You will see the progress before and after.", entrenamientoAgotado: "You already trained this season. Move on to the next one to train again.", entrenamientoFallido: "No progress today. The attribute did not improve, but the session was used.", entrenamientoTecho: "This attribute has reached your current club's ceiling.", atributoOVR: "OVR", cuentaPrivacidadError: "To create the account, read and accept the Privacy Policy.", cuentaConectando: "Connecting…", cuentaRegistroOk: "Request sent. If the account can be created, you will receive a confirmation email.", cuentaSesionOk: "Signed in.", cuentaPerfilOk: "Nickname saved and verified.", cuentaSesionCerrada: "Signed out. Your local career was not changed.", cuentaError429: "Too many attempts. Wait a few minutes before trying again.", cuentaErrorAuth: "The operation was not authorized. Check your session and email confirmation.", cuentaErrorGeneral: "The operation could not be completed. Check the data and try again later.", cuentaErrorConexion: "Could not connect to accounts. Check your internet and try again.", cuentaErrorSesion: "The server did not return a valid session.", cuentaErrorIniciar: "Sign in to use your profile.", cuentaErrorCambio: "The session changed. Sign in again.", cuentaErrorCredenciales: "Complete your email and password.", cuentaErrorPassword: "Use a password with at least 8 characters.", cuentaErrorCancelado: "Sign-in was canceled.", cuentaErrorApodo: "The nickname must be between 2 and 30 characters.", cuentaErrorReintentar: "The session changed. Try again."
 });
 Object.assign(TEXTOS_UI.pt, {
-  eventoRechazar: "Recusar", eventoAceptar: "Aceitar", partidoTitulo: "⚽ Partida especial detectada", partidoTexto: "Surge um momento decisivo na temporada. Como você quer resolvê-lo?", jugarMomentos: "⚽ JOGAR MOMENTOS DECISIVOS", simularPartido: "🎲 SIMULAR PARTIDA", tiroLibreTitulo: "🎯 Cobrança de falta precisa", tiroLibreIndicacion: "Pressione CHUTAR quando a barra estiver no centro.", tiroLibreBoton: "CHUTAR!", peleaIndicacion: "Pressione ESPAÇO (ou clique) o mais rápido possível para se defender!", redesTitulo: "📱 Redes sociais", redesVacio: "Ainda não há declarações sobre a sua carreira.", redesResponde: "responde", viralidad: "viralidade", logrosTitulo: "🏅 Conquistas", logroCompletado: "✅ Concluído", logroPendiente: "⬜ Pendente", cuentaPrivacidadError: "Para criar a conta, leia e aceite a Política de privacidade.", cuentaConectando: "Conectando…", cuentaRegistroOk: "Solicitação enviada. Se a conta puder ser criada, você receberá um e-mail de confirmação.", cuentaSesionOk: "Sessão iniciada.", cuentaPerfilOk: "Apelido salvo e verificado.", cuentaSesionCerrada: "Sessão encerrada. Sua carreira local não foi alterada.", cuentaError429: "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.", cuentaErrorAuth: "A operação não foi autorizada. Verifique sua sessão e a confirmação do e-mail.", cuentaErrorGeneral: "Não foi possível concluir a operação. Verifique os dados e tente novamente mais tarde.", cuentaErrorConexion: "Não foi possível conectar às contas. Verifique a internet e tente novamente.", cuentaErrorSesion: "O servidor não retornou uma sessão válida.", cuentaErrorIniciar: "Entre na sua conta para usar o perfil.", cuentaErrorCambio: "A sessão mudou. Entre novamente.", cuentaErrorCredenciales: "Preencha o e-mail e a senha.", cuentaErrorPassword: "Use uma senha com pelo menos 8 caracteres.", cuentaErrorCancelado: "A entrada foi cancelada.", cuentaErrorApodo: "O apelido deve ter entre 2 e 30 caracteres.", cuentaErrorReintentar: "A sessão mudou. Tente novamente."
+  eventoRechazar: "Recusar", eventoAceptar: "Aceitar", partidoTitulo: "⚽ Partida especial detectada", partidoTexto: "Surge um momento decisivo na temporada. Como você quer resolvê-lo?", jugarMomentos: "⚽ JOGAR MOMENTOS DECISIVOS", simularPartido: "🎲 SIMULAR PARTIDA", tiroLibreTitulo: "🎯 Cobrança de falta precisa", tiroLibreIndicacion: "Pressione CHUTAR quando a barra estiver no centro.", tiroLibreBoton: "CHUTAR!", peleaIndicacion: "Pressione ESPAÇO (ou clique) o mais rápido possível para se defender!", redesTitulo: "📱 Redes sociais", redesVacio: "Ainda não há declarações sobre a sua carreira.", redesResponde: "responde", viralidad: "viralidade", logrosTitulo: "🏅 Conquistas", logroCompletado: "✅ Concluído", logroPendiente: "⬜ Pendente", entrenarAtributos: "🏋️ Treinar Atributos", entrenamientoTitulo: "🏋️ Centro de Treinamento", entrenamientoElige: "Escolha um atributo para treinar nesta temporada. Você verá o progresso antes e depois.", entrenamientoAgotado: "Você já treinou nesta temporada. Avance para a próxima para treinar de novo.", entrenamientoFallido: "Sem frutos hoje. O atributo não subiu, mas a sessão foi usada.", entrenamientoTecho: "Este atributo já chegou ao teto do seu clube atual.", atributoOVR: "OVR", cuentaPrivacidadError: "Para criar a conta, leia e aceite a Política de privacidade.", cuentaConectando: "Conectando…", cuentaRegistroOk: "Solicitação enviada. Se a conta puder ser criada, você receberá um e-mail de confirmação.", cuentaSesionOk: "Sessão iniciada.", cuentaPerfilOk: "Apelido salvo e verificado.", cuentaSesionCerrada: "Sessão encerrada. Sua carreira local não foi alterada.", cuentaError429: "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.", cuentaErrorAuth: "A operação não foi autorizada. Verifique sua sessão e a confirmação do e-mail.", cuentaErrorGeneral: "Não foi possível concluir a operação. Verifique os dados e tente novamente mais tarde.", cuentaErrorConexion: "Não foi possível conectar às contas. Verifique a internet e tente novamente.", cuentaErrorSesion: "O servidor não retornou uma sessão válida.", cuentaErrorIniciar: "Entre na sua conta para usar o perfil.", cuentaErrorCambio: "A sessão mudou. Entre novamente.", cuentaErrorCredenciales: "Preencha o e-mail e a senha.", cuentaErrorPassword: "Use uma senha com pelo menos 8 caracteres.", cuentaErrorCancelado: "A entrada foi cancelada.", cuentaErrorApodo: "O apelido deve ter entre 2 e 30 caracteres.", cuentaErrorReintentar: "A sessão mudou. Tente novamente."
 });
 
 // 6. CONFIGURACION GLOBAL (balance del juego centralizado)
@@ -460,6 +460,58 @@ Object.assign(CONFIG, {
   RIVALIDADES: {
     PROB_DECLARACION_RIVAL: 0.50,
     FORTALEZA_MINIMA: 5
+  },
+
+  // ============ SISTEMA DE PROGRESION (atributos -> OVR) ============
+  // ENTRENAMIENTO = el jugador elige el atributo y ve su progreso.
+  // EVENTO = el juego decide como progresa y el usuario solo ve MEDIA.
+  PROGRESION: {
+    OVR_INICIAL_NORMAL: 65,
+    OVR_INICIAL_PROMESA: 75,
+    ATR_MIN: 20,
+    ATR_MAX: 99,
+    // Progresion base del entrenamiento: +1 (60%), +2 (30%), +3 (10%)
+    PROB_SUBIDA: [0.60, 0.30, 0.10],
+    // Penalidad de progresion segun el valor actual del atributo
+    DIFICULTAD_RANGOS: [
+      { hasta: 69, factor: 1.0 },
+      { hasta: 79, factor: 0.90 },
+      { hasta: 89, factor: 0.75 },
+      { hasta: 94, factor: 0.50 },
+      { hasta: 98, factor: 0.25 }
+    ],
+    // Atributos de campo (6) y de arquero (6), escala 0-99
+    ATRIBUTOS_CAMPO: ["VEL", "PAS", "REM", "DEF", "REG", "RES"],
+    ATRIBUTOS_ARQUERO: ["REF", "PAS", "DEF", "REG", "MAN", "SAL"],
+    NOMBRES_ATRIBUTOS: {
+      VEL: "Velocidad", PAS: "Pase", REM: "Remate", DEF: "Defensa",
+      REG: "Regate", RES: "Resistencia", REF: "Reflejos",
+      MAN: "Mano a Mano", SAL: "Salidas"
+    },
+    // OVR = media ponderada segun la posicion (los pesos suman 1)
+    PESOS: {
+      DEL: { VEL: 0.15, PAS: 0.15, REM: 0.30, DEF: 0.10, REG: 0.20, RES: 0.10 },
+      CM:  { VEL: 0.15, PAS: 0.25, REM: 0.20, DEF: 0.10, REG: 0.20, RES: 0.10 },
+      DEF: { VEL: 0.12, PAS: 0.15, REM: 0.08, DEF: 0.30, REG: 0.15, RES: 0.20 },
+      GK:  { REF: 0.25, PAS: 0.15, DEF: 0.25, REG: 0.10, MAN: 0.15, SAL: 0.10 }
+    },
+    // Valores base por posicion (OVR resultante ~ 65)
+    BASE: {
+      DEL: { VEL: 62, PAS: 60, REM: 70, DEF: 58, REG: 68, RES: 62 },
+      CM:  { VEL: 60, PAS: 70, REM: 62, DEF: 58, REG: 68, RES: 62 },
+      DEF: { VEL: 60, PAS: 62, REM: 55, DEF: 72, REG: 60, RES: 68 },
+      GK:  { REF: 68, PAS: 58, DEF: 68, REG: 56, MAN: 68, SAL: 60 }
+    },
+    // Puntos de Partido / Decision: costos configurables
+    COSTOS_PP: {
+      RECUPERACION: 3,       // recuperar moral/fisico
+      ENTRENO_EXTRA: 5,      // entrenamiento adicional en la temporada
+      PROTECCION_EVENTO: 4,  // anula la proxima penalidad de evento
+      BONUS_TEMPORAL: 6      // bonus de moral por la temporada
+    },
+    COSTOS_PD: {
+      SESION_ESPECIAL: 2     // decision especial del entrenador
+    }
   }
 });
 

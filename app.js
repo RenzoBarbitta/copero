@@ -13,6 +13,7 @@ function crearJugadorInicial() {
     posicion: "DEL",
     edad: CONFIG.EDAD_INICIO,
     media: 60,
+    atributos: null,
     clubActual: null,
     temporadaActual: 1,
     temporadasForzadoSegunda: 0,
@@ -72,6 +73,7 @@ let ofertasActuales = [];
 let modalInfo, modalDecision, modalFichajes, modalPenalInstance;
 let modalTLInstance, modalDominiosInstance, modalSSInstance;
 let modalRolInstance, modalPartidoInteractivoInstance, modalMomentosClaveInstance;
+let modalEntrenamientoAtributos;
 let estadoPartidoEspecial = null;
 
 // Variables de minijuegos
@@ -106,7 +108,15 @@ function clampMedia(valor) {
 }
 
 function sumarMedia(delta) {
-  jugador.media = clampMedia(jugador.media + delta);
+  // Mecánica de progresión: el delta se reparte en atributos ocultos y la
+  // media se recalcula desde ellos (OVR derivado). Si no hay atributos
+  // (guardado viejo sin migrar), cae atrás al valor simple.
+  if (jugador.atributos && typeof window.calcularOVR === "function" && typeof window.aplicarCambioMediaOculto === "function") {
+    const nuevo = window.aplicarCambioMediaOculto(jugador.atributos, jugador.posicion, delta);
+    jugador.media = clampMedia(nuevo);
+  } else {
+    jugador.media = clampMedia(jugador.media + delta);
+  }
 }
 
 // Fallback visual: si falta la imagen de un badge, muestra el emoji del rol
@@ -177,6 +187,12 @@ function cargarPartida() {
       data.clubActual = encontrado || data.clubActual;
     }
     jugador = Object.assign(crearJugadorInicial(), data);
+    // Migración: guardados anteriores a la progresión por atributos no
+    // tienen jugador.atributos. Se generan coherentes con la media actual.
+    if (!jugador.atributos && typeof window.generarAtributosConOVR === "function" && typeof window.calcularOVR === "function") {
+      jugador.atributos = window.generarAtributosConOVR(jugador.posicion, jugador.media);
+      jugador.media = window.calcularOVR(jugador.atributos, jugador.posicion);
+    }
     if (typeof jugador.division !== "number") {
       sincronizarDivision();
     }
@@ -215,6 +231,7 @@ document.addEventListener("DOMContentLoaded", () => {
   modalRolInstance = new bootstrap.Modal(document.getElementById('modalRol'));
   modalPartidoInteractivoInstance = new bootstrap.Modal(document.getElementById('modalPartidoInteractivo'));
   modalMomentosClaveInstance = new bootstrap.Modal(document.getElementById('modalMomentosClave'));
+  modalEntrenamientoAtributos = new bootstrap.Modal(document.getElementById('modalEntrenamientoAtributos'));
 
   // Mostrar botón "Continuar" si hay partida guardada
   const btnContinuar = document.getElementById("btn-continuar");
@@ -318,7 +335,8 @@ const configsEventos = {
     b: { texto: "🙅 Rechazás", desc: "Opción B" }
     }
   },
-  COCCARO: { titulo: "Invitación por plata", texto: "Coccaro te invita a jugar a su equipo LAFERRERE a cambio de plata.<br><br>¿Aceptas?" }
+  COCCARO: { titulo: "Invitación por plata", texto: "Coccaro te invita a jugar a su equipo LAFERRERE a cambio de plata.<br><br>¿Aceptas?" },
+  CHILE: { titulo: "Viaje a Chile", texto: "Mati te invita a su casa en Chile.<br><br>¿Vas?" }
 };
 
 function eventoEnIdioma(config) {
@@ -1332,6 +1350,14 @@ function iniciarCarrera() {
   jugador.nombre = nombreInput;
   jugador.posicion = posicionInput;
   const nacePromesa = Math.random() < CONFIG.PROMESA.PROB;
+  // Progresión por atributos: genera un perfil coherente y la media
+  // (OVR) se deriva de los atributos (65 normal / 75 promesa).
+  if (typeof window.generarAtributosIniciales === "function" && typeof window.calcularOVR === "function") {
+    jugador.atributos = window.generarAtributosIniciales(posicionInput, nacePromesa);
+    jugador.media = window.calcularOVR(jugador.atributos, posicionInput);
+  } else if (nacePromesa) {
+    jugador.media = CONFIG.PROMESA.OVR_INICIAL;
+  }
   const poolClubesPromesa = (CLUBES || []).filter(function(c) {
     return c && c.reputacion >= CONFIG.PROMESA.REPUTACION_MIN;
   }).sort(function(a, b) {
@@ -1342,7 +1368,6 @@ function iniciarCarrera() {
     : CLUBES[Math.floor(Math.random() * CLUBES.length)];
   sincronizarDivision();
   if (nacePromesa) {
-    jugador.media = CONFIG.PROMESA.OVR_INICIAL;
     mostrarNotificacion(
       "🌟 ¡Ha nacido una promesa!",
       "<strong>" + jugador.nombre + "</strong> llega con un talento excepcional.<br><br>" +
@@ -1426,14 +1451,14 @@ function simularTemporada() {
 
   const maxMedia = (typeof REGLAS_MEDIA !== "undefined" && REGLAS_MEDIA[rep]) || CONFIG.OVR_MAX;
   if (subidaRendimiento > 0 && jugador.media < maxMedia) {
-    jugador.media = Math.min(maxMedia, jugador.media + subidaRendimiento);
+    sumarMedia(Math.min(subidaRendimiento, maxMedia - jugador.media));
   }
 
   // --- DECLIVE POR EDAD ---
   // Desde los 31 empieza el declive; después de los 31 se acentúa más.
   const bajaEdad = calcularDecliveEdad(jugador.edad);
   if (bajaEdad > 0) {
-    jugador.media = Math.max(CONFIG.OVR_MIN, jugador.media - bajaEdad);
+    sumarMedia(-Math.min(bajaEdad, jugador.media - CONFIG.OVR_MIN));
   }
 
   const esPrimera = jugador.division === 1 && jugador.temporadasForzadoSegunda === 0;
@@ -2119,6 +2144,17 @@ function resolverEvento(acepta) {
         break;
       }
 
+      case "CHILE": {
+        if (random <= 0.5) {
+          sumarMedia(3);
+          resultadoTxt = "🇨🇱 Tiembla mientras jugás con Mati, pero él ni se levanta. Aprendés a mantener la calma bajo presión (+3 OVR).";
+        } else {
+          sumarMedia(-3);
+          resultadoTxt = "🇨🇱 Vas, no le entendés a nadie y tiembla todo (-3 OVR).";
+        }
+        break;
+      }
+
       case "ACUSADO": {
         // Evento obligatorio: el SS se ejecuta sí o sí. "Sí" y "cerrar el
         // modal" terminan acá.
@@ -2345,7 +2381,7 @@ const TODOS_EVENTOS = [
   "ORSINI", "NICOBAILARIN", "RONNIE", "BAREIRO", "MUSA", "KOLT", "VIEJO", "PISA",
   "PERUANOS", "PUSKAS", "GLIZZI", "PASO", "MATUTE", "RANKEDS",
   "CERBE", "NERVA", "NITTOX", "KROSTY", "PRIMOS",
-  "TAMBUPA", "COCCARO"
+  "TAMBUPA", "COCCARO", "CHILE"
 ];
 
 function prepararSiguienteEvento() {
@@ -2430,7 +2466,7 @@ function entrenar() {
   if (Math.random() <= exitoProb) {
     const maxMedia = (typeof REGLAS_MEDIA !== "undefined" && REGLAS_MEDIA[jugador.clubActual.reputacion]) || CONFIG.OVR_MAX;
     if (jugador.media < maxMedia) {
-      jugador.media = Math.min(maxMedia, jugador.media + incremento);
+      sumarMedia(Math.min(incremento, maxMedia - jugador.media));
       txtRes += `<span class="text-success fw-bold">¡Progreso! Aumentaste tu nivel.</span>`;
       sonidoExito();
     } else {
@@ -2447,6 +2483,99 @@ function entrenar() {
     verificarCambioRol();
     actualizarInterfaz();
   });
+  actualizarInterfaz();
+}
+
+// ============================================================
+//  ENTRENAMIENTO POR ATRIBUTOS (sistema separado)
+//  El jugador elige el atributo, ve el antes/después y la OVR.
+// ============================================================
+const EMOJI_ATRIBUTO = {
+  VEL: "⚡", PAS: "🎯", REM: "🥅", DEF: "🛡️", REG: "🌀",
+  RES: "💪", REF: "🧤", MAN: "🖐️", SAL: "🧤"
+};
+
+function entrenamientoAtributosAgotado() {
+  return jugador.carreraTerminada || jugador.entrenamientosUsadosEstaTemporada >= CONFIG.ENTRENAMIENTOS_POR_TEMPORADA;
+}
+
+function abrirEntrenamientoAtributos() {
+  if (!jugador.atributos || typeof window.atributosDePosicion !== "function") return;
+
+  if (entrenamientoAtributosAgotado()) {
+    if (typeof t === "function") {
+      mostrarNotificacion(t("entrenamientoTitulo"), t("entrenamientoAgotado"));
+    } else {
+      mostrarNotificacion("Centro de Entrenamiento", "Ya entrenaste en esta temporada.");
+    }
+    return;
+  }
+
+  const contenedor = document.getElementById("botonesEntrenamiento");
+  const resultado = document.getElementById("resultadoEntrenamiento");
+  if (resultado) resultado.innerHTML = "";
+  if (!contenedor) return;
+
+  contenedor.innerHTML = "";
+  window.atributosDePosicion(jugador.posicion).forEach(function(attr) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn btn-outline-primary fw-bold d-block w-100 mb-2 text-start";
+    btn.onclick = function() { entrenarAtributoVisible(attr); };
+    const nombre = (typeof window.nombreAtributo === "function") ? window.nombreAtributo(attr) : attr;
+    const emoji = EMOJI_ATRIBUTO[attr] || "🎽";
+    btn.innerHTML = `<span class="me-1">${emoji}</span> ${attr} — ${nombre} <span class="badge bg-primary-subtle text-primary border ms-1">${jugador.atributos[attr] != null ? jugador.atributos[attr] : "?"}</span>`;
+    contenedor.appendChild(btn);
+  });
+
+  if (modalEntrenamientoAtributos) modalEntrenamientoAtributos.show();
+}
+
+function entrenarAtributoVisible(attr) {
+  if (entrenamientoAtributosAgotado()) return;
+  if (!jugador.atributos || typeof window.entrenarAtributo !== "function") return;
+
+  const valorAntes = jugador.atributos[attr];
+  const resultado = window.entrenarAtributo(jugador.atributos, attr, jugador.posicion);
+  const contenedorBotones = document.getElementById("botonesEntrenamiento");
+  const contenedorResultado = document.getElementById("resultadoEntrenamiento");
+
+  jugador.entrenamientosUsadosEstaTemporada = 1;
+  if (typeof window.calcularOVR === "function") {
+    jugador.media = window.calcularOVR(jugador.atributos, jugador.posicion);
+  }
+
+  if (contenedorBotones) {
+    Array.prototype.forEach.call(contenedorBotones.querySelectorAll("button"), function(b) { b.disabled = true; });
+  }
+
+  const nombre = (typeof window.nombreAtributo === "function") ? window.nombreAtributo(attr) : attr;
+  const tAtributo = typeof t === "function" ? t : function(c) { return c; };
+
+  if (contenedorResultado) {
+    if (resultado.exitoso) {
+      contenedorResultado.innerHTML = `
+        <div class="border rounded p-3 bg-success bg-opacity-10">
+          <h6 class="text-center mb-2 fw-bold text-success">🎯 ${nombre.toUpperCase()}</h6>
+          <p class="text-center mb-1 fs-4">
+            <span class="text-muted fw-bold">${valorAntes}</span>
+            <span class="mx-2 text-muted">→</span>
+            <span class="fw-bold text-success">${resultado.nuevoValor}</span>
+            <span class="ms-2 badge bg-success fw-bold">+${resultado.delta}</span>
+          </p>
+          <p class="text-center mb-0 text-secondary">${tAtributo("atributoOVR")} <span class="fw-bold text-primary">${resultado.ovrAntes} → ${resultado.ovrDespues}</span></p>
+        </div>`;
+      sonidoExito();
+      verificarCambioRol();
+    } else if (resultado.motivo === "techo") {
+      contenedorResultado.innerHTML = `<div class="border rounded p-3 bg-warning bg-opacity-10"><p class="text-center mb-0 fw-bold text-warning">⛔ ${tAtributo("entrenamientoTecho")}</p></div>`;
+    } else {
+      contenedorResultado.innerHTML = `<div class="border rounded p-3 bg-warning bg-opacity-10"><p class="text-center mb-0 fw-bold text-warning">😕 ${tAtributo("entrenamientoFallido")}</p></div>`;
+      sonidoError();
+    }
+  }
+
+  guardarPartida();
   actualizarInterfaz();
 }
 
@@ -2597,8 +2726,24 @@ function actualizarInterfaz() {
   document.getElementById("j-nombre").innerText = jugador.nombre;
   document.getElementById("j-posicion").innerText = jugador.posicion;
   document.getElementById("j-edad").innerText = jugador.edad;
-  document.getElementById("j-media").innerText = jugador.media;
+  const ovrActual = (jugador.atributos && typeof window.calcularOVR === "function")
+    ? window.calcularOVR(jugador.atributos, jugador.posicion)
+    : jugador.media;
+  document.getElementById("j-media").innerText = ovrActual;
   document.getElementById("j-club").innerText = jugador.clubActual ? jugador.clubActual.nombre : "Sin Club";
+
+  // Panel de atributos (progresión por atributos)
+  const elAtributos = document.getElementById("j-atributos");
+  if (elAtributos) {
+    if (jugador.atributos && typeof window.atributosDePosicion === "function" && typeof window.nombreAtributo === "function") {
+      const listado = window.atributosDePosicion(jugador.posicion)
+        .map(function(a) { return (window.nombreAtributo(a) || a) + " " + jugador.atributos[a]; })
+        .join(" · ");
+      elAtributos.innerText = "⚙️ " + listado;
+    } else {
+      elAtributos.innerText = "";
+    }
+  }
 
   const imgClub = document.getElementById("club-img");
   if (jugador.clubActual && jugador.clubActual.imagen) {
@@ -2626,9 +2771,14 @@ function actualizarInterfaz() {
     `;
   }
 
+  const entrenamientoAgotado = jugador.entrenamientosUsadosEstaTemporada >= CONFIG.ENTRENAMIENTOS_POR_TEMPORADA;
   const btnEntrenar = document.getElementById("btn-entrenar");
   if (btnEntrenar) {
-    btnEntrenar.disabled = jugador.entrenamientosUsadosEstaTemporada >= CONFIG.ENTRENAMIENTOS_POR_TEMPORADA;
+    btnEntrenar.disabled = entrenamientoAgotado;
+  }
+  const btnEntrenarAtributos = document.getElementById("btn-entrenar-atributos");
+  if (btnEntrenarAtributos) {
+    btnEntrenarAtributos.disabled = entrenamientoAgotado;
   }
 
   // Etiqueta del botón de minijuego específico

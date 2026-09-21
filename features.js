@@ -973,13 +973,32 @@ simularTemporada = function() {
   const mediaOriginal = jugador.media;
   const ajusteMoral = Math.round((jugador.moral - 50) * CONFIG.MORAL_EFECTO * 0.2);
   const mediaConBonus = clampMedia(mediaOriginal + ajusteMoral);
-  jugador.media = mediaConBonus;
+
+  // El bonus de moral es temporal: se aplica a los atributos durante la
+  // simulación (manteniendo OVR == media) y se revierte al final.
+  const hayProgresion = typeof window !== "undefined"
+    && typeof window.aplicarCambioMediaOculto === "function"
+    && typeof window.calcularOVR === "function"
+    && !!jugador.atributos;
+  if (hayProgresion) {
+    window.aplicarCambioMediaOculto(jugador.atributos, jugador.posicion, mediaConBonus - jugador.media);
+    jugador.media = window.calcularOVR(jugador.atributos, jugador.posicion);
+  } else {
+    jugador.media = mediaConBonus;
+  }
 
   _simularTemporadaBase();
 
   // Preservar el delta real de la simulación y quitar el bonus temporal de moral
   const deltaBase = jugador.media - mediaConBonus;
-  jugador.media = clampMedia(mediaOriginal + deltaBase);
+  const mediaFinal = clampMedia(mediaOriginal + deltaBase);
+  if (hayProgresion) {
+    const actual = window.calcularOVR(jugador.atributos, jugador.posicion);
+    window.aplicarCambioMediaOculto(jugador.atributos, jugador.posicion, mediaFinal - actual);
+    jugador.media = clampMedia(window.calcularOVR(jugador.atributos, jugador.posicion));
+  } else {
+    jugador.media = mediaFinal;
+  }
 
   const ultima = jugador.historialTemporadas[jugador.historialTemporadas.length - 1];
   if (ultima) ultima.media = jugador.media;
