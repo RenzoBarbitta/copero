@@ -849,7 +849,8 @@ function renderizarFeedRedes() {
   if (!contenedores.length) return;
   const posts = jugador.redesSociales.feed.slice(-3).reverse();
   if (!posts.length) {
-    contenedores.forEach(function(cont) { cont.innerHTML = "<p class='text-secondary text-center mb-0'>" + t("redesVacio") + "</p>"; });
+    const vacio = "<div class='vacio'><div class='vacio-icono' aria-hidden='true'><svg viewBox='0 0 24 24' width='22' height='22' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0V4'/><path d='M18 14h-8M15 18h-5M10 6h8v4h-8z'/></svg></div><div class='vacio-titulo'>" + t("sinNoticiasTitulo") + "</div><div class='vacio-texto'>" + t("sinNoticiasTexto") + "</div><button type='button' class='btn btn-outline-danger btn-sm fw-bold' onclick='mostrarRedesSociales()'>" + t("redesTitulo") + "</button></div>";
+    contenedores.forEach(function(cont) { cont.innerHTML = vacio; });
     return;
   }
   const html = posts.map(function(post) {

@@ -1478,125 +1478,123 @@ function calcularBasicoTemporada() {
 }
 
 // ============================================================
-//  JUGAR EL PRÓXIMO PARTIDO (el del VS)
-//  Juega un partido interactivo contra el rival mostrado en la
-//  tarjeta (jugador.rivalPartidoActual). El resultado del partido
-//  se suma a la base de la temporada y después se cierra igual
-//  que cuando se juega un partido especial dentro de la simulación.
+//  RIVALES DE LA TEMPORADA (3 partidos por temporada)
+//  Cada temporada se sortean 3 equipos distintos. Puede tocarte el
+//  mismo club en temporadas diferentes, pero nunca repetir dentro de
+//  la misma temporada. Se juegan de a uno, cuando el jugador toque.
+// ============================================================
+function armarRivalesTemporada() {
+  if (typeof CLUBES === "undefined" || !Array.isArray(CLUBES) || !jugador || !jugador.clubActual) return;
+  const propio = jugador.clubActual.nombre;
+  const rep = jugador.clubActual.reputacion || 5;
+  const pool = CLUBES.filter(c => c && c.nombre && c.nombre !== propio).slice();
+  pool.sort(function(a, b) {
+    const da = Math.abs((a.reputacion || 5) - rep);
+    const db = Math.abs((b.reputacion || 5) - rep);
+    return (da - db) || (a.nombre < b.nombre ? -1 : 1);
+  });
+  const cortados = pool.slice(0, Math.max(3, Math.min(pool.length, 9)));
+  for (let i = cortados.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = cortados[i]; cortados[i] = cortados[j]; cortados[j] = tmp;
+  }
+  const rivales = [];
+  for (let i = 0; i < cortados.length && rivales.length < 3; i++) {
+    if (!rivales.some(r => r === cortados[i].nombre)) rivales.push(cortados[i].nombre);
+  }
+  for (let i = 0; i < pool.length && rivales.length < 3; i++) {
+    if (!rivales.some(r => r === pool[i].nombre)) rivales.push(pool[i].nombre);
+  }
+  jugador.rivalesTemporada = rivales;
+  jugador.partidosJugadosTemporada = 0;
+  jugador.acumTemporada = { partidos: 0, goles: 0, asistencias: 0, ganados: 0 };
+}
+
+function clubRivalActual() {
+  if (!jugador || !jugador.rivalesTemporada || !jugador.rivalesTemporada.length) return null;
+  const idx = jugador.partidosJugadosTemporada || 0;
+  const nombre = jugador.rivalesTemporada[idx];
+  if (!nombre || typeof CLUBES === "undefined") return null;
+  return CLUBES.find(c => c && c.nombre === nombre) || null;
+}
+
+// ============================================================
+//  JUGAR EL PRÓXIMO PARTIDO (el del VS): uno de los 3 de la temporada
+//  Juega un partido interactivo contra el rival mostrado en la tarjeta.
+//  El resultado se acumula en jugador.acumTemporada. Al completar los
+//  3 partidos se cierra la temporada (momentos decisivos/finales incluidos).
 // ============================================================
 function jugarPartidoContraRival() {
   if (!jugador || jugador.carreraTerminada) return;
-  const b = calcularBasicoTemporada();
+  if (!jugador.rivalesTemporada || !jugador.rivalesTemporada.length) armarRivalesTemporada();
+  const total = jugador.rivalesTemporada ? jugador.rivalesTemporada.length : 3;
+  const idx = jugador.partidosJugadosTemporada || 0;
+  if (idx >= total) { cerrarTemporadaFinalizada(); return; }
+  const rival = clubRivalActual();
   const partido = generarPartidoInteractivo();
   if (!partido) return;
-  const rival = jugador.rivalPartidoActual || clubRivalProbable();
   if (rival && rival.nombre && (!partido.club || rival.nombre !== partido.club.nombre)) {
     partido.rival = rival;
   }
   abrirModalPartidoInteractivo(partido, function(resultado) {
     const bonus = resultado.bonus || { goles: 0, asistencias: 0, partidos: 0 };
-    const ganastePartido = !!(resultado.marcador && resultado.marcador.club > resultado.marcador.rival);
-    resolverCierreTemporada(
-      b.partidos + (bonus.partidos || 0),
-      b.goles + (bonus.goles || 0),
-      b.asistencias + (bonus.asistencias || 0),
-      b.subidaRendimiento,
-      b.trofeosGanadosEstaTemp,
-      b.esPrimera,
-      b.bajaEdad,
-      ganastePartido
-    );
+    const a = jugador.acumTemporada || (jugador.acumTemporada = { partidos: 0, goles: 0, asistencias: 0, ganados: 0 });
+    a.partidos = (a.partidos || 0) + 1;
+    a.goles = (a.goles || 0) + (bonus.goles || 0);
+    a.asistencias = (a.asistencias || 0) + (bonus.asistencias || 0);
+    if (resultado.marcador && resultado.marcador.club > resultado.marcador.rival) a.ganados = (a.ganados || 0) + 1;
+    if (typeof guardarPartida === "function") guardarPartida();
+    const jugados = idx + 1;
+    jugador.partidosJugadosTemporada = jugados;
+    if (jugados >= total) {
+      cerrarTemporadaFinalizada();
+      return;
+    }
+    const resta = total - jugados;
+    if (typeof t === "function") {
+      mostrarNotificacion(t("partidoCompletado"), t("faltanPartidos").replace("{n}", String(resta)));
+    } else {
+      mostrarNotificacion("Partido completado", "Quedan " + resta + " partido(s) por jugar.");
+    }
+    if (typeof actualizarInterfaz === "function") actualizarInterfaz();
   });
 }
 
-function simularTemporada() {
-  if (jugador.carreraTerminada) return;
-
+// Cierra la temporada: simula el resto, resuelve títulos, finales
+// (momentos decisivos según la posición) y copas. Suma lo ya jugado.
+function cerrarTemporadaFinalizada() {
+  if (!jugador || jugador.carreraTerminada) return;
   const b = calcularBasicoTemporada();
-  const rep = b.rep;
-  const partidos = b.partidos;
-  const goles = b.goles;
-  const asistencias = b.asistencias;
-  const subidaRendimiento = b.subidaRendimiento;
-  const trofeosGanadosEstaTemp = b.trofeosGanadosEstaTemp;
-  const esPrimera = b.esPrimera;
-  const bajaEdad = b.bajaEdad;
+  const a = jugador.acumTemporada || { partidos: 0, goles: 0, asistencias: 0, ganados: 0 };
+  jugador.rivalesTemporada = [];
+  jugador.partidosJugadosTemporada = 0;
+  jugador.acumTemporada = { partidos: 0, goles: 0, asistencias: 0, ganados: 0 };
+  resolverCierreTemporada(
+    b.partidos + (a.partidos || 0),
+    b.goles + (a.goles || 0),
+    b.asistencias + (a.asistencias || 0),
+    b.subidaRendimiento,
+    b.trofeosGanadosEstaTemp,
+    b.esPrimera,
+    b.bajaEdad,
+    (a.ganados || 0) >= 2
+  );
+}
 
-  const esDelOcentrocampista = (jugador.posicion === "DEL" || jugador.posicion === "CM");
-  const requiereMinijuegoDescenso = esDelOcentrocampista && rep <= 3 && Math.random() < CONFIG.SIM.PROB_MINIJUEGO_DESCENSO;
-  const requiereMinijuegoTitulo = esDelOcentrocampista && Math.random() < CONFIG.SIM.PROB_MINIJUEGO_TITULO;
-
-  const partidoEspecial = detectarPartidoEspecial();
-
-  if (partidoEspecial) {
-    abrirModalPartidoInteractivo(partidoEspecial, (resultado = {}) => {
-      const bonus = resultado.bonus || { goles: 0, asistencias: 0, partidos: 0 };
-      const ganastePartido = !!(resultado.marcador && resultado.marcador.club > resultado.marcador.rival);
-      resolverCierreTemporada(
-        partidos + (bonus.partidos || 0),
-        goles + (bonus.goles || 0),
-        asistencias + (bonus.asistencias || 0),
-        subidaRendimiento,
-        trofeosGanadosEstaTemp,
-        esPrimera,
-        bajaEdad,
-        ganastePartido
-      );
-    });
-  } else if (requiereMinijuegoTitulo) {
-    iniciarMinijuegoDecisivoTemporada("TITULO", (gano) => {
-      if (gano) {
-        if (esPrimera) jugador.trofeos.primeraDivision++;
-        else jugador.trofeos.segundaDivision++;
-        trofeosGanadosEstaTemp.push(esPrimera ? "🏆 Primera División" : "🏆 Segunda División");
-        jugador.clubCampeonAnterior = jugador.clubActual.nombre;
-      }
-      finalizarResumenTemporada(partidos, goles, asistencias, subidaRendimiento, trofeosGanadosEstaTemp, esPrimera, bajaEdad);
-    });
-  } else if (requiereMinijuegoDescenso) {
-    iniciarMinijuegoDecisivoTemporada("DESCENSO", (salvo) => {
-      if (!salvo) {
-        jugador.temporadasForzadoSegunda = 2;
-      }
-      finalizarResumenTemporada(partidos, goles, asistencias, subidaRendimiento, trofeosGanadosEstaTemp, esPrimera, bajaEdad);
-    });
-  } else if (Math.random() < CONFIG.SIM.PROB_FINAL_TORNEO) {
-    resolverFinalSegunPosicion(esPrimera, (ganoFinal, torneo) => {
-      if (ganoFinal) {
-        if (esPrimera) jugador.trofeos.primeraDivision++;
-        else jugador.trofeos.segundaDivision++;
-        trofeosGanadosEstaTemp.push(`🏆 ${torneo}`);
-        jugador.clubCampeonAnterior = jugador.clubActual.nombre;
-      }
-      finalizarResumenTemporada(partidos, goles, asistencias, subidaRendimiento, trofeosGanadosEstaTemp, esPrimera, bajaEdad);
-    });
-  } else {
-    let clubGanadorTitulo = null;
-    if (!esPrimera) {
-      if (Math.random() < ((rep / 5) * 0.20 + (jugador.media / 100) * 0.10)) {
-        jugador.trofeos.segundaDivision++;
-        trofeosGanadosEstaTemp.push("🏆 Segunda División");
-        clubGanadorTitulo = jugador.clubActual.nombre;
-      }
-      if (Math.random() < (0.10 + (jugador.media / 100) * 0.08)) {
-        jugador.trofeos.copaApa++;
-        trofeosGanadosEstaTemp.push("🍷 Copa Apa");
-      }
+function simularTemporada() {
+  if (!jugador || jugador.carreraTerminada) return;
+  if (!jugador.rivalesTemporada || !jugador.rivalesTemporada.length) armarRivalesTemporada();
+  const jugados = jugador.partidosJugadosTemporada || 0;
+  const total = jugador.rivalesTemporada ? jugador.rivalesTemporada.length : 3;
+  if (jugados < total) {
+    if (typeof t === "function") {
+      mostrarNotificacion(t("partidosPendientes"), t("faltanPartidos").replace("{n}", String(total - jugados)));
     } else {
-      if (Math.random() < (((rep - 5) / 5) * 0.25 + (jugador.media / 100) * 0.08)) {
-        jugador.trofeos.primeraDivision++;
-        trofeosGanadosEstaTemp.push("🏆 Primera División");
-        clubGanadorTitulo = jugador.clubActual.nombre;
-      }
-      if (Math.random() < (0.08 + (rep / 10) * 0.10 + (jugador.media / 100) * 0.05)) {
-        jugador.trofeos.copaArgentina++;
-        trofeosGanadosEstaTemp.push("🇦🇷 Copa Argentina");
-      }
+      mostrarNotificacion("Partidos pendientes", "Tenés " + (total - jugados) + " partido(s) de la temporada por jugar.");
     }
-
-    if (clubGanadorTitulo) jugador.clubCampeonAnterior = clubGanadorTitulo;
-    finalizarResumenTemporada(partidos, goles, asistencias, subidaRendimiento, trofeosGanadosEstaTemp, esPrimera, bajaEdad);
+    return;
   }
+  cerrarTemporadaFinalizada();
 }
 
 // ============================================================

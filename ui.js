@@ -174,19 +174,37 @@ actualizarInterfaz = function() {
 };
 
 // ============================================================
+//  RIVAL DE LA TEMPORADA (3 partidos por temporada)
+// ============================================================
+function rivalDeLaTemporada() {
+  if (typeof armarRivalesTemporada === "function" &&
+      (!jugador.rivalesTemporada || !jugador.rivalesTemporada.length)) {
+    armarRivalesTemporada();
+  }
+  return (typeof clubRivalActual === "function") ? clubRivalActual() : null;
+}
+
+function textoPartidoDeTemporada(tfn) {
+  const jugados = jugador.partidosJugadosTemporada || 0;
+  const total = jugador.rivalesTemporada ? jugador.rivalesTemporada.length : 3;
+  const resta = total - jugados;
+  if (resta <= 0) return "";
+  return " · " + tfn("partidoXDeY", "Partido {n} de {t}").replace("{n}", String(jugados + 1)).replace("{t}", String(total));
+}
+
+// ============================================================
 //  VISTA: CARRERA (dashboard)
 // ============================================================
 function renderCarrera() {
   if (!jugador || !jugador.clubActual) return;
   const club = jugador.clubActual;
-  const rival = clubRivalProbable();
-  jugador.rivalPartidoActual = rival;
+  const rival = rivalDeLaTemporada();
   const setVal = function(pid, v) {
     const el = document.getElementById(pid);
     if (el) el.innerText = (v == null ? "" : String(v));
   };
   const esPrimera = jugador.division === 1 && !(jugador.temporadasForzadoSegunda > 0);
-  setVal("carrera-competen", uiT(esPrimera ? "primeraDivision" : "segundaDivision", esPrimera ? "Primera División" : "Segunda División"));
+  setVal("carrera-competen", uiT(esPrimera ? "primeraDivision" : "segundaDivision", esPrimera ? "Primera División" : "Segunda División") + textoPartidoDeTemporada(uiT));
   setVal("temporada-actual", jugador.temporadaActual);
 
   setVal("carrera-club-local", club.nombre);
@@ -262,8 +280,7 @@ function panelPartido(icono, titulo, texto, boton) {
 
 function renderPartido() {
   const club = jugador && jugador.clubActual ? jugador.clubActual : null;
-  const rival = club ? clubRivalProbable() : null;
-  if (club && jugador) jugador.rivalPartidoActual = rival;
+  const rival = club ? rivalDeLaTemporada() : null;
   if (club) {
     const cl = document.getElementById("partido-club-local");
     if (cl) cl.innerText = club.nombre;
@@ -277,7 +294,7 @@ function renderPartido() {
     if (club) {
       const esPrimera = jugador.division === 1 && !(jugador.temporadasForzadoSegunda > 0);
       const liga = uiT(esPrimera ? "primeraDivision" : "segundaDivision", esPrimera ? "Primera División" : "Segunda División");
-      base.innerText = liga + " · " + uiT("temporadaActual", "Temporada") + " " + jugador.temporadaActual;
+      base.innerText = liga + " · " + uiT("temporadaActual", "Temporada") + " " + jugador.temporadaActual + textoPartidoDeTemporada(uiT);
     } else {
       base.innerText = "";
     }
@@ -308,7 +325,6 @@ function renderEntrenamiento() {
   const attrs = (typeof window.atributosDePosicion === "function") ? window.atributosDePosicion(jugador.posicion) : [];
   if (!attrs.length) { cont.innerHTML = ""; return; }
   const iconosAttr = { VEL: "zap", PAS: "share", REM: "target", DEF: "shield", REG: "girar", RES: "corazon", REF: "ojo", MAN: "mano", SAL: "pies" };
-  const entrenarTxt = tfn("entrenar", "Entrenar");
   let html = "";
   attrs.forEach(function(a) {
     const val = jugador.atributos[a] != null ? jugador.atributos[a] : 0;
@@ -321,7 +337,6 @@ function renderEntrenamiento() {
       '<div class="text-muted small mb-1">' + nombreA + '</div>' +
       '<div class="attr-valor' + (max ? " max" : "") + '">' + val + "</div>" +
       '<div class="progress my-2"><div class="progress-bar" role="progressbar" style="width:' + pct + '%" aria-valuenow="' + val + '" aria-valuemin="0" aria-valuemax="99"></div></div>' +
-      '<button type="button" class="btn btn-pso btn-sm w-100 fw-bold">' + entrenarTxt + '</button>' +
       '</div></div>';
   });
   cont.innerHTML = html;

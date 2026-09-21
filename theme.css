@@ -687,6 +687,15 @@ footer a:hover { color: var(--azul-2); }
 ::-webkit-scrollbar-thumb:hover { background: #3a4150; }
 
 /* ---------- FEED DE REDES (posts) ---------- */
+#redes-feed-lateral {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-height: 160px;
+}
+#redes-feed-lateral > .vacio { margin: auto; width: 100%; }
+#redes-feed-lateral .red-social-post { margin-bottom: 0 !important; }
 .red-social-post {
   background: var(--card-bg-2);
   border: 1px solid var(--borde-suave) !important;
