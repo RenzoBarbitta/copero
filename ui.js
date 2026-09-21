@@ -92,42 +92,25 @@ sumarMedia = function(delta) {
 // ============================================================
 //  VISTA: CARRERA (dashboard)
 // ============================================================
-function clubRivalProbable() {
-  if (!jugador || !jugador.clubActual) return null;
-  const club = jugador.clubActual;
-  const rivales = (typeof CLUBES !== "undefined" ? CLUBES : []).filter(function(c) {
-    return c && c.nombre !== club.nombre;
-  });
-  if (!rivales.length) return null;
-  return rivales.slice().sort(function(a, b) {
-    return Math.abs(a.reputacion - club.reputacion) - Math.abs(b.reputacion - club.reputacion);
-  })[0];
-}
-
 function renderCarrera() {
   if (!jugador || !jugador.clubActual) return;
   const club = jugador.clubActual;
-  const rival = clubRivalProbable();
-  const elLocal = document.getElementById("carrera-club-local");
-  const elRival = document.getElementById("carrera-club-rival");
-  const elEscLocal = document.getElementById("carrera-escudo-local");
-  const elEscRival = document.getElementById("carrera-escudo-rival");
-  const elComp = document.getElementById("carrera-competen");
+  const setVal = function(pid, v) {
+    const el = document.getElementById(pid);
+    if (el) el.innerText = (v == null ? "" : String(v));
+  };
+  const esPrimera = jugador.division === 1 && !(jugador.temporadasForzadoSegunda > 0);
+  setVal("carrera-competen", uiT(esPrimera ? "primeraDivision" : "segundaDivision", esPrimera ? "Primera División" : "Segunda División"));
+  setVal("temporada-actual", jugador.temporadaActual);
 
-  if (elLocal) elLocal.innerText = club.nombre;
-  if (elEscLocal) {
-    if (club.imagen) { elEscLocal.src = club.imagen; elEscLocal.style.display = "inline-block"; }
-    else elEscLocal.style.display = "none";
+  let rango = "";
+  if (typeof CONFIG !== "undefined" && CONFIG.SIM) {
+    const S = CONFIG.SIM;
+    const base = Math.min(S.PARTIDOS_MAX, Math.max(S.PARTIDOS_MIN, S.PARTIDOS_BASE + Math.floor((jugador.media - (club.reputacion * 10)) / 5)));
+    const sup = Math.min(S.PARTIDOS_MAX, base + S.PARTIDOS_VARIACION);
+    rango = (base === sup) ? String(base) : (base + "–" + sup);
   }
-  if (elRival) elRival.innerText = rival ? rival.nombre : "—";
-  if (elEscRival) {
-    if (rival && rival.imagen) { elEscRival.src = rival.imagen; elEscRival.style.display = "inline-block"; }
-    else elEscRival.style.display = "none";
-  }
-  if (elComp) {
-    const esPrimera = jugador.division === 1 && !(jugador.temporadasForzadoSegunda > 0);
-    elComp.innerText = uiT(esPrimera ? "primeraDivision" : "segundaDivision", esPrimera ? "Primera División" : "Segunda División");
-  }
+  setVal("carrera-partidos-aprox", rango);
 
   const h = jugador.historialTemporadas || [];
   const ult = h.length ? h[h.length - 1] : null;
@@ -137,16 +120,16 @@ function renderCarrera() {
   const media = (jugador.atributos && typeof window.calcularOVR === "function")
     ? window.calcularOVR(jugador.atributos, jugador.posicion) : jugador.media;
 
-  function setVal(pid, v) {
+  function setValNum(pid, v) {
     const el = document.getElementById(pid);
     if (el) el.innerText = (v == null ? "0" : String(v));
   }
-  setVal("res-pj", ult ? ult.partidos : 0);
-  setVal("res-goles", ult ? ult.goles : 0);
-  setVal("res-asist", ult ? ult.asistencias : 0);
-  setVal("res-titulos", titulos);
-  setVal("res-media", media);
-  setVal("res-num-temp", jugador.temporadaActual);
+  setValNum("res-pj", ult ? ult.partidos : 0);
+  setValNum("res-goles", ult ? ult.goles : 0);
+  setValNum("res-asist", ult ? ult.asistencias : 0);
+  setValNum("res-titulos", titulos);
+  setValNum("res-media", media);
+  setValNum("res-num-temp", jugador.temporadaActual);
 }
 
 // ============================================================

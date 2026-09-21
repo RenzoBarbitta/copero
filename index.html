@@ -225,28 +225,23 @@
       <section id="vista-carrera" class="cp-vista">
         <div class="row g-3">
 
-          <!-- PRÓXIMO PARTIDO -->
+          <!-- TEMPORADA ACTUAL -->
           <div class="col-lg-7">
-            <div class="card card-custom h-100 card-partido">
-              <div class="card-partido-cabecera d-flex justify-content-between align-items-center">
-                <h5 class="fw-bold text-dark m-0" data-i18n="proximoPartido">⚽ Próximo partido</h5>
-                <span class="badge bg-primary" data-i18n="thTemp">Temporada</span>
+            <div class="card card-custom h-100 d-flex flex-column">
+              <div class="d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold text-dark m-0" data-i18n="temporadaTitulo">🏁 Temporada actual</h5>
+                <span class="badge bg-primary">T<strong id="temporada-actual">1</strong></span>
               </div>
-              <div class="card-partido-cuerpo">
-                <div class="equipo-local">
-                  <img id="carrera-escudo-local" src="" alt="Tu club" class="escudo-equipo" onerror="this.style.display='none'">
-                  <div class="fw-bold" id="carrera-club-local">—</div>
-                </div>
-                <div class="vs">VS</div>
-                <div class="equipo-visitante">
-                  <img id="carrera-escudo-rival" src="" alt="Rival" class="escudo-equipo" onerror="this.style.display='none'">
-                  <div class="fw-bold" id="carrera-club-rival">—</div>
+              <div class="flex-grow-1 d-flex align-items-center justify-content-center text-center my-3">
+                <div>
+                  <div class="fw-bold fs-4 text-primary" id="carrera-competen">Primera División</div>
+                  <div class="text-muted small mt-2" data-i18n="partidosPorTemporada">Partidos por temporada</div>
+                  <div class="fs-5 fw-bold" id="carrera-partidos-aprox">25–30</div>
                 </div>
               </div>
-              <div class="card-partido-pie">
-                <span class="text-muted small" id="carrera-competen">Liga</span>
+              <div class="mt-auto">
                 <button id="btn-jugar-partido" type="button" class="btn btn-pso btn-lg fw-bold w-100" onclick="simularTemporada()">
-                  ⚽ <span data-i18n="jugarPartido">JUGAR PARTIDO</span>
+                  🎲 <span data-i18n="simular">SIMULAR TEMPORADA</span>
                 </button>
               </div>
             </div>
@@ -276,7 +271,7 @@
             <div class="card card-custom">
               <h5 class="fw-bold text-dark mb-3" data-i18n="accionesRapidas">⚡ Acciones rápidas</h5>
               <div class="row g-2">
-                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-pso w-100 fw-bold" onclick="simularTemporada()">⚽ <span data-i18n="jugar">Jugar</span></button></div>
+                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-pso w-100 fw-bold" onclick="simularTemporada()">🎲 <span data-i18n="simular">Simular temporada</span></button></div>
                 <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-outline-primary w-100 fw-bold" onclick="irA('entrenamiento')">🏋️ <span data-i18n="entrenar">Entrenar</span></button></div>
                 <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-outline-success w-100 fw-bold" onclick="generarOfertasDeFichaje()">💰 <span data-i18n="mercadoPases">Mercado</span></button></div>
                 <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-outline-info w-100 fw-bold" onclick="irA('progreso')">📊 <span data-i18n="stats">Stats</span></button></div>
@@ -306,8 +301,6 @@
             <div class="card card-custom h-100 text-center">
               <h5 class="fw-bold text-dark" data-i18n="navPartido">⚽ Partido</h5>
               <p class="text-secondary small" id="partido-info-base"></p>
-              <button type="button" class="btn btn-pso fw-bold w-100" onclick="simularTemporada()">🎲 <span data-i18n="simular">Simular temporada</span></button>
-              <hr>
               <button id="btn-partido-evento" type="button" class="btn btn-warning w-100 hidden fw-bold" onclick="abrirModalEvento()"></button>
             </div>
             <div class="card card-custom mt-3">
