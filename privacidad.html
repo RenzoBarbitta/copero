@@ -20,12 +20,12 @@
     <section>
       <h2>Carrera local y ranking público</h2>
       <p>El navegador almacena partidas, preferencias, dorsal, resultados locales, un identificador aleatorio del dispositivo, datos pendientes de sincronizar y caché para jugar sin conexión. Podés eliminarlos desde los ajustes del navegador; perderás el progreso local. Cerrar sesión no borra la carrera.</p>
-      <p>El ranking actual funciona independientemente de la cuenta. Al terminar una carrera, el juego intenta publicar en textdb.dev el nombre de jugador, posición, club, media, títulos, año, fecha y los identificadores de carrera y dispositivo. Sin conexión, el resultado queda pendiente de envío.</p>
-      <p>Ese almacenamiento es público y no está diseñado para datos confidenciales: usá un nombre ficticio. Borrar los datos del navegador no elimina resultados ya publicados ni copias hechas por terceros.</p>
+      <p>El ranking global se guarda en Supabase con reglas de acceso estrictas. Publicar un resultado requiere iniciar sesión con tu cuenta: cada cuenta publica una única entrada con apodo, posición, club, media, títulos, año y fecha, y solo puede modificar su propia entrada. Quien no inicia sesión puede consultar el ranking pero no publicar en él. Sin conexión, el resultado queda pendiente de envío hasta que vuelva internet y haya sesión iniciada.</p>
+      <p>La entrada del ranking es pública y visible por cualquier visitante: usá un nombre ficticio si preferís. Borrar los datos del navegador no elimina tu entrada ya publicada; el administrador del proyecto puede hacerlo a pedido. El correo nunca se publica en el ranking.</p>
     </section>
     <section>
       <h2>Proveedores y medición</h2>
-      <p>Supabase presta el servicio de cuentas; textdb.dev almacena el ranking; el alojamiento del sitio y jsDelivr sirven el juego y Bootstrap. Al conectarte, estos proveedores pueden recibir datos técnicos como la dirección IP y el navegador, y procesarlos en otros países conforme a sus políticas.</p>
+      <p>Supabase presta el servicio de cuentas y almacena el ranking; Cloudflare aloja el sitio; jsDelivr sirve Bootstrap. Al conectarte, estos proveedores pueden recibir datos técnicos como la dirección IP y el navegador, y procesarlos en otros países conforme a sus políticas.</p>
       <p>La página del juego incluye Google Tag Manager, que puede cargar herramientas de medición según la configuración del administrador. Aceptar esta política para crear una cuenta no constituye consentimiento para publicidad ni medición opcional. Esta página de privacidad no carga Tag Manager.</p>
       <p>Consultá las políticas de <a href="https://supabase.com/privacy">Supabase</a>, <a href="https://policies.google.com/privacy">Google</a> y <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub</a> para conocer sus tratamientos.</p>
     </section>

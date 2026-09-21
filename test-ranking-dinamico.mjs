@@ -15,9 +15,10 @@ const document = Object.assign(eventos(), { visibilityState: 'visible',
 const window = eventos();
 const store = new Map(), timers = new Map();
 let nextTimer = 0, lecturas = 0, fallar = false, liberar = null;
-let lista = [{ id: 'uno', dev: 'otro', nombre: 'Primero', media: 80 }];
+let lista = [{ user_id: 'otro', display_name: 'Primero', club: '', media: 80, titulos: 0, anio: 2026, ts: '2026-09-20T10:00:00Z' }];
 const sandbox = { console, document, window, Date, Math, JSON, Promise,
   AbortController, setTimeout, clearTimeout,
+  COPERO_SUPABASE: { url: 'https://proyecto-test.supabase.co', publishableKey: 'clave-publica-test' },
   setInterval(fn, ms) { const id = ++nextTimer; timers.set(id, { fn, ms, elapsed: 0 }); return id; },
   clearInterval(id) { timers.delete(id); },
   localStorage: { getItem: k => store.get(k) || null,
@@ -25,11 +26,13 @@ const sandbox = { console, document, window, Date, Math, JSON, Promise,
   bootstrap: { Modal: class { show() { modal.handlers['shown.bs.modal'](); } } },
   async fetch(url, opts) {
     lecturas++;
+    assert.match(String(url), /copero_ranking/);
     assert.equal(opts.cache, 'no-store');
     assert.equal(opts.method, 'GET');
+    assert.equal(opts.headers.apikey, 'clave-publica-test');
     if (liberar) await new Promise(resolve => { liberar.resolve = resolve; });
     if (fallar) throw new Error('Sin conexión');
-    return { ok: true, text: async () => JSON.stringify({ jugadores: lista }) };
+    return { ok: true, json: async () => lista };
   }
 };
 vm.createContext(sandbox);
@@ -52,7 +55,7 @@ async function avanzarTiempo(ms) {
     }
   }
 }
-lista = [{ id: 'dos', dev: 'otro', nombre: 'Amigo nuevo', media: 92 }];
+lista = [{ user_id: 'otro', display_name: 'Amigo nuevo', club: '', media: 92, titulos: 1, anio: 2026, ts: '2026-09-20T10:05:00Z' }];
 await avanzarTiempo(15000);
 assert.match(contenido.innerHTML, /Amigo nuevo/);
 assert.equal(lecturas, 2, 'Se actualiza sin terminar ni crear carrera');
@@ -88,7 +91,7 @@ run('mostrarRanking();');
 await run('rankingCarga');
 assert.equal(lecturas, antesCierre + 1, 'Reabrir vuelve a consultar');
 assert.equal([...timers.values()].filter(t => t.ms === 10000).length, 1);
-lista = [{ id: 'tres', dev: 'otro', nombre: 'Al volver a Global', media: 95 }];
+lista = [{ user_id: 'otro', display_name: 'Al volver a Global', club: '', media: 95, titulos: 2, anio: 2026, ts: '2026-09-20T10:10:00Z' }];
 const antesTab = lecturas;
 modal.handlers['shown.bs.tab']({ target: { getAttribute: () => '#tab-ranking-local' } });
 assert.equal(lecturas, antesTab, 'Cambiar a local no fuerza consulta');
@@ -101,7 +104,7 @@ const swHandlers = {};
 vm.runInNewContext(read('sw.js'), { URL,
   self: { location: { origin: 'https://renzobarbitta.github.io' },
     addEventListener: (tipo, fn) => { swHandlers[tipo] = fn; } } });
-for (const url of ['https://textdb.dev/api/data/test',
+for (const url of ['https://proyecto.supabase.co/rest/v1/copero_ranking?select=1',
   'https://ejemplo.firebaseio.com/ranking.json',
   'https://renzobarbitta.github.io/api/ranking']) {
   let interceptada = false;

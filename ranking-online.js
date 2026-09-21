@@ -1,40 +1,31 @@
 // ============================================================
 //  RANKING ONLINE - ranking-online.js
-//  Hace que el ranking funcione ONLINE entre todos los
-//  dispositivos (telefonos y PC) sin necesidad de servidor
-//  propio: usa un almacenamiento JSON gratuito en la nube.
+//  Ranking global sobre SUPABASE con Row Level Security (RLS).
+//
+//  DEFENSA (por que ya no se puede manipular la base):
+//   - Antes era un JSON publico (textdb.dev): cualquiera podia
+//     escribir desde la consola. Eso esta eliminado.
+//   - La tabla copero_ranking solo acepta SELECT sin sesion.
+//   - Escribir exige una cuenta con email confirmado y SOLO se
+//     puede tocar la fila propia (user_id = auth.uid()).
+//   - No existe DELETE por API: la moderacion se hace desde el
+//     dashboard de Supabase (service_role).
+//   - CHECK en la base: media 0..99, apodo 2..30, etc.
+//     Ver supabase/002-ranking.sql.
 //
 //  COMO FUNCIONA:
-//   - Al terminar una carrera se envia el resultado (nombre,
-//     media, titulos, club, etc.) al almacenamiento online.
-//   - Si no hay internet, queda en cola y se reintenta solo
-//     cuando vuelve la conexion.
-//   - El boton 🏆 Ranking muestra dos pestañas: 🌍 Global
-//     (ranking online de todos) y 📱 Este dispositivo
-//     (el ranking local de siempre).
-//   - Hay UN registro por dispositivo: tu ultima carrera
-//     terminada reemplaza a la anterior.
+//   - Al terminar una carrera: si hay sesion, se publica con un
+//     UPSERT (una sola entrada por cuenta; la nueva reemplaza a
+//     la anterior). Sin sesion queda en cola y se envia sola
+//     cuando el jugador inicie sesion o vuelva internet.
+//   - El boton 🏆 Ranking muestra: 🌍 Global (Supabase) y
+//     📱 Este dispositivo (localStorage, igual que siempre).
 //
-//  MIGRAR A FIREBASE (opcional, mas robusto):
-//   1. Crear un proyecto gratis en firebase.google.com y una
-//      Realtime Database en modo de prueba.
-//   2. Completar RANKING_FIREBASE_URL con la URL terminada en
-//      .json (ver README-MOVIL.md). Si queda vacio se usa
-//      textdb.dev.
-//
-//  Se carga DESPUES de features.js
+//  Se carga DESPUES de cuenta-api.js (usa window.CoperoCuenta).
 // ============================================================
 
 // ------------------- CONFIGURACION -------------------
 
-// Almacenamiento online por defecto (JSON en la nube, CORS abierto)
-const RANKING_ALMACEN_URL = "https://textdb.dev/api/data/4777662b-82ad-481a-b548-4c999ebcddbc";
-
-// Opcional: Firebase Realtime Database (URL terminada en .json)
-// Ejemplo: "https://mi-pso-default-rtdb.firebaseio.com/ranking.json"
-const RANKING_FIREBASE_URL = "";
-
-const RANKING_DEV_KEY = "pso_ranking_dev";
 const RANKING_OUTBOX_KEY = "pso_ranking_outbox";
 const RANKING_SYNC_KEY = "pso_ranking_ultimo_sync";
 const RANKING_CACHE_KEY = "pso_ranking_cache_online";
@@ -85,23 +76,6 @@ function escaparHtml(texto) {
     .replace(/'/g, "&#39;");
 }
 
-function generarIdRanking() {
-  try {
-    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
-  } catch (e) { /* ignorar */ }
-  return "id-" + Date.now() + "-" + Math.floor(Math.random() * 1e9);
-}
-
-function idDispositivo() {
-  let id = null;
-  try { id = localStorage.getItem(RANKING_DEV_KEY); } catch (e) { /* ignorar */ }
-  if (!id) {
-    id = generarIdRanking();
-    try { localStorage.setItem(RANKING_DEV_KEY, id); } catch (e) { /* ignorar */ }
-  }
-  return id;
-}
-
 function leerJSONLS(clave, defecto) {
   try {
     const raw = localStorage.getItem(clave);
@@ -113,10 +87,6 @@ function escribirJSONLS(clave, valor) {
   try { localStorage.setItem(clave, JSON.stringify(valor)); } catch (e) { /* ignorar */ }
 }
 
-function usarFirebase() { return !!RANKING_FIREBASE_URL; }
-function urlLectura() { return usarFirebase() ? RANKING_FIREBASE_URL : RANKING_ALMACEN_URL; }
-function urlEscritura() { return usarFirebase() ? RANKING_FIREBASE_URL : RANKING_ALMACEN_URL; }
-
 async function fetchConTimeout(url, opciones) {
   const controlador = new AbortController();
   const timer = setTimeout(function() { controlador.abort(); }, RANKING_TIMEOUT_MS);
@@ -127,69 +97,106 @@ async function fetchConTimeout(url, opciones) {
   }
 }
 
-// ------------------- REGISTRO -------------------
+// ------------------- SUPABASE (CAPA SEGURA) -------------------
 
-// Arma el registro que se manda al ranking online
-function construirRegistroRanking(jug) {
+function supabaseConfig() {
+  if (typeof COPERO_SUPABASE === "undefined" || !COPERO_SUPABASE || !COPERO_SUPABASE.url) {
+    throw new Error("Supabase no configurado");
+  }
+  return COPERO_SUPABASE;
+}
+
+function headersRanking(token) {
+  const cfg = supabaseConfig();
+  const h = { apikey: cfg.publishableKey, "Content-Type": "application/json" };
+  if (token) h.Authorization = "Bearer " + token;
+  return h;
+}
+
+// Sesion activa para publicar (o null). La sesion vive en cuenta-api.js:
+// es en memoria, con token que se renueva solo.
+function sesionRanking() {
+  const cuenta = (typeof window !== "undefined") && window.CoperoCuenta;
+  if (!cuenta || typeof cuenta.tieneSesion !== "function" || !cuenta.tieneSesion()) return null;
+  if (typeof cuenta.idUsuario !== "function") return null;
+  const id = cuenta.idUsuario();
+  return id ? { userId: id } : null;
+}
+
+function idUsuarioActual() {
+  const s = sesionRanking();
+  return s ? s.userId : null;
+}
+
+// Arma el registro para la tabla. El cliente se auto-limita, pero la
+// defensa real esta en la base: RLS + CHECK constraints (002-ranking.sql).
+function construirRegistroRanking(jug, usuarioId) {
   const trofeos = jug.trofeos || {};
   const titulos = (trofeos.primeraDivision || 0) + (trofeos.segundaDivision || 0) +
                   (trofeos.copaDeCampeones || 0) + (trofeos.copaArgentina || 0) +
                   (trofeos.copaApa || 0);
+  const media = Math.round(Number(jug.media) || 0);
   return {
-    id: jug.rankingId || generarIdRanking(),
-    dev: idDispositivo(),
-    nombre: String(jug.nombre || "Anonimo").trim().slice(0, 30),
-    posicion: jug.posicion || "",
-    club: (jug.clubActual && jug.clubActual.nombre) ? String(jug.clubActual.nombre) : "",
-    media: jug.media || 0,
-    titulos: titulos,
+    user_id: usuarioId || null,
+    display_name: String(jug.nombre || "Anonimo").trim().slice(0, 30),
+    posicion: String(jug.posicion || "").trim().slice(0, 5),
+    club: (jug.clubActual && jug.clubActual.nombre) ? String(jug.clubActual.nombre).trim().slice(0, 40) : "",
+    media: Math.max(0, Math.min(99, media)),
+    titulos: Math.max(0, Math.round(Number(titulos) || 0)),
     anio: new Date().getFullYear(),
-    ts: Date.now()
+    ts: new Date().toISOString()
   };
 }
 
-// Puro: mezcla el registro nuevo en la lista de la nube.
-// - Reemplaza el registro del mismo dispositivo (tu ultima carrera).
-// - Ordena por media descendente y limita a RANKING_MAX.
-function mezclarRanking(lista, registro) {
-  const base = Array.isArray(lista) ? lista.filter(function(r) { return !!r; }) : [];
-  const filtrada = base.filter(function(r) {
-    return r.id !== registro.id && r.dev !== registro.dev;
+function urlRanking() {
+  return supabaseConfig().url +
+    "/rest/v1/copero_ranking?select=user_id,display_name,posicion,club,media,titulos,anio,ts" +
+    "&order=media.desc,titulos.desc,ts.desc&limit=" + RANKING_MAX;
+}
+
+// Toma las filas de Supabase y las normaliza (tolerante a basura).
+function normalizarFilas(datos) {
+  if (!Array.isArray(datos)) return [];
+  return datos
+    .filter(function(f) { return f && f.user_id && f.display_name && f.media != null; })
+    .map(function(f) {
+      return {
+        user_id: String(f.user_id),
+        nombre: String(f.display_name),
+        posicion: String(f.posicion || ""),
+        club: String(f.club || ""),
+        media: Number(f.media) || 0,
+        titulos: Number(f.titulos) || 0,
+        anio: Number(f.anio) || 0,
+        ts: Date.parse(f.ts) || 0
+      };
+    });
+}
+
+// Lectura: publica, con la clave publishable (la API ordena server-side).
+async function leerRankingNube() {
+  const res = await fetchConTimeout(urlRanking(), {
+    method: "GET", cache: "no-store", headers: headersRanking(null)
   });
-  filtrada.push(registro);
-  filtrada.sort(compararRankingOnline);
-  return filtrada.slice(0, RANKING_MAX);
-}
-
-// ------------------- NUBE (lectura/escritura) -------------------
-
-// Toma el texto crudo de la nube y devuelve la lista de registros
-function normalizarDatosNube(texto) {
-  if (!texto || !String(texto).trim()) return [];
-  let datos;
-  try { datos = JSON.parse(texto); } catch (e) { return []; }
-  if (Array.isArray(datos)) return datos.filter(Boolean);
-  if (datos && Array.isArray(datos.jugadores)) return datos.jugadores.filter(Boolean);
-  return [];
-}
-
-async function leerAlmacen() {
-  const res = await fetchConTimeout(urlLectura(), { method: "GET", cache: "no-store" });
   if (!res.ok) throw new Error("HTTP " + res.status);
-  const texto = await res.text();
-  return normalizarDatosNube(texto);
+  return normalizarFilas(await res.json());
 }
 
-async function escribirAlmacen(lista) {
-  // textdb guarda texto plano (el content-type text/plain evita el
-  // preflight de CORS); Firebase guarda el array directamente.
-  const cuerpo = usarFirebase() ? JSON.stringify(lista) : JSON.stringify({ jugadores: lista });
-  // IMPORTANTE: textdb.dev rechaza "text/plain;charset=UTF-8" (500),
-  // hay que mandar "text/plain" a secas (tambien evita preflight CORS).
-  const opciones = usarFirebase()
-    ? { method: "PUT", headers: { "Content-Type": "application/json" }, body: cuerpo }
-    : { method: "POST", headers: { "Content-Type": "text/plain" }, body: cuerpo };
-  const res = await fetchConTimeout(urlEscritura(), opciones);
+// UPSERT de la fila propia (una entrada por cuenta). Sin sesion la base
+// rechaza la escritura: el registro queda en la cola local.
+async function publicarEnNube(registro) {
+  const sesion = sesionRanking();
+  if (!sesion) return false;
+  const token = await window.CoperoCuenta.token();
+  // Defensa extra: SIEMPRE se publica sobre la fila del usuario en sesion,
+  // sin importar que diga el registro encolado.
+  const cuerpo = Object.assign({}, registro, { user_id: sesion.userId });
+  const res = await fetchConTimeout(urlRanking(), {
+    method: "POST",
+    headers: Object.assign(headersRanking(token), { Prefer: "resolution=merge-duplicates" }),
+    body: JSON.stringify(cuerpo)
+  });
+  if (res.status === 401 || res.status === 403) return false; // sesion vencida: reintenta luego
   if (!res.ok) throw new Error("HTTP " + res.status);
   return true;
 }
@@ -207,20 +214,18 @@ function guardarCacheOnline(lista) {
   escribirJSONLS(RANKING_CACHE_KEY, { ts: Date.now(), lista: (lista || []).slice(0, 50) });
 }
 
-// Intenta mandar el registro en cola a la nube. Si falla, queda
-// guardado y se reintenta cuando vuelva internet.
+// Intenta publicar el registro en cola. Sin sesion NO gasta red: queda
+// guardado hasta que el jugador inicie sesion (se reintenta solo).
 async function vaciarOutbox() {
   if (RANKING_ENVIANDO) return false;
   const pendiente = leerOutbox();
   if (!pendiente) return false;
   RANKING_ENVIANDO = true;
   try {
-    const listaActual = await leerAlmacen();
-    const mezclada = mezclarRanking(listaActual, pendiente);
-    await escribirAlmacen(mezclada);
+    const publicado = await publicarEnNube(pendiente);
+    if (!publicado) return false; // sin sesion o rechazado: queda en cola
     borrarOutbox();
     marcarSync();
-    guardarCacheOnline(mezclada);
     return true;
   } catch (e) {
     return false; // queda en cola para reintentar
@@ -234,7 +239,7 @@ async function obtenerRankingOnline(forzar) {
   if (!forzar && cache && cache.lista && (Date.now() - cache.ts) < RANKING_CACHE_MS) {
     return cache.lista;
   }
-  const lista = await leerAlmacen();
+  const lista = await leerRankingNube();
   guardarCacheOnline(lista);
   return lista;
 }
@@ -243,11 +248,8 @@ async function obtenerRankingOnline(forzar) {
 function intentarEnviarRankingOnline() {
   try {
     if (typeof jugador === "undefined" || !jugador || !jugador.nombre) return;
-    if (!jugador.rankingId) {
-      jugador.rankingId = generarIdRanking();
-      if (typeof guardarPartida === "function") guardarPartida();
-    }
-    encolarRegistro(construirRegistroRanking(jugador));
+    const s = sesionRanking();
+    encolarRegistro(construirRegistroRanking(jugador, s ? s.userId : null));
     vaciarOutbox(); // fire and forget: si falla queda en cola
   } catch (e) { /* silencio */ }
 }
@@ -264,10 +266,10 @@ function instanciaModalRanking() {
 
 function tablaRankingHtml(lista, esLocal) {
   const medallas = ["🥇", "🥈", "🥉"];
-  const miDev = esLocal ? null : idDispositivo();
+  const miId = esLocal ? null : idUsuarioActual();
   let filas = "";
   (lista || []).slice().sort(compararRankingOnline).forEach(function(r, i) {
-    const propia = !esLocal && r.dev && r.dev === miDev;
+    const propia = !esLocal && r.user_id && r.user_id === miId;
     filas += "<tr class='" + (propia ? "ranking-fila-propia" : "") + "'>" +
       "<td class='fw-bold'>" + (i < 3 ? medallas[i] : (i + 1)) + "</td>" +
       "<td class='text-start'><div class='fw-bold'>" + escaparHtml(r.nombre) + "</div>" +
@@ -372,19 +374,25 @@ function actualizarEstadoSync() {
     if (pendiente) el.textContent += " Tu carrera sigue pendiente de envío.";
     return;
   }
-  if (rankingUltimaLectura) {
-    el.textContent = "🟢 Consultado a las " + horaCorta(rankingUltimaLectura) + " · Actualización automática cada 10 s" +
-      (pendiente ? " · 📤 Carrera pendiente de envío" : "");
+  if (pendiente) {
+    if (!sesionRanking()) {
+      el.innerHTML = "<span class='small text-warning fw-bold'>" +
+        tRanking("rankRequiereSesion", "🔐 Tu carrera quedó guardada. Iniciá sesión en Mi cuenta para publicarla en el ranking global") + "</span>";
+    } else {
+      el.innerHTML = "<span class='small text-warning fw-bold'>" +
+        tRanking("rankPendiente", "📤 Tu carrera quedó guardada y se enviará cuando haya internet") + "</span>";
+    }
     return;
   }
-  if (pendiente) {
-    el.innerHTML = "<span class='small text-warning fw-bold'>" +
-      tRanking("rankPendiente", "📤 Tu carrera quedó guardada y se enviará cuando haya internet") + "</span>";
-  } else if (ultimo) {
+  if (rankingUltimaLectura) {
+    el.textContent = "🟢 Consultado a las " + horaCorta(rankingUltimaLectura) + " · Actualización automática cada 10 s";
+    return;
+  }
+  if (ultimo) {
     el.innerHTML = "<span class='small text-success'>" +
       tRanking("rankSincronizado", "🟢 Ranking online sincronizado") + " · " + horaCorta(ultimo) + "</span>";
   } else {
-    el.innerHTML = "<span class='small text-secondary'>☁️ Top " + RANKING_MAX + " global · un registro por dispositivo</span>";
+    el.innerHTML = "<span class='small text-secondary'>☁️ Top " + RANKING_MAX + " global · una entrada por cuenta</span>";
   }
 }
 
@@ -442,9 +450,6 @@ document.addEventListener("DOMContentLoaded", function() {
   }, 45000);
   vaciarOutbox(); // al abrir la app
 });
-
-
-
 
 
 

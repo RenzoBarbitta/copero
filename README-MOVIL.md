@@ -48,23 +48,17 @@ En la PC no cambia nada: se sigue jugando con el teclado.
 - Si terminás una carrera **sin internet**, el puntaje queda en cola y se envía solo al reconectar.
 - Los nombres se muestran escapados (no se puede meter HTML/código en el ranking).
 
-### Cómo funciona (sin servidor propio)
+### Cómo funciona (con cuenta en Supabase)
 
-El ranking usa un almacenamiento JSON gratuito en la nube (**textdb.dev**), ya configurado y probado. No hace falta crear cuentas ni claves. Limitaciones a saber:
+El ranking global se guarda en **Supabase** (el mismo servicio de las cuentas) con reglas de seguridad a nivel base de datos (RLS):
 
-- Es un servicio gratuito y público: cualquiera que conozca la URL del almacén puede leer los datos (y modificarlos con conocimiento técnico). Para un juego entre amigos está perfecto; no guarda nada sensible.
-- Si el servicio llegara a caerse, el juego sigue funcionando: solo se desactiva la pestaña online y el ranking local sigue intacto.
+- **Publicar requiere iniciar sesión** con tu cuenta (email confirmado): al terminar una carrera con sesión iniciada, tu resultado se publica con tu apodo, posición, club, media, títulos y fecha.
+- **Una entrada por cuenta**: tu nueva carrera reemplaza a la anterior en el global.
+- **Nadie puede manipular la base**: sin sesión solo se puede *leer*; con sesión solo se puede escribir **tu propia fila**; y no existe borrado por API (la moderación la hace el administrador desde el dashboard).
+- **Sin sesión / sin internet**: la carrera queda en cola en el dispositivo y se publica sola cuando iniciés sesión y haya conexión. El juego nunca se rompe: solo se desactiva el aviso de sincronización.
+- La tabla solo expone apodo y resultado deportivo. **Nunca** publica el correo ni datos sensibles.
 
-### Migrar a Firebase (opcional, más robusto)
-
-Si preferís una base de datos propia y más confiable:
-
-1. Creá un proyecto gratis en <https://firebase.google.com> y dentro una **Realtime Database** (modo de prueba).
-2. Abrí `ranking-online.js` y completá:
-   ```js
-   const RANKING_FIREBASE_URL = "https://TU-PROYECTO-default-rtdb.firebaseio.com/ranking.json";
-   ```
-3. Listo: el resto del sistema (envío, cola offline, pestañas) funciona igual.
+> ⚠️ Limitación conocida: alguien con su propia cuenta puede inflar *su* media (el cliente no es confiable al 100%). Lo que la base garantiza es que **nadie puede tocar las entradas de otros ni publicar de forma anónima**. La validación server-side de puntajes queda como mejora futura.
 
 ---
 

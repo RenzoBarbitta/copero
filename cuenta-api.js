@@ -74,6 +74,11 @@
 
   const cuenta = {
     tieneSesion: function() { return !!sesion; },
+    // Id del usuario de la sesion activa (o null). Lo usa el ranking
+    // para resaltar la fila propia y para el upsert seguro.
+    idUsuario: function() { return sesion && sesion.user ? sesion.user : null; },
+    // Token vigente (renueva si esta por vencer). Lanza si no hay sesion.
+    async token() { return tokenActual(); },
     async registrar(email, password, aceptaPrivacidad) {
       if (aceptaPrivacidad !== true) throw new Error("Aceptá la Política de privacidad para crear tu cuenta.");
       validarCredenciales(email, password);

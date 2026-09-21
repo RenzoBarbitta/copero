@@ -9,24 +9,32 @@ La API de perfiles rechazó una lectura sin sesión con HTTP 401.
 `index.html` carga la configuración, `cuenta-api.js` y `cuenta-ui.js`: registro,
 inicio/cierre de sesión y creación/edición del apodo mediante REST nativo.
 La sesión vive solo en memoria: recargar requiere iniciar sesión otra vez.
-El perfil no sincroniza la carrera y el ranking conserva su proveedor original.
-Esta etapa NO implementa retos, ligas ni validación de puntajes.
+
+Etapa 2 (ranking seguro): `supabase/002-ranking.sql` fue ejecutado (2026-09-21).
+El ranking global usa la tabla `copero_ranking` con RLS: lectura pública,
+escritura solo autenticada y solo sobre la fila propia, sin DELETE por API.
+Se verificó con la API real que un POST anónimo es rechazado (HTTP 401).
+El cliente (`ranking-online.js`) ya no usa textdb.dev.
 
 ## Configurar el proyecto
 
 1. Abrir https://supabase.com/dashboard y seleccionar el proyecto
    `twltqbmlcswngssfgqyd`.
 2. Authentication → URL Configuration: configurar Site URL con la URL real
-   publicada del juego. Si se usa GitHub Pages:
-   `https://renzobarbitta.github.io/copero/`.
+   publicada del juego. Con Cloudflare Pages:
+   `https://copero-bp1.pages.dev`.
    Agregar esa misma URL a Redirect URLs. Evitar comodines amplios.
 3. Authentication → Providers → Email: mantener email habilitado y confirmación
    de correo activada. No desactivar seguridad para facilitar pruebas.
 4. SQL Editor → New query: pegar TODO el contenido de `supabase/001-profiles.sql`
    y ejecutar Run. El script usa una transacción y se puede volver a ejecutar.
-5. Debe aparecer “Success. No rows returned”. La tabla `copero_profiles` tendrá
-   RLS habilitado; no crear políticas de acceso público ni permitir escrituras
-   de puntuaciones desde el navegador.
+5. SQL Editor → New query: pegar TODO el contenido de `supabase/002-ranking.sql`
+   y ejecutar Run (también transaccional y re-ejecutable). Crea `copero_ranking`
+   con RLS: lectura pública, escritura solo autenticada sobre la fila propia y
+   sin DELETE por API.
+6. Debe aparecer “Success. No rows returned”. No crear políticas de acceso
+   público de ESCRITURA: la defensa del ranking depende de que solo existan
+   las tres políticas de 002-ranking.sql (read/insert/update con auth.uid()).
 
 Para abrir el SQL en esta máquina:
 `c:\Users\Asus\Desktop\CoperoActualizado\supabase\001-profiles.sql`
