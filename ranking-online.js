@@ -187,7 +187,15 @@ async function leerRankingNube() {
 async function publicarEnNube(registro) {
   const sesion = sesionRanking();
   if (!sesion) return false;
-  const token = await window.CoperoCuenta.token();
+  let token;
+  try {
+    token = await window.CoperoCuenta.token();
+  } catch (e) {
+    // La sesion no se pudo refrescar (vencio/revoco): descartarla para que
+    // la UI avise "Iniciá sesión" en vez de prometer un envio que no llega.
+    if (typeof window.CoperoCuenta.descartarSesion === "function") window.CoperoCuenta.descartarSesion();
+    return false;
+  }
   // Defensa extra: SIEMPRE se publica sobre la fila del usuario en sesion,
   // sin importar que diga el registro encolado.
   const cuerpo = Object.assign({}, registro, { user_id: sesion.userId });
@@ -196,7 +204,13 @@ async function publicarEnNube(registro) {
     headers: Object.assign(headersRanking(token), { Prefer: "resolution=merge-duplicates" }),
     body: JSON.stringify(cuerpo)
   });
-  if (res.status === 401 || res.status === 403) return false; // sesion vencida: reintenta luego
+  // El upsert viaja con el token de la sesion: si el servidor lo rechaza la
+  // sesion quedo sin validez (vencida/revocada). Mejor limpiarla y que el
+  // jugador vuelva a entrar, en vez de quedar "pendiente" para siempre.
+  if (res.status === 401 || res.status === 403) {
+    if (typeof window.CoperoCuenta.descartarSesion === "function") window.CoperoCuenta.descartarSesion();
+    return false;
+  }
   if (!res.ok) throw new Error("HTTP " + res.status);
   return true;
 }
@@ -226,6 +240,8 @@ async function vaciarOutbox() {
     if (!publicado) return false; // sin sesion o rechazado: queda en cola
     borrarOutbox();
     marcarSync();
+    try { actualizarEstadoSync(); } catch (e) { /* silencio */ }
+    if (rankingAbierto) refrescarRankingVisible(); // mostrar la carrera recien publicada
     return true;
   } catch (e) {
     return false; // queda en cola para reintentar
@@ -244,14 +260,15 @@ async function obtenerRankingOnline(forzar) {
   return lista;
 }
 
-// Punto de entrada: se llama al terminar una carrera
+// Punto de entrada: se llama al terminar una carrera. Devuelve la promesa de
+// vaciarOutbox: true = publicado, false = sigue en cola (sin sesion/offline).
 function intentarEnviarRankingOnline() {
   try {
-    if (typeof jugador === "undefined" || !jugador || !jugador.nombre) return;
+    if (typeof jugador === "undefined" || !jugador || !jugador.nombre) return false;
     const s = sesionRanking();
     encolarRegistro(construirRegistroRanking(jugador, s ? s.userId : null));
-    vaciarOutbox(); // fire and forget: si falla queda en cola
-  } catch (e) { /* silencio */ }
+    return vaciarOutbox();
+  } catch (e) { return false; }
 }
 
 // ------------------- INTERFAZ (MODAL RANKING) -------------------
@@ -351,8 +368,13 @@ function onSesionCambiada() {
   try { actualizarEstadoSync(); } catch (e) { /* silencio */ }
   if (sesionRanking() && typeof intentarEnviarRankingOnline === "function") {
     (async function () {
-      const ok = await intentarEnviarRankingOnline();
-      if (ok) { try { actualizarEstadoSync(); } catch (e) { /* silencio */ } }
+      try {
+        const ok = await intentarEnviarRankingOnline();
+        if (ok) {
+          try { actualizarEstadoSync(); } catch (e) { /* silencio */ }
+          if (rankingAbierto) refrescarRankingVisible();
+        }
+      } catch (e) { /* silencio */ }
     })();
   }
 }
@@ -417,6 +439,7 @@ document.addEventListener("DOMContentLoaded", function() {
   const modalEl = document.getElementById("modalRanking");
   if (modalEl) {
     modalEl.addEventListener("shown.bs.modal", function() {
+      vaciarOutbox(); // si quedó una carrera pendiente, se manda YA
       iniciarRefrescoRanking();
     });
     modalEl.addEventListener("hidden.bs.modal", detenerRefrescoRanking);
@@ -425,6 +448,7 @@ document.addEventListener("DOMContentLoaded", function() {
   const btnActualizar = document.getElementById("btn-ranking-actualizar");
   if (btnActualizar) {
     btnActualizar.addEventListener("click", function() {
+      vaciarOutbox(); // primero se descarga la cola pendiente, luego se refresca
       cargarRankingOnlineUI(true);
     });
   }

@@ -44,6 +44,9 @@ function crearJugadorInicial() {
     modoLeal: false,
     // --- Nuevas mecanicas ---
     moral: 60,
+    ovrTemporalProximoPartido: 0,
+    boostHinchadaProximoPartido: 0,
+    penalidadProximasStats: 0,
     seleccionConvocado: false,
     partidosSeleccion: 0,
     golesSeleccion: 0,
@@ -342,7 +345,77 @@ const configsEventos = {
     }
   },
   COCCARO: { titulo: "Invitación por plata", texto: "Coccaro te invita a jugar a su equipo LAFERRERE a cambio de plata.<br><br>¿Aceptas?" },
-  CHILE: { titulo: "Viaje a Chile", texto: "Mati te invita a su casa en Chile.<br><br>¿Vas?" }
+  CHILE: { titulo: "Viaje a Chile", texto: "Mati te invita a su casa en Chile.<br><br>¿Vas?" },
+
+  // ============ EVENTOS NUEVOS V3 (MINIJUEGOS + MORAL IMPORTANTE) ============
+  LLE: {
+    titulo: "🚗 Llegada tarde al partido",
+    texto: "Te quedaste DORMIDO y llegás tarde al partido. Solo una opción te salva: darte muuuucha maña.<br><br>¿Cómo llegás?"
+  },
+  ENTR_EXTRA: {
+    titulo: "🏋️ Entrenamiento extra voluntario",
+    texto: "Tu cuerpo pide descanso, pero la competencia no espera: te ofrecés para hacer un entrenamiento extra bien exigente.<br><br>¿Te quedás a entrenar?"
+  },
+  NOCHE_PARTIDO: {
+    titulo: "🍺 Salida la noche antes del partido",
+    texto: "Te invitan a una salida la noche PREVIA al partido importante.<br><br>¿Cuántas rondas aguantás? Ojo: pasarte del límite justo te puede costar caro."
+  },
+  SPONSOR: {
+    titulo: "📸 Oferta de sponsor dudoso",
+    texto: "Una marca de dudosa procedencia te ofrece plata por promocionarlos con una foto polémica.<br><br>¿Aceptás?"
+  },
+  MOLESTIA: {
+    titulo: "🩹 Molestia física antes del partido",
+    texto: "Sentís una molestia en el cuerpo justo antes del partido importante.<br><br>¿Hacés la vista gorda y jugás igual, o pedís el cambio?"
+  },
+  DESAFIO: {
+    titulo: "🎮 Desafío de un compañero nuevo",
+    texto: "Un compañero nuevo del plantel te desafía a una disputa de habilidad frente a todo el vestuario.<br><br>¿Aceptás el desafío?"
+  },
+  HINCHADA: {
+    titulo: "⚽ Presión de hinchada en partido complicado",
+    texto: "Vas PERDIENDO al entretiempo y la hinchada te presiona para que levantes al equipo.<br><br>¿Salís a arengarlos o te quedás callado?"
+  }
+};
+
+// V3: eventos nuevos con decisiones múltiples y minijuegos
+const EVENTOS_NUEVOS = ["LLE", "ENTR_EXTRA", "NOCHE_PARTIDO", "SPONSOR", "MOLESTIA", "DESAFIO", "HINCHADA"];
+
+function esEventoNuevo(id) {
+  return EVENTOS_NUEVOS.indexOf(id) !== -1;
+}
+
+const opcionesEventosNuevos = {
+  LLE: [
+    { cod: "auto", cls: "btn-warning", txt: "🚗 Voy manejando" },
+    { cod: "bondi", cls: "btn-secondary", txt: "🚌 Me tomo el bondi" }
+  ],
+  ENTR_EXTRA: [
+    { cod: "hacer", cls: "btn-warning", txt: "🏋️ Entreno extra" },
+    { cod: "irse", cls: "btn-secondary", txt: "🏃 Me voy a casa" }
+  ],
+  NOCHE_PARTIDO: [
+    { cod: "casa", cls: "btn-secondary", txt: "🏠 Me quedo en casa" },
+    { cod: "r1", cls: "btn-outline-warning", txt: "🍺 1 ronda" },
+    { cod: "r2", cls: "btn-warning", txt: "🍻 2 rondas" },
+    { cod: "r3", cls: "btn-danger", txt: "🥴 3 rondas" }
+  ],
+  SPONSOR: [
+    { cod: "aceptar", cls: "btn-warning", txt: "📸 Acepto" },
+    { cod: "rechazar", cls: "btn-secondary", txt: "🙅 Rechazo" }
+  ],
+  MOLESTIA: [
+    { cod: "jugar", cls: "btn-warning", txt: "⚽ Juego igual" },
+    { cod: "cambio", cls: "btn-secondary", txt: "🪑 Pido el cambio" }
+  ],
+  DESAFIO: [
+    { cod: "aceptar", cls: "btn-warning", txt: "🎮 Acepto el desafío" },
+    { cod: "rechazar", cls: "btn-secondary", txt: "🙅 No gracias" }
+  ],
+  HINCHADA: [
+    { cod: "arengar", cls: "btn-warning", txt: "📢 Salgo a arengar" },
+    { cod: "callado", cls: "btn-secondary", txt: "🤐 Me quedo callado" }
+  ]
 };
 
 function eventoEnIdioma(config) {
@@ -936,7 +1009,7 @@ function generarPartidoInteractivo() {
     local,
     titular,
     posicion,
-    ovr: jugador.media,
+    ovr: jugador.media + (jugador.ovrTemporalProximoPartido || 0) + (jugador.boostHinchadaProximoPartido || 0),
     estadoFisico: Math.max(45, Math.min(99, 82 + (jugador.edad < 25 ? 8 : 0) - (jugador.edad > 30 ? 12 : 0))),
     moral: jugador.moral || 60,
     forma: formaRecientePartido(),
@@ -1047,25 +1120,53 @@ function resolverDecisionPartido(accion) {
       : partido.posicion === "DEF" && accion.id === "cortar" ? 0.12
         : partido.posicion === "GK" && accion.id === "palo" ? 0.10 : 0;
   const dificultad = evento.titulo === "Ataque rival" || evento.titulo === "Último ataque" ? 0.08 : 0;
-  const probabilidad = Math.max(0.18, Math.min(0.90, 0.25 + datos / 180 + ventajaPosicion - dificultad));
+  // Dificultad según el rival: un equipo fuerte defiende mejor. Los rivales de
+  // reputación alta ya no regalan todo el partido: se buscan resultados 1-0,
+  // 2-1, 3-1 en vez de goleadas 5-0 de una sola media alta.
+  const rivalRep = Number(partido.rival && partido.rival.reputacion) || 5;
+  const dificultadRival = Math.min(0.18, rivalRep * 0.02);
+  const probabilidad = Math.max(0.16, Math.min(0.85, 0.22 + datos / 200 + ventajaPosicion - dificultad - dificultadRival));
   const exito = Math.random() < probabilidad;
   let consecuencia = "La jugada no terminó en gol.";
+
+  // La chance ya no es gol automático: el exito genera peligro y solo se
+  // convierte cuando la definición se concreta (según el OVR del jugador).
   if (exito && (accion.id === "remata" || accion.id === "subir" || accion.id === "encara")) {
-    partido.goles++;
-    partido.marcador.club++;
-    consecuencia = "¡Oportunidad de gol y definición!";
+    const pGol = Math.max(0.32, Math.min(0.85, 0.45 + (partido.ovr - 70) / 100));
+    if (Math.random() < pGol) {
+      partido.goles++;
+      partido.marcador.club++;
+      consecuencia = "¡Oportunidad clara y definición perfecta! ¡GOOOOL!";
+    } else {
+      consecuencia = "Generaste la jugada pero la definición se perdió en el área.";
+    }
   } else if (exito && (accion.id === "pase" || accion.id === "pared" || accion.id === "desmarque")) {
-    partido.asistencias++;
-    partido.marcador.club++;
-    consecuencia = "Encontraste una mejor posición, generaste una asistencia y el equipo convirtió.";
+    const pAsist = Math.max(0.28, Math.min(0.80, 0.38 + (partido.ovr - 70) / 100));
+    if (Math.random() < pAsist) {
+      partido.asistencias++;
+      partido.marcador.club++;
+      consecuencia = "Encontraste una mejor posición, generaste una asistencia y el equipo convirtió.";
+    } else {
+      consecuencia = "La jugada se gestó pero el remate final murió en la puerta.";
+    }
   } else if (exito && (partido.posicion === "GK" || partido.posicion === "DEF")) {
     consecuencia = "¡Buena intervención! El equipo se mantuvo firme.";
   } else if (!exito && (partido.posicion === "GK" || evento.titulo === "Ataque rival" || evento.titulo === "Último ataque")) {
     partido.marcador.rival++;
     consecuencia = "El rival aprovechó el espacio y convirtió.";
+  } else if (!exito && (accion.id === "remata" || accion.id === "encara" || accion.id === "subir")) {
+    // Chance desperdiciada en ataque: el rival puede castigar de contra.
+    if (Math.random() < 0.22) {
+      partido.marcador.rival++;
+      consecuencia = "Perdiste la pelota y el rival castigó de contra.";
+    } else {
+      consecuencia = "El remate se fue desviado y la defensa cortó la contra.";
+    }
+  } else {
+    consecuencia = "La jugada perdió vuelo: el rival se reacomodó.";
   }
   if (exito && (partido.posicion === "GK" || partido.posicion === "DEF")) {
-    const probContra = Math.max(0.2, Math.min(0.55, 0.30 + (partido.ovr - 70) / 100));
+    const probContra = Math.max(0.18, Math.min(0.45, 0.25 + (partido.ovr - 70) / 100));
     if (Math.random() < probContra) {
       partido.marcador.club++;
       consecuencia += " ¡Excelente trabajo defensivo, el equipo salió de contra y convirtió!";
@@ -1077,6 +1178,15 @@ function resolverDecisionPartido(accion) {
     renderizarEventoPartido();
     return;
   }
+  // V3: penalidad de eventos (entrenamiento extra rendido) afecta tus stats de este partido
+  const penalidadEvento = jugador.penalidadProximasStats || 0;
+  if (penalidadEvento > 0) {
+    partido.goles = Math.max(0, partido.goles - penalidadEvento);
+    partido.asistencias = Math.max(0, partido.asistencias - penalidadEvento);
+  }
+  jugador.penalidadProximasStats = 0;
+  jugador.ovrTemporalProximoPartido = 0;
+  jugador.boostHinchadaProximoPartido = 0;
   const bonus = {
     goles: partido.goles,
     asistencias: partido.asistencias,
@@ -1948,7 +2058,21 @@ function abrirModalEvento() {
   const footer = elModal.querySelector(".modal-footer");
   let respuestaTomada = false;
 
-  if (evConfig.dosOpciones) {
+  if (esEventoNuevo(jugador.eventoDisponibleActual)) {
+    // Eventos V3: varias opciones con consecuencias y minijuegos
+    footer.innerHTML = "";
+    (opcionesEventosNuevos[jugador.eventoDisponibleActual] || []).forEach((op) => {
+      const btnNuevo = document.createElement("button");
+      btnNuevo.className = "btn " + (op.cls || "btn-warning") + " fw-bold ms-1";
+      btnNuevo.innerText = op.txt;
+      btnNuevo.onclick = () => {
+        respuestaTomada = true;
+        modalDecision.hide();
+        resolverEventoNuevo(jugador.eventoDisponibleActual, op.cod);
+      };
+      footer.appendChild(btnNuevo);
+    });
+  } else if (evConfig.dosOpciones) {
     // Eventos con DOS opciones explícitas (CERBE, NERVA, NITTOX, PRIMOS...)
     footer.innerHTML = "";
     const btnA = document.createElement("button");
@@ -2419,6 +2543,471 @@ function resolverEventoDosOpciones(id, opcion) {
 }
 
 // ------------------------------------------------------------
+//  EVENTOS NUEVOS V3: MINIJUEGOS + MORAL IMPORTANTE
+//  - Secuencia de flechas (llegada tarde / desafío): repetí las
+//    direcciones mostradas antes de que se acabe el tiempo.
+//  - Resistencia (entrenamiento extra): PULSÁ ESPACIO (o tocá la
+//    pantalla) RAPIDÍSIMO para que la barra no se vacíe.
+//  - Zona (puntería / arenga): detené la barra en la zona verde.
+//  Estos minijuegos NO tocan entrenamientosUsadosEstaTemporada:
+//  no son el minijuego de entrenamiento de la temporada.
+// ------------------------------------------------------------
+
+// --- Secuencia de flechas ---
+function iniciarMinijuegoSecuenciaFlechas(opts) {
+  const dirs = [
+    { k: "ArrowUp", s: "⬆️" },
+    { k: "ArrowDown", s: "⬇️" },
+    { k: "ArrowLeft", s: "⬅️" },
+    { k: "ArrowRight", s: "➡️" }
+  ];
+  const largo = opts.largo || 6;
+  const tiempo = opts.tiempo || 4.5;
+  const sec = [];
+  const sims = [];
+  for (let i = 0; i < largo; i++) {
+    const p = dirs[Math.floor(Math.random() * dirs.length)];
+    sec.push(p.k);
+    sims.push(p.s);
+  }
+  let idx = 0;
+  let terminada = false;
+  let restante = tiempo;
+  let timer = null;
+
+  document.getElementById("modalDominiosTitulo").innerText = opts.titulo || "⚡ Minijuego";
+  document.getElementById("secuenciaObjetivo").innerText = sims.join(" ");
+  document.getElementById("resultadoDominios").innerHTML = "";
+  document.getElementById("tiempoDominiosRow").style.display = "";
+  document.getElementById("tiempoDominios").innerText = tiempo.toFixed(1);
+  modalDominiosInstance.show();
+
+  const manejar = (e) => {
+    if (terminada || ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.code) === -1) return;
+    e.preventDefault();
+    if (e.code === sec[idx]) {
+      idx++;
+      const visuales = sims.slice();
+      for (let i = 0; i < idx; i++) visuales[i] = "✅";
+      document.getElementById("secuenciaObjetivo").innerText = visuales.join(" ");
+      if (idx === sec.length) finalizar(true);
+    } else {
+      finalizar(false);
+    }
+  };
+  window.addEventListener("keydown", manejar);
+
+  timer = setInterval(() => {
+    if (terminada) return;
+    restante -= 0.1;
+    document.getElementById("tiempoDominios").innerText = Math.max(0, restante).toFixed(1);
+    if (restante <= 0) finalizar(false);
+  }, 100);
+
+  const limpiar = () => {
+    window.removeEventListener("keydown", manejar);
+    if (timer) { clearInterval(timer); timer = null; }
+    document.getElementById("modalDominios").removeEventListener("hidden.bs.modal", limpiar);
+  };
+  document.getElementById("modalDominios").addEventListener("hidden.bs.modal", limpiar);
+
+  function finalizar(exito) {
+    if (terminada) return;
+    terminada = true;
+    clearInterval(timer);
+    const resDiv = document.getElementById("resultadoDominios");
+    let msg;
+    if (exito) {
+      msg = (typeof opts.onExito === "function") ? opts.onExito() : "¡Excelente!";
+      resDiv.className = "text-success fw-bold fs-5 mt-2";
+      sonidoExito();
+    } else {
+      msg = (typeof opts.onFallo === "function") ? opts.onFallo() : "Fallaste.";
+      resDiv.className = "text-danger fw-bold fs-5 mt-2";
+      sonidoError();
+    }
+    resDiv.innerText = msg;
+    const despues = exito ? opts.despuesExito : opts.despuesFallo;
+    guardarPartida();
+    setTimeout(() => {
+      modalDominiosInstance.hide();
+      verificarCambioRol();
+      actualizarInterfaz();
+      if (typeof despues === "function") despues();
+    }, CONFIG.TIMING.RESULTADO_MINIJUEGO_MS);
+  }
+}
+
+// --- Resistencia: pulsar rapidísimo para que la barra no baje ---
+function iniciarMinijuegoResistencia(opts) {
+  const cfgR = CONFIG.RESISTENCIA || { DURACION: 6.0, TICK_MS: 100, INICIO: 50, DRAIN_POR_TICK: 2.2, SUBIDA_POR_PULSO: 14 };
+  const duracion = (opts.duracion != null) ? opts.duracion : cfgR.DURACION;
+  let energia = cfgR.INICIO;
+  let terminada = false;
+  let timer = null;
+  const inicio = Date.now();
+
+  document.getElementById("modalDominiosTitulo").innerText = opts.titulo || "🏋️ Resistencia";
+  document.getElementById("secuenciaObjetivo").innerText = "¡PRESIONÁ ESPACIO (o tocá la pantalla) RAPIDÍSIMO para que la barra no baje!";
+  document.getElementById("resultadoDominios").innerHTML =
+    "<div class='progress mt-2' style='height:20px;'><div id='barraResistencia' class='progress-bar bg-success' style='width:" + energia + "%;'></div></div>" +
+    "<p class='text-center text-secondary mt-2 mb-0 small'>Aguantá " + duracion.toFixed(1) + " segundos sin dejar caer la barra.</p>";
+  document.getElementById("tiempoDominiosRow").style.display = "none";
+  modalDominiosInstance.show();
+
+  const pintarBarra = () => {
+    const barra = document.getElementById("barraResistencia");
+    if (!barra) return;
+    barra.style.width = Math.round(energia) + "%";
+    barra.className = energia > 60 ? "progress-bar bg-success" : energia > 30 ? "progress-bar bg-warning" : "progress-bar bg-danger";
+  };
+
+  const manejar = (e) => {
+    if (terminada) return;
+    const esClick = e.type === "click";
+    const esEspacio = e.type === "keydown" && e.code === "Space";
+    if (!esClick && !esEspacio) return;
+    if (esEspacio) e.preventDefault();
+    energia = Math.min(100, energia + cfgR.SUBIDA_POR_PULSO);
+    pintarBarra();
+  };
+  window.addEventListener("keydown", manejar);
+  window.addEventListener("click", manejar);
+
+  timer = setInterval(() => {
+    if (terminada) return;
+    if ((Date.now() - inicio) / 1000 >= duracion) { finalizar(true); return; }
+    energia = Math.max(0, energia - cfgR.DRAIN_POR_TICK);
+    pintarBarra();
+    if (energia <= 0) finalizar(false);
+  }, cfgR.TICK_MS);
+
+  const limpiar = () => {
+    window.removeEventListener("keydown", manejar);
+    window.removeEventListener("click", manejar);
+    if (timer) { clearInterval(timer); timer = null; }
+    document.getElementById("modalDominios").removeEventListener("hidden.bs.modal", limpiar);
+  };
+  document.getElementById("modalDominios").addEventListener("hidden.bs.modal", limpiar);
+
+  function finalizar(exito) {
+    if (terminada) return;
+    terminada = true;
+    clearInterval(timer);
+    const resDiv = document.getElementById("resultadoDominios");
+    let msg;
+    if (exito) {
+      msg = (typeof opts.onExito === "function") ? opts.onExito() : "¡Aguantaste!";
+      resDiv.className = "text-success fw-bold fs-5 mt-2";
+      sonidoExito();
+    } else {
+      msg = (typeof opts.onFallo === "function") ? opts.onFallo() : "Se te acabó la energía.";
+      resDiv.className = "text-danger fw-bold fs-5 mt-2";
+      sonidoError();
+    }
+    resDiv.innerHTML = "";
+    resDiv.innerText = msg;
+    const despues = exito ? opts.despuesExito : opts.despuesFallo;
+    guardarPartida();
+    setTimeout(() => {
+      modalDominiosInstance.hide();
+      verificarCambioRol();
+      actualizarInterfaz();
+      if (typeof despues === "function") despues();
+    }, CONFIG.TIMING.RESULTADO_MINIJUEGO_MS);
+  }
+}
+
+// --- Zona: detener la barra en la zona verde (puntería / timing) ---
+function iniciarMinijuegoZona(opts) {
+  const zona = opts.zona || { min: 40, max: 60 };
+  let pos = 0;
+  let dir = 1;
+  let terminada = false;
+  let timer = null;
+
+  document.getElementById("modalTLTitulo").innerText = opts.titulo || "🎯 Puntería";
+  document.getElementById("instruccionTL").innerText = opts.indicacion || "Detené la barra en la zona verde.";
+  document.getElementById("resultadoTL").innerHTML = "";
+  document.getElementById("btnPatearTL").disabled = false;
+  modalTLInstance.show();
+
+  timer = setInterval(() => {
+    if (terminada) return;
+    pos += dir * ((CONFIG.ZONA_EVENTO && CONFIG.ZONA_EVENTO.VELOCIDAD) || 3);
+    if (pos >= 100 || pos <= 0) dir *= -1;
+    const barra = document.getElementById("barraTL");
+    barra.style.width = pos + "%";
+    barra.setAttribute("aria-valuenow", Math.round(pos));
+  }, (CONFIG.ZONA_EVENTO && CONFIG.ZONA_EVENTO.TICK_MS) || 30);
+
+  const detener = () => {
+    if (terminada) return;
+    terminada = true;
+    clearInterval(timer);
+    document.getElementById("btnPatearTL").disabled = true;
+    const res = document.getElementById("resultadoTL");
+    const enZona = pos >= zona.min && pos <= zona.max;
+    let msg;
+    if (enZona) {
+      msg = (typeof opts.onExito === "function") ? opts.onExito() : "¡Bien!";
+      res.className = "text-success fw-bold fs-5";
+      sonidoGol();
+    } else {
+      msg = (typeof opts.onFallo === "function") ? opts.onFallo() : "Fallaste.";
+      res.className = "text-danger fw-bold fs-5";
+      sonidoError();
+    }
+    res.innerHTML = msg;
+    const despues = enZona ? opts.despuesExito : opts.despuesFallo;
+    guardarPartida();
+    setTimeout(() => {
+      document.getElementById("btnPatearTL").onclick = null;
+      modalTLInstance.hide();
+      verificarCambioRol();
+      actualizarInterfaz();
+      if (typeof despues === "function") despues();
+    }, CONFIG.TIMING.RESULTADO_MINIJUEGO_MS);
+  };
+  document.getElementById("btnPatearTL").onclick = detener;
+
+  const limpiar = () => {
+    if (!terminada) {
+      terminada = true;
+      clearInterval(timer);
+    }
+    document.getElementById("btnPatearTL").onclick = null;
+    document.getElementById("modalTiroLibre").removeEventListener("hidden.bs.modal", limpiar);
+  };
+  document.getElementById("modalTiroLibre").addEventListener("hidden.bs.modal", limpiar);
+}
+
+// --- Resolución de los eventos nuevos V3 ---
+function resolverEventoNuevo(id, opcion) {
+  switch (id) {
+    case "LLE":           resolverEventoNuevoLlegadaTarde(opcion); break;
+    case "ENTR_EXTRA":    resolverEventoNuevoEntrenamiento(opcion); break;
+    case "NOCHE_PARTIDO": resolverEventoNuevoNoche(opcion); break;
+    case "SPONSOR":       resolverEventoNuevoSponsor(opcion); break;
+    case "MOLESTIA":      resolverEventoNuevoMolestia(opcion); break;
+    case "DESAFIO":       resolverEventoNuevoDesafio(opcion); break;
+    case "HINCHADA":      resolverEventoNuevoHinchada(opcion); break;
+  }
+}
+
+function avisarEventoNuevo(titulo, texto) {
+  setTimeout(() => {
+    mostrarNotificacion(titulo, texto, () => { verificarCambioRol(); actualizarInterfaz(); });
+  }, CONFIG.TIMING.AVISO_EVENTO_MS);
+}
+
+// 🚗 LLEGADA TARDE AL PARTIDO
+function resolverEventoNuevoLlegadaTarde(opcion) {
+  if (opcion === "bondi") {
+    cambiarMoral(-20);
+    sumarMedia(-1);
+    registrarEventoFinalizado();
+    avisarEventoNuevo("🚌 Llegada tarde al partido", "Fuiste al re bondi: llegaste justo a tiempo pero te recibieron con puteadas.<br><br><strong>-20 de moral y -1 OVR.</strong>");
+    return;
+  }
+  registrarEventoFinalizado();
+  iniciarMinijuegoSecuenciaFlechas({
+    titulo: "🚗 Manejando al Estadio",
+    largo: (CONFIG.VIAJE && CONFIG.VIAJE.LARGO) || 8,
+    tiempo: (CONFIG.VIAJE && CONFIG.VIAJE.TIEMPO) || 6.0,
+    onExito: () => {
+      sumarMedia(3);
+      return "🚗 ¡Llegaste a tiempo y entero al estadio! Rendiste de taquito con la cabeza en el partido (+3 OVR).";
+    },
+    onFallo: () => {
+      jugador.temporadasForzadoSegunda += 2;
+      guardarPartida();
+      return "💥 Pisaste el freno tarde y <strong>CHOCASTE</strong>. Te rompiste: quedás afuera (jugás en Segunda) las próximas 2 temporadas.";
+    }
+  });
+}
+
+// 🏋️ ENTRENAMIENTO EXTRA VOLUNTARIO
+function resolverEventoNuevoEntrenamiento(opcion) {
+  if (opcion === "irse") {
+    registrarEventoFinalizado();
+    avisarEventoNuevo("🏋️ Entrenamiento extra", "Te fuiste a casa a descansar. Sin consecuencias.");
+    return;
+  }
+  registrarEventoFinalizado();
+  iniciarMinijuegoResistencia({
+    titulo: "🏋️ Entrenamiento extra voluntario",
+    onExito: () => {
+      return "🏋️ ¡Aguantaste el entrenamiento físico como una máquina! Ahora elegí el atributo físico a mejorar (+2).";
+    },
+    despuesExito: () => { abrirSelectorAtributoFisicoEvento(); },
+    onFallo: () => {
+      jugador.penalidadProximasStats = 5;
+      guardarPartida();
+      return "🏃 Te rendiste a mitad de la rutina... eso se paga: <strong>-5 en tus próximas estadísticas de partido</strong>.";
+    }
+  });
+}
+
+function abrirSelectorAtributoFisicoEvento() {
+  const fisicos = (CONFIG.ATRIBUTOS_FISICOS && CONFIG.ATRIBUTOS_FISICOS[jugador.posicion]) || (jugador.posicion === "GK" ? ["REF", "MAN"] : ["VEL", "RES"]);
+  const contenedor = document.getElementById("botonesEntrenamiento");
+  const resultado = document.getElementById("resultadoEntrenamiento");
+  if (!contenedor) return;
+  contenedor.innerHTML = "";
+  if (resultado) resultado.innerHTML = "";
+  const tituloModal = document.getElementById("modalEntrenamientoTitulo");
+  if (tituloModal) tituloModal.innerText = "💪 Atributo físico a mejorar";
+  fisicos.forEach(function(attr) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn btn-outline-primary fw-bold d-block w-100 mb-2 text-start";
+    const nombre = (typeof window.nombreAtributo === "function") ? window.nombreAtributo(attr) : attr;
+    const emoji = (typeof EMOJI_ATRIBUTO !== "undefined" && EMOJI_ATRIBUTO[attr]) || "🎽";
+    const valor = (jugador.atributos && jugador.atributos[attr] != null) ? jugador.atributos[attr] : "?";
+    btn.innerHTML = `<span class="me-1">${emoji}</span> ${attr} — ${nombre} <span class="badge bg-primary-subtle text-primary border ms-1">${valor}</span>`;
+    btn.onclick = () => {
+      const maxAtr = (CONFIG.PROGRESION && CONFIG.PROGRESION.ATR_MAX != null) ? CONFIG.PROGRESION.ATR_MAX : 99;
+      if (jugador.atributos) {
+        if (jugador.atributos[attr] == null) jugador.atributos[attr] = 0;
+        jugador.atributos[attr] = Math.min(maxAtr, jugador.atributos[attr] + 2);
+        if (typeof window.calcularOVR === "function") {
+          jugador.media = clampMedia(window.calcularOVR(jugador.atributos, jugador.posicion));
+        }
+      } else {
+        sumarMedia(2);
+      }
+      Array.prototype.forEach.call(contenedor.querySelectorAll("button"), function(b) { b.disabled = true; });
+      if (resultado) {
+        resultado.innerHTML = `<div class="border rounded p-3 bg-success bg-opacity-10"><p class="text-center mb-0 fw-bold text-success">🎯 ${nombre} +2</p><p class="text-center mb-0 text-secondary">Nuevo valor: <strong>${jugador.atributos ? jugador.atributos[attr] : "?"}</strong></p></div>`;
+      }
+      sonidoExito();
+      guardarPartida();
+      setTimeout(() => { modalEntrenamientoAtributos.hide(); actualizarInterfaz(); }, CONFIG.TIMING.RESULTADO_MINIJUEGO_MS);
+    };
+    contenedor.appendChild(btn);
+  });
+  modalEntrenamientoAtributos.show();
+}
+
+// 🍺 SALIDA LA NOCHE ANTES DEL PARTIDO
+function resolverEventoNuevoNoche(opcion) {
+  registrarEventoFinalizado();
+  if (opcion === "casa") {
+    cambiarMoral(-5);
+    avisarEventoNuevo("🍺 Salida la noche antes del partido", "Te quedaste en casa con la cabeza en el partido, pero el grupo se te resiente un poco...<br><br><strong>-5 de moral.</strong>");
+    return;
+  }
+  const rondas = parseInt(String(opcion).replace("r", ""), 10) || 1;
+  const limite = 1 + Math.floor(Math.random() * 3);
+  if (rondas > limite) {
+    cambiarMoral(-15);
+    jugador.ovrTemporalProximoPartido = (jugador.ovrTemporalProximoPartido || 0) - 2;
+    avisarEventoNuevo("🍺 Te pasaste de rosca", "Aguantaste <strong>" + rondas + " rondas</strong> y el cuerpo no daba: saltaste el límite justo de la noche.<br><br><strong>-15 de moral y -2 OVR en tu próximo partido.</strong>");
+  } else if (rondas === limite) {
+    cambiarMoral(10);
+    avisarEventoNuevo("🍺 Salida JUSTA", "Aguantaste <strong>" + rondas + " rondas</strong>: el límite justo. Ni de más ni de menos y descansaste bien.<br><br><strong>+10 de moral.</strong>");
+  } else {
+    avisarEventoNuevo("🍺 Noche tranquila", "Aguantaste <strong>" + rondas + " rondas</strong> y volviste temprano. Sin consecuencias.");
+  }
+  guardarPartida();
+}
+
+// 📸 OFERTA DE SPONSOR DUDOSO
+function resolverEventoNuevoSponsor(opcion) {
+  registrarEventoFinalizado();
+  if (opcion === "rechazar") {
+    avisarEventoNuevo("📸 Oferta de sponsor", "Rechazaste la oferta dudosa. Sin consecuencias... por ahora.");
+    return;
+  }
+  if (Math.random() < 0.5) {
+    cambiarMoral(-10);
+    avisarEventoNuevo("📸 Se filtró tu foto", "Aceptaste y DÍAS después se filtró la foto polémica. Te llovieron críticas.<br><br><strong>-10 de moral.</strong>");
+  } else {
+    sumarMedia(3);
+    avisarEventoNuevo("📸 Sponsor a full", "Aceptaste y la marca quedó chocha: te hicieron sponsor oficial y entrenás más motivado.<br><br><strong>+3 OVR.</strong>");
+  }
+}
+
+// 🩹 MOLESTIA FÍSICA ANTES DEL PARTIDO
+function resolverEventoNuevoMolestia(opcion) {
+  if (opcion === "cambio") {
+    cambiarMoral(-5);
+    registrarEventoFinalizado();
+    avisarEventoNuevo("🩹 Molestia física", "Pediste el cambio y te cuidaste: la molestia no pasó a más.<br><br><strong>-5 de moral.</strong>");
+    return;
+  }
+  registrarEventoFinalizado();
+  iniciarMinijuegoZona({
+    titulo: "🩹 Jugás con molestia",
+    indicacion: "Vas a jugar igual: el margen es CHIQUITO. Detené la barra justo en la zona verde bien ajustada.",
+    zona: (CONFIG.ZONA_EVENTO && CONFIG.ZONA_EVENTO.REDUCIDA) || { min: 43, max: 57 },
+    onExito: () => {
+      jugador.ovrTemporalProximoPartido = Math.max(jugador.ovrTemporalProximoPartido || 0, 2);
+      guardarPartida();
+      return "🩹🦸 ¡GUERRERO! Jugás igual con la molestia y te bancás TODO el partido.<br><br><strong>+2 OVR temporal en tu próximo partido.</strong>";
+    },
+    onFallo: () => {
+      if (Math.random() < 0.5) {
+        jugador.temporadasForzadoSegunda += 2;
+        guardarPartida();
+        return "💥 La molestia era una LESIÓN de verdad: la forzaste y quedás <strong>afuera 2 temporadas</strong>.";
+      }
+      return "🩹 Fue solo un susto: aguantaste el dolor pero sin lucirte. Saliste a tiempo.";
+    }
+  });
+}
+
+// 🎮 DESAFÍO DEL COMPAÑERO NUEVO
+function resolverEventoNuevoDesafio(opcion) {
+  if (opcion === "rechazar") {
+    registrarEventoFinalizado();
+    avisarEventoNuevo("🎮 Desafío del compañero", "Le esquivaste el desafío al compañero nuevo. Sin consecuencias.");
+    return;
+  }
+  registrarEventoFinalizado();
+  iniciarMinijuegoSecuenciaFlechas({
+    titulo: "🎮 Desafío del compañero nuevo",
+    largo: (CONFIG.DOMINIOS && CONFIG.DOMINIOS.LARGO) || 5,
+    tiempo: (CONFIG.DOMINIOS && CONFIG.DOMINIOS.TIEMPO) || 2.8,
+    onExito: () => {
+      cambiarMoral(5);
+      return "🎮 Le GANASTE el desafío al compañero nuevo. El vestuario te respeta.<br><br><strong>+5 de moral.</strong>";
+    },
+    onFallo: () => {
+      cambiarMoral(-5);
+      return "😅 Perdiste el desafío frente al vestuario.<br><br><strong>-5 de moral.</strong>";
+    }
+  });
+}
+
+// ⚽ PRESIÓN DE LA HINCHADA EN PARTIDO COMPLICADO
+function resolverEventoNuevoHinchada(opcion) {
+  if (opcion === "callado") {
+    cambiarMoral(-5);
+    registrarEventoFinalizado();
+    avisarEventoNuevo("⚽ Presión de la hinchada", "Te quedaste callado y el vestuario se sintió solo en la adversidad.<br><br><strong>-5 de moral.</strong>");
+    return;
+  }
+  registrarEventoFinalizado();
+  iniciarMinijuegoZona({
+    titulo: "📢 Arenga a la hinchada",
+    indicacion: "Vas perdiendo y la hinchada te pide un gesto: detené la barra en el MOMENTO JUSTO (zona verde).",
+    zona: (CONFIG.ZONA_EVENTO && CONFIG.ZONA_EVENTO.NORMAL) || { min: 40, max: 60 },
+    onExito: () => {
+      cambiarMoral(8);
+      jugador.boostHinchadaProximoPartido = 3;
+      guardarPartida();
+      return "📢 ¡LA HINCHADA EXPLOTÓ! Tu arenga levanta al equipo para la segunda mitad.<br><br><strong>+8 de moral y +3 OVR en tu próximo partido.</strong>";
+    },
+    onFallo: () => {
+      cambiarMoral(-5);
+      return "😬 Te patinó la arenga y quedó la gente fría.<br><br><strong>-5 de moral.</strong>";
+    }
+  });
+}
+
+// ------------------------------------------------------------
 //  MINIJUEGO DE PELEA (se dispara cuando la salida con Sossa sale mal)
 // ------------------------------------------------------------
 function iniciarMinijuegoPelea() {
@@ -2508,7 +3097,8 @@ const TODOS_EVENTOS = [
   "ORSINI", "NICOBAILARIN", "RONNIE", "BAREIRO", "MUSA", "KOLT", "VIEJO", "PISA",
   "PERUANOS", "PUSKAS", "GLIZZI", "PASO", "MATUTE", "RANKEDS",
   "CERBE", "NERVA", "NITTOX", "KROSTY", "PRIMOS",
-  "TAMBUPA", "COCCARO", "CHILE"
+  "TAMBUPA", "COCCARO", "CHILE",
+  "LLE", "ENTR_EXTRA", "NOCHE_PARTIDO", "SPONSOR", "MOLESTIA", "DESAFIO", "HINCHADA"
 ];
 
 function prepararSiguienteEvento() {

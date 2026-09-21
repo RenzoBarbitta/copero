@@ -540,6 +540,13 @@ body.app-juego #contenido-juego {
   border-color: rgba(255, 212, 59, 0.55);
   box-shadow: 0 12px 30px -14px rgba(255, 212, 59, 0.3);
 }
+.support-dev {
+  border-color: rgba(62, 240, 148, 0.3);
+}
+.support-dev:hover {
+  border-color: rgba(62, 240, 148, 0.5);
+  box-shadow: 0 12px 30px -14px rgba(62, 240, 148, 0.3);
+}
 .support-precio .fw-bold {
   color: var(--texto);
 }

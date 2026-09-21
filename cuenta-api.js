@@ -114,6 +114,14 @@
       if (anterior) await solicitar("/auth/v1/logout?scope=local", "POST", undefined, anterior.token);
       avisarCambioSesion();
     },
+    // Descarta la sesion en memoria SIN hacer red (quedo vencida o revocada).
+    // Lo usa el ranking para no quedar prometiendo un envio que la nube
+    // rechaza: el jugador vuelve a iniciar sesion y la cola se reenvia sola.
+    descartarSesion: function() {
+      ++generacion;
+      sesion = null;
+      avisarCambioSesion();
+    },
     async perfil() {
       const token = await tokenActual();
       const lista = await solicitar("/rest/v1/copero_profiles?select=display_name&user_id=eq." +

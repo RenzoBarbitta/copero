@@ -332,6 +332,8 @@ const TEXTOS_UI = {
   supportTitulo: "❤️ Ayudame a mantener COPERO PSO SA vivo", supportSubtitulo: "Actualmente me encuentro estudiando y mantener las bases de datos que guardan tu progreso, cuentas y ranking tiene un costo real cada mes. Con tu apoyo ayudas a cubrirlo y me das la motivación para seguir agregando contenido.",
   supportBasicoTitulo: "🥉 Básico", supportBasicoPrecio: "1 USD/mes", supportBasicoDesc: "Insignia de apoyador, acceso al modo Ultrarealista y nuestro agradecimiento eterno.",
   supportPremiumTitulo: "👑 Premium", supportPremiumPrecio: "3 USD/mes", supportPremiumDesc: "Todo lo del básico + evento especial de fin de semana, cosmético exclusivo y voz activa en las próximas features.",
+  supportDevTitulo: "💻 Desarrollador", supportDevPrecio: "Gratis", supportDevDesc: "¿Querés ayudar a desarrollar el juego? Abrí un ticket en nuestro Discord y sumate al equipo. Sin costo.",
+  supportDevBtn: "🚀 Abrir ticket",
   supportBadge: "Recomendado",
   supportBtn: "🚀 Apoyar",
   supportNota: "No es pay-to-win: ningún beneficio te da ventaja en el ranking online ni en el 1v1. Es pura pasión por el proyecto. ❤️",
@@ -362,6 +364,8 @@ const TEXTOS_UI = {
   supportTitulo: "❤️ Help me keep COPERO PSO SA alive", supportSubtitulo: "I'm currently a student, and keeping the databases that store your progress, accounts and ranking has a real cost every month. With your support you help cover it and give me the motivation to keep adding content.",
   supportBasicoTitulo: "🥉 Basic", supportBasicoPrecio: "1 USD/month", supportBasicoDesc: "Supporter badge, access to Ultrarealistic mode and our eternal gratitude.",
   supportPremiumTitulo: "👑 Premium", supportPremiumPrecio: "3 USD/month", supportPremiumDesc: "Everything in Basic + special weekend event, exclusive cosmetic and an active voice in our next features.",
+  supportDevTitulo: "💻 Developer", supportDevPrecio: "Free", supportDevDesc: "Want to help develop the game? Open a ticket on our Discord and join the team. No cost.",
+  supportDevBtn: "🚀 Open ticket",
   supportBadge: "Recommended",
   supportBtn: "🚀 Support",
   supportNota: "Not pay-to-win: no benefit gives you an edge in online ranking or 1v1. Pure passion for the project. ❤️", simular: "Simulate Season", reiniciar: "Restart Career", historial: "Career History", thTemp: "Season", thClub: "Club", thPJ: "MP", thGoles: "Goals", thAsist: "Assists", thTitulos: "Titles / Achievements", retiro: "🏁 Professional Retirement", partidos: "Matches:", goles: "Goals:", asistencias: "Assists:", jugarDeNuevo: "Play Again", rankTitulo: "🏆 Ranking", rankTabGlobal: "🌍 Global (Online)", rankTabLocal: "📱 This device", rankColJugador: "Player", rankColMedia: "Rating", rankColTitulos: "Titles", rankColAnio: "Year", rankCargando: "Loading online ranking...", rankErrorOnline: "Could not connect to the online ranking. Check your connection.", rankReintentar: "🔄 Retry", rankActualizar: "🔄 Refresh", rankVacioOnline: "No careers in the global ranking yet. Finish a career and be the first!", rankVacioLocal: "No careers registered on this device yet.", rankSincronizado: "🟢 Online ranking synced", rankPendiente: "📤 Your career was saved and will be sent when you're back online", btnInstalar: "📥 Install App", desarrollado: "Developed by:", colaboracion: "Collaboration:", privacidadLink: "Privacy Policy",
@@ -372,6 +376,8 @@ const TEXTOS_UI = {
   supportTitulo: "❤️ Ajude-me a manter o COPERO PSO SA vivo", supportSubtitulo: "Atualmente estou estudando e manter os bancos de dados que guardam seu progresso, contas e ranking tem um custo real a cada mês. Com seu apoio, você ajuda a cobrir isso e me dá motivação para continuar adicionando conteúdo.",
   supportBasicoTitulo: "🥉 Básico", supportBasicoPrecio: "1 USD/mês", supportBasicoDesc: "Insígnia de apoiador, acesso ao modo Ultrarealista e nosso agradecimento eterno.",
   supportPremiumTitulo: "👑 Premium", supportPremiumPrecio: "3 USD/mês", supportPremiumDesc: "Tudo do básico + evento especial de fim de semana, cosmético exclusivo e voz ativa nas próximas features.",
+  supportDevTitulo: "💻 Desenvolvedor", supportDevPrecio: "Grátis", supportDevDesc: "Quer ajudar a desenvolver o jogo? Abra um ticket no nosso Discord e entre para o time. Sem custo.",
+  supportDevBtn: "🚀 Abrir ticket",
   supportBadge: "Recomendado",
   supportBtn: "🚀 Apoiar",
   supportNota: "Não é pay-to-win: nenhum benefício te dá vantagem no ranking online nem no 1v1. É pura paixão pelo projeto. ❤️", simular: "Simular temporada", reiniciar: "Reiniciar carreira", historial: "Histórico da carreira", thTemp: "Temp.", thClub: "Clube", thPJ: "PJ", thGoles: "Gols", thAsist: "Assist.", thTitulos: "Títulos / Conquistas", retiro: "🏁 Aposentadoria profissional", partidos: "Partidas:", goles: "Gols:", asistencias: "Assistências:", jugarDeNuevo: "Jogar novamente", rankTitulo: "🏆 Ranking", rankTabGlobal: "🌍 Global (online)", rankTabLocal: "📱 Este dispositivo", rankColJugador: "Jogador", rankColMedia: "Média", rankColTitulos: "Títulos", rankColAnio: "Ano", rankCargando: "Carregando ranking online...", rankErrorOnline: "Não foi possível conectar ao ranking online. Verifique sua conexão.", rankReintentar: "🔄 Tentar novamente", rankActualizar: "🔄 Atualizar", rankVacioOnline: "Ainda não há carreiras no ranking global. Termine uma carreira e seja o primeiro!", rankVacioLocal: "Ainda não há carreiras registradas neste dispositivo.", rankSincronizado: "🟢 Ranking online sincronizado", rankPendiente: "📤 Sua carreira foi salva e será enviada quando houver internet", btnInstalar: "📥 Instalar aplicativo", desarrollado: "Desenvolvido por:", colaboracion: "Colaboração:", privacidadLink: "Política de privacidade", cuentaTitulo: "👤 Minha conta (opcional)", cuentaInfo: "Sua carreira continua salva neste dispositivo. O Supabase gerencia seu e-mail, autenticação e apelido. Ao recarregar a página, você terá que entrar novamente.", cuentaEmail: "E-mail", cuentaPass: "Senha", cuentaAcepto1: "Li e aceito a", cuentaPrivacidadLink: "Política de privacidade (abre em outra aba)", cuentaAcepto2: "para criar minha conta.", cuentaAyuda: "Obrigatório apenas no cadastro. Usamos o e-mail e a autenticação para gerenciar sua conta e o apelido do seu perfil. Esta aceitação não autoriza publicidade nem medição opcional.", cuentaLogin: "Entrar", cuentaCrear: "Criar conta", cuentaRegistroAyuda: "Para se cadastrar, use pelo menos 8 caracteres. Confirme o e-mail recebido antes de entrar.", cuentaApodo: "Apelido do perfil", cuentaGuardarApodo: "Salvar apelido", cuentaLeerPerfil: "Ler perfil novamente", cuentaSalir: "Sair da conta", btnEntendido: "Entendi", btnRechazar: "Recusar", btnAceptar: "Aceitar", btnContinuar: "Continuar", btnCerrar: "Fechar", btnEntendido2: "Entendi!", mercadoTitulo: "Mercado de transferências", penalTitulo: "⚽ FINAL DRAMÁTICA!", penalTexto: "A partida está empatada. O pênalti para decidir o título está nos seus pés.", minijuegoIndicacion: "Siga a instrução deste minijogo:", tiempoRestante: "Tempo restante:", ssTitulo: "🔍 REVISÃO AO VIVO (SS)", ssTexto: "Verificando pastas e arquivos suspeitos...", rolDesbloqueado: "🔓 FUNÇÃO DESBLOQUEADA", avisoMinijuego: "Você já jogou o minijogo desta temporada. Só é possível jogar 1 minijogo por temporada, além do treinamento por atributos. Avance para a próxima temporada para jogar outro."
@@ -529,6 +535,8 @@ Object.assign(CONFIG, {
   MORAL_MAX: 100,
   MORAL_INICIO: 60,
   MORAL_EFECTO: 0.15,
+  // V3: la moral pesa MUCHO más en la simulación de temporada (±6 OVR en extremos)
+  MORAL_EFECTO_TEMPORADA: 0.12,
 
   // Mercado con rivales
   PROB_PUJA_RIVAL: 0.35,
@@ -541,6 +549,12 @@ Object.assign(CONFIG, {
   PASE:      { TICK_MS: 20, VELOCIDAD: 3, ZONA: 18, SUBIDA_OVR: 1 },
   CABEZAZO:  { TIEMPO_MS: 2500, SUBIDA_OVR: 1 },
   UNO_VS_UNO: { SUBIDA_OVR: 2 },
+
+  // Eventos V3: minijuegos de eventos sociales
+  VIAJE:     { LARGO: 8, TIEMPO: 6.0, TICK_MS: 100 },
+  RESISTENCIA: { DURACION: 6.0, TICK_MS: 100, INICIO: 50, DRAIN_POR_TICK: 2.2, SUBIDA_POR_PULSO: 14 },
+  ZONA_EVENTO: { TICK_MS: 30, VELOCIDAD: 3, NORMAL: { ZONA_MIN: 40, ZONA_MAX: 60 }, REDUCIDA: { ZONA_MIN: 43, ZONA_MAX: 57 } },
+  ATRIBUTOS_FISICOS: { DEL: ["VEL", "RES"], CM: ["VEL", "RES"], DEF: ["VEL", "RES"], GK: ["REF", "MAN"] },
 
   // Evento "Acusado de cheats": probabilidad MUY baja por chequeo y
   // solo puede ocurrir UNA VEZ en toda la partida.

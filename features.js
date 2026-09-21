@@ -960,7 +960,8 @@ const _simularTemporadaBase = simularTemporada;
 simularTemporada = function() {
   generarRedesAntesPartido();
   const mediaOriginal = jugador.media;
-  const ajusteMoral = Math.round((jugador.moral - 50) * CONFIG.MORAL_EFECTO * 0.2);
+  const tasaMoral = (CONFIG.MORAL_EFECTO_TEMPORADA != null) ? CONFIG.MORAL_EFECTO_TEMPORADA : (CONFIG.MORAL_EFECTO * 0.2);
+  const ajusteMoral = Math.round((jugador.moral - 50) * tasaMoral);
   const mediaConBonus = clampMedia(mediaOriginal + ajusteMoral);
 
   // El bonus de moral es temporal: se aplica a los atributos durante la
