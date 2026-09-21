@@ -373,8 +373,8 @@ const configsEventos = {
     texto: "Una marca de dudosa procedencia te ofrece plata por promocionarlos con una foto polémica.<br><br>¿Aceptás?"
   },
   DESAFIO: {
-    titulo: "🎮 Desafío de un compañero nuevo",
-    texto: "Un compañero nuevo del plantel te desafía a una disputa de habilidad frente a todo el vestuario.<br><br>¿Aceptás el desafío?"
+    titulo: "🎮 Duelo de habilidad en el vestuario",
+    texto: "Un compañero nuevo del plantel te reta a una disputa de habilidad frente a todo el vestuario.<br><br>¿Aceptás?"
   },
   DARDOS: {
     titulo: "🎯 Dardos con los Pibes",
@@ -417,7 +417,7 @@ const opcionesEventosNuevos = {
     { cod: "rechazar", cls: "btn-secondary", txt: "🙅 Rechazo" }
   ],
   DESAFIO: [
-    { cod: "aceptar", cls: "btn-warning", txt: "🎮 Acepto el desafío" },
+    { cod: "aceptar", cls: "btn-warning", txt: "🎮 Acepto el reto" },
     { cod: "rechazar", cls: "btn-secondary", txt: "🙅 No gracias" }
   ],
   DARDOS: [
@@ -782,7 +782,7 @@ function iniciarMinijuegoDominios() {
     secuenciaObjetivoSimbolos.push(pick.sim);
   }
 
-  document.getElementById("modalDominiosTitulo").innerText = "⚽ Desafío de Dominios";
+  document.getElementById("modalDominiosTitulo").innerText = "⚽ Dominios";
   document.getElementById("secuenciaObjetivo").innerText = secuenciaObjetivoSimbolos.join(" ");
   document.getElementById("resultadoDominios").innerHTML = "";
   document.getElementById("tiempoDominiosRow").style.display = "";
@@ -1968,7 +1968,7 @@ function generarOfertasDeFichaje(ascendio = false) {
       const nota = document.createElement("div");
       nota.className = "alert alert-info p-2 small mb-3";
       nota.innerHTML = `🔒 <strong>Modo Leal activado:</strong> sos fiel a <strong>${jugador.clubActual ? jugador.clubActual.nombre : "tu club"}</strong> para siempre. No hay ofertas de fichaje ni cambios de equipo.` +
-        (jugador.modoDesafio ? " (Desafío completado)" : "");
+        (jugador.modoDesafio ? " (Modo Leal)" : "");
       contenedor.appendChild(nota);
     }
     return;
@@ -2954,21 +2954,21 @@ function resolverEventoNuevoSponsor(opcion) {
 function resolverEventoNuevoDesafio(opcion) {
   if (opcion === "rechazar") {
     registrarEventoFinalizado();
-    avisarEventoNuevo("🎮 Desafío del compañero", "Le esquivaste el desafío al compañero nuevo. Sin consecuencias.");
+    avisarEventoNuevo("🎮 Duelo del compañero", "Le esquivaste el duelo al compañero nuevo. Sin consecuencias.");
     return;
   }
   registrarEventoFinalizado();
   iniciarMinijuegoSecuenciaFlechas({
-    titulo: "🎮 Desafío del compañero nuevo",
+    titulo: "🎮 Duelo del compañero nuevo",
     largo: (CONFIG.DOMINIOS && CONFIG.DOMINIOS.LARGO) || 5,
     tiempo: (CONFIG.DOMINIOS && CONFIG.DOMINIOS.TIEMPO) || 2.8,
     onExito: () => {
       cambiarMoral(5);
-      return "🎮 Le GANASTE el desafío al compañero nuevo. El vestuario te respeta.<br><br><strong>+5 de moral.</strong>";
+      return "🎮 Le GANASTE el duelo al compañero nuevo. El vestuario te respeta.<br><br><strong>+5 de moral.</strong>";
     },
     onFallo: () => {
       cambiarMoral(-5);
-      return "😅 Perdiste el desafío frente al vestuario.<br><br><strong>-5 de moral.</strong>";
+      return "😅 Perdiste el duelo frente al vestuario.<br><br><strong>-5 de moral.</strong>";
     }
   });
 }

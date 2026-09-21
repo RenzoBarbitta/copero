@@ -585,7 +585,7 @@ function activarModoDesafio() {
   jugador.rolAnterior = obtenerRol(jugador.media);
   guardarPartida();
   mostrarNotificacion(
-    "🎲 ¡Modo Desafío Iniciado!",
+    "🛡️ ¡Modo Leal Iniciado!",
     "Te tocó <strong style='color:#ffd43b;'>" + club.nombre + "</strong> (reputación " + club.reputacion + "/10).<br><br>" +
     "Estás <strong>fichado ahí para siempre</strong>: no hay mercado de fichajes, solo simulás temporadas.<br><br>" +
     "<strong>🎯 Objetivo: ganarle 5 títulos al club.</strong>"
@@ -606,7 +606,7 @@ function chequearModoDesafio() {
     guardarPartida();
     lanzarConfeti(120);
     mostrarNotificacion(
-      "🏆 ¡MODO DESAFÍO COMPLETADO!",
+      "🏆 ¡OBJETIVO CUMPLIDO!",
       "Le ganaste <strong>5 títulos</strong> a " + (jugador.clubActual ? jugador.clubActual.nombre : "tu club") +
       ".<br><br>Sos una leyenda del club. 🎉"
     );
@@ -915,7 +915,7 @@ iniciarCarrera = function() {
   if (btnSeed) {
     btnSeed.classList.remove("btn-warning");
     btnSeed.classList.add("btn-outline-secondary");
-    btnSeed.innerText = "🎲 Modo Desafío";
+    btnSeed.innerText = uiT("modoDesafio", "🛡️ Modo Leal");
   }
 };
 
@@ -1031,10 +1031,12 @@ document.addEventListener("DOMContentLoaded", function() {
       modoDesafioPendiente = !modoDesafioPendiente;
       btnSeed.classList.toggle("btn-warning", modoDesafioPendiente);
       btnSeed.classList.toggle("btn-outline-secondary", !modoDesafioPendiente);
-      btnSeed.innerText = modoDesafioPendiente ? "🎲 Modo Desafío: ACTIVADO" : "🎲 Modo Desafío";
+      btnSeed.innerText = modoDesafioPendiente
+        ? uiT("modoDesafio", "🛡️ Modo Leal") + ": ACTIVADO"
+        : uiT("modoDesafio", "🛡️ Modo Leal");
       if (modoDesafioPendiente) {
         mostrarNotificacion(
-          "🎲 Modo Desafío",
+          uiT("modoDesafio", "🛡️ Modo Leal"),
           "Al iniciar la carrera te va a tocar un club de <strong>reputación baja (menos de 8/10)</strong>, con más chances para los más chicos.<br><br>" +
           "Vas a estar <strong>fichado ahí para siempre</strong>: sin mercado de fichajes, solo simulando temporadas.<br><br>" +
           "<strong>Objetivo: ganarle 5 títulos a ese club.</strong>"

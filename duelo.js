@@ -185,6 +185,38 @@
     return hashSemilla((topic || "sala") + "-minijuego-" + temporada);
   }
 
+  // ------------------------------------------------------------
+  //  MATCHMAKING (BUSCAR PARTIDO): emparejamiento determinista.
+  //  Dada la lista de jugadores esperando en la cola (id + ts de
+  //  entrada), el par es SIEMPRE "los dos más antiguos": asi ambos
+  //  miembros del par calculan la MISMA pareja y nadie se pierde.
+  //  Devuelve null si hay menos de 2 jugadores o si yo no formo parte
+  //  del par (entonces sigo esperando).
+  // ------------------------------------------------------------
+  function calcularParejaCola(presentes, miId) {
+    const lista = (presentes || []).filter(function(p) {
+      return p && p.id != null;
+    }).sort(function(a, b) {
+      const ta = a.ts || 0, tb = b.ts || 0;
+      if (ta !== tb) return ta - tb;
+      return String(a.id).localeCompare(String(b.id));
+    });
+    if (lista.length < 2) return null;
+    const ids = [String(lista[0].id), String(lista[1].id)];
+    if (ids.indexOf(String(miId)) === -1) return null;
+    return { ids: ids };
+  }
+
+  // Sala privada determinista para una pareja: ambos calculan el MISMO
+  // nombre y clave a partir de los dos ids ordenados, y se conectan con
+  // la infraestructura de salas existente (conectarCanalDuelo).
+  function salaAutomaticaDuelo(ids) {
+    const ordenados = (ids || []).slice().sort();
+    const semilla = ordenados.join("|");
+    const hNombre = hashSemilla(semilla + "::sala").toString(16).slice(0, 6);
+    const hClave = hashSemilla(semilla + "::clave").toString(16).slice(0, 6);
+    return { nombre: "auto-" + hNombre, clave: "sala" + hClave };
+  }
 
   // ============================================================
   //  EVENTOS CRUZADOS DEL DUELO
@@ -668,7 +700,10 @@
     resolverReflejoDuelo: resolverReflejoDuelo,
     simularTemporadaDuelo: simularTemporadaDuelo,
     elegirEventoDeterminista: elegirEventoDeterminista,
-    hashSemilla: hashSemilla
+    hashSemilla: hashSemilla,
+    semillaDeterministaDuelo: semillaDeterministaDuelo,
+    calcularParejaCola: calcularParejaCola,
+    salaAutomaticaDuelo: salaAutomaticaDuelo
   };
 
   // ============================================================
@@ -681,6 +716,20 @@
   let d = null;       // estado del duelo
   let dModal = null;
   let dTimers = [];   // intervalos/timeouts activos de la interfaz
+  let dCola = null;   // estado de la cola de matchmaking (BUSCAR PARTIDO)
+  const DUELO_COLA_TOPIC = "duelo:cola-online";
+
+  // Icono SVG reutilizando el sistema de ui.js (si esta disponible).
+  function icoDuelo(nombre, tam) {
+    if (typeof iconoSVG === "function") return iconoSVG(nombre, tam || 18);
+    return "";
+  }
+
+  // Traduccion corta reutilizando uiT (si esta disponible).
+  function tDuelo(clave, fallback) {
+    if (typeof uiT === "function") return uiT(clave, fallback);
+    return fallback;
+  }
 
   function limpiarTimersDuelo() {
     dTimers.forEach(function(t) { clearInterval(t); clearTimeout(t); });
@@ -783,7 +832,7 @@
   // ============================================================
   //  LOBBY Y MATCHMAKING
   // ============================================================
-  function abrirPantallaDuelo() {
+  function abrirPantallaDuelo(opts) {
     limpiarTimersDuelo();
     const inicio = document.getElementById("pantalla-inicio");
     const juego = document.getElementById("pantalla-juego");
@@ -816,6 +865,7 @@
     pantalla.innerHTML = '<div class="card card-custom p-4 mt-3 text-center"><p>⏳ Cargando tu perfil de duelista...</p></div>';
     cuenta.perfil().then(function(apodo) {
       renderLobbyDuelo(apodo || "Duelista");
+      if (opts && opts.autoBuscar) buscarPartidoDuelo();
     }).catch(function() {
       pantalla.innerHTML =
         '<div class="card card-custom p-4 mt-3 text-center">' +
@@ -828,6 +878,7 @@
 
   function volverInicioDuelo() {
     cerrarSesionDuelo();
+    salirDeColaDuelo();
     const pantalla = document.getElementById(PANTALLA);
     if (pantalla) pantalla.classList.add("hidden");
     const inicio = document.getElementById("pantalla-inicio");
@@ -835,15 +886,34 @@
   }
 
   function renderLobbyDuelo(apodo) {
+    miApodoDuelo = apodo || "Duelista";
     const pantalla = document.getElementById(PANTALLA);
     pantalla.innerHTML =
-      '<div class="card card-custom p-4 mt-3">' +
-      '<h4 class="fw-bold text-warning text-center">⚔️ Duelo 1v1 Online — Duelo de Carreras</h4>' +
-      '<p class="small text-secondary text-center mt-2">Carrera profesional de <strong>10 temporadas</strong> en tiempo real contra otro usuario. Al final de cada temporada se juega <strong>un minijuego que alterna 1 y 1</strong>: Duelo de Reflejos o Tanda de Penales, y al retirarse se declara al <strong>Campeón del Duelo</strong>.</p>' +
-      '<div class="text-center my-3">' + avatarIniciales(apodo) +
-      '<div class="fw-bold mt-1">👤 ' + escaparDuelo(apodo) + '</div>' +
-      '<div class="small text-secondary">Sesión verificada ✔️</div></div>' +
-      '<div class="row g-3">' +
+      '<div class="card card-custom p-4 mt-3 duelo-lobby" id="duelo-lobby">' +
+      '<div class="text-center mb-2">' +
+      '<div class="duelo-lobby-icon">' + icoDuelo("duelo", 26) + "</div>" +
+      '<h4 class="fw-bold mb-1">Duelo 1v1 Online</h4>' +
+      '<p class="small text-secondary mb-0">Duelo de Carreras · 10 temporadas en tiempo real · Campeón del Duelo</p>' +
+      "</div>" +
+      '<div class="d-flex justify-content-center align-items-center gap-2 flex-wrap mt-2 mb-4">' +
+      avatarIniciales(apodo) +
+      '<span class="fw-bold">' + escaparDuelo(apodo) + "</span>" +
+      '<span class="chip-small">✔️ Sesión verificada</span>' +
+      "</div>" +
+      // Panel de búsqueda (BUSCAR PARTIDO buscando un oponente)
+      '<div id="duelo-buscar-panel" class="duelo-cola-panel hidden mb-3">' +
+      '<div class="duelo-spinner" aria-hidden="true"></div>' +
+      '<div class="duelo-cola-titulo">BUSCANDO RIVAL</div>' +
+      '<div class="small text-secondary mt-1">Buscando un oponente...</div>' +
+      '<div id="duelo-cola-gente" class="small text-3 mt-1"></div>' +
+      '<button class="btn btn-outline-danger fw-bold mt-3 px-4" onclick="cancelarBusquedaDuelo()">✕ CANCELAR</button>' +
+      "</div>" +
+      // CTA principal
+      '<button id="btn-duelo-buscar" class="btn btn-pso btn-lg fw-bold w-100" onclick="buscarPartidoDuelo()">' +
+      icoDuelo("duelo", 18) + " " + tDuelo("dueloBuscar", "BUSCAR PARTIDO") + "</button>" +
+      '<p class="text-center small text-3 mt-2 mb-4">Competí contra otro jugador online</p>' +
+      '<div class="duelo-divisor"><span>o creá una sala con un amigo</span></div>' +
+      '<div class="row g-3 mt-1" id="duelo-botones-salas">' +
       '<div class="col-md-6"><div class="border rounded p-3 h-100">' +
       '<h6 class="fw-bold">🟢 Crear sala</h6>' +
       '<input id="duelo-crear-nombre" class="form-control mb-2" placeholder="Nombre de la sala" maxlength="30">' +
@@ -877,6 +947,7 @@
   //  CONEXION REALTIME (Supabase Broadcast sobre WebSockets)
   // ============================================================
   function crearSalaDuelo() {
+    if (dCola && dCola.activo) { estadoLobbyDuelo('<div class="alert alert-warning p-2 mb-0">⚠️ Estás en BUSCAR PARTIDO. CANCELÁ la búsqueda para crear una sala.</div>'); return; }
     const nombre = document.getElementById("duelo-crear-nombre").value.trim();
     const clave = document.getElementById("duelo-crear-clave").value;
     const error = validarDatosSala(nombre, clave);
@@ -885,6 +956,7 @@
   }
 
   function unirseSalaDuelo() {
+    if (dCola && dCola.activo) { estadoLobbyDuelo('<div class="alert alert-warning p-2 mb-0">⚠️ Estás en BUSCAR PARTIDO. CANCELÁ la búsqueda para unirte a una sala.</div>'); return; }
     const nombre = document.getElementById("duelo-unir-nombre").value.trim();
     const clave = document.getElementById("duelo-unir-clave").value;
     const error = validarDatosSala(nombre, clave);
@@ -892,7 +964,121 @@
     conectarCanalDuelo(nombre, clave);
   }
 
-  function conectarCanalDuelo(nombre, clave) {
+  // ============================================================
+  //  MATCHMAKING: BUSCAR PARTIDO
+  //  Cola pública en tiempo real (canal duelo:cola-online) donde cada
+  //  jugador registra presence {id, apodo, ts}. El emparejamiento es
+  //  determinista: los 2 más antiguos forman el par (calcularParejaCola),
+  //  y ambos abren la MISMA sala privada calculada por salaAutomaticaDuelo.
+  //  Reutiliza toda la infraestructura de salas existente.
+  // ============================================================
+  function buscarPartidoDuelo() {
+    if (dSesion || (d && d.activo)) return;
+    if (dCola && dCola.activo) return; // ya estoy buscando
+    if (dCola && dCola.canal) salirDeColaDuelo();
+
+    if (!dCola) dCola = { activo: false, miId: null, apodo: "", ts: 0, canal: null, cliente: null, conectado: false };
+
+    const cuenta = window.CoperoCuenta;
+    if (!cuenta || !cuenta.tieneSesion()) return;
+    const apodo = miApodoDuelo || "Duelista";
+    dCola.apodo = apodo;
+    dCola.ts = Date.now();
+    dCola.activo = true;
+    dCola.miId = dCola.miId || "q" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+    const sb = supabase.createClient(COPERO_SUPABASE.url, COPERO_SUPABASE.publishableKey);
+    dCola.cliente = sb;
+    mostrarPanelBusquedaDuelo(true);
+
+    const canal = sb.channel(DUELO_COLA_TOPIC, { config: { presence: { key: dCola.miId } } });
+    dCola.canal = canal;
+    canal.on("presence", { event: "sync" }, function() { chequearColaDuelo(); });
+    canal.on("presence", { event: "leave" }, function() { chequearColaDuelo(); });
+    canal.subscribe(function(estado) {
+      if (estado === "SUBSCRIBED") {
+        if (!dCola || !dCola.activo) { try { canal.untrack(); } catch (e) { /* noop */ } return; }
+        dCola.conectado = true;
+        canal.track({ id: dCola.miId, apodo: dCola.apodo, ts: dCola.ts });
+        actualizarColaGenteDuelo();
+      } else if (estado === "CHANNEL_ERROR" || estado === "TIMED_OUT") {
+        if (dCola && dCola.activo) {
+          salirDeColaDuelo();
+          renderLobbyDuelo(miApodoDuelo);
+          estadoLobbyDuelo('<div class="alert alert-danger p-2 mb-0">🔴 No se pudo conectar a la cola online. Revisá tu conexión e intentá otra vez.</div>');
+        }
+      }
+    });
+  }
+
+  function salirDeColaDuelo() {
+    if (!dCola) return;
+    dCola.activo = false;
+    dCola.conectado = false;
+    if (dCola.canal) {
+      try {
+        dCola.canal.untrack();
+        if (dCola.cliente && dCola.cliente.removeChannel) dCola.cliente.removeChannel(dCola.canal);
+      } catch (e) { /* noop */ }
+      dCola.canal = null;
+    }
+    dCola.cliente = null;
+    mostrarPanelBusquedaDuelo(false);
+  }
+
+  function cancelarBusquedaDuelo() {
+    salirDeColaDuelo();
+    renderLobbyDuelo(miApodoDuelo);
+    estadoLobbyDuelo('<div class="alert alert-secondary p-2 mb-0">⏹️ Búsqueda cancelada.</div>');
+  }
+
+  function mostrarPanelBusquedaDuelo(visible) {
+    const panel = document.getElementById("duelo-buscar-panel");
+    const btn = document.getElementById("btn-duelo-buscar");
+    if (panel) panel.classList.toggle("hidden", !visible);
+    if (btn) {
+      btn.disabled = visible;
+      if (visible) {
+        btn.innerHTML = '<span class="duelo-btn-spinner"></span> ' + tDuelo("dueloBuscar", "BUSCAR PARTIDO") + "...";
+      } else {
+        btn.innerHTML = icoDuelo("duelo", 18) + " " + tDuelo("dueloBuscar", "BUSCAR PARTIDO");
+      }
+    }
+  }
+
+  function actualizarColaGenteDuelo() {
+    const el = document.getElementById("duelo-cola-gente");
+    if (!el || !dCola || !dCola.canal) return;
+    const presentes = Object.keys(dCola.canal.presenceState() || {}).length;
+    el.textContent = presentes >= 2
+      ? "🌍 " + presentes + " jugadores esperando..."
+      : presentes === 1
+      ? "Aún no llega nadie. Quedate conectado..."
+      : "Conectando a la cola...";
+  }
+
+  function chequearColaDuelo() {
+    if (!dCola || !dCola.activo || !dCola.canal) return;
+    const estado = dCola.canal.presenceState() || {};
+    const ids = Object.keys(estado);
+    actualizarColaGenteDuelo();
+
+    const presentes = ids.map(function(k) {
+      const m = estado[k] && estado[k][0];
+      return { id: k, ts: m && typeof m.ts === "number" ? m.ts : 0 };
+    });
+
+    const par = calcularParejaCola(presentes, dCola.miId);
+    if (!par) return; // no soy parte del par, sigo esperando
+    const sala = salaAutomaticaDuelo(par.ids);
+    salirDeColaDuelo();
+    renderLobbyDuelo(miApodoDuelo);
+    estadoLobbyDuelo('<div class="alert alert-success p-2 mb-0">🎯 ¡Rival encontrado! Conectando al duelo...</div>');
+    conectarCanalDuelo(sala.nombre, sala.clave, { modoAuto: true });
+  }
+
+  function conectarCanalDuelo(nombre, clave, opts) {
+    opts = opts || {};
     const cuenta = window.CoperoCuenta;
     cuenta.perfil().then(function(apodo) {
       miApodoDuelo = apodo || "Duelista";
@@ -902,10 +1088,15 @@
       dSesion = {
         salaNombre: nombre, topic: topic, miId: miId, apodo: miApodoDuelo,
         canal: null, conectado: false, holas: {}, iniciado: false, cerrada: false,
-        holaEnviado: false
+        holaEnviado: false, modoAuto: !!opts.modoAuto,
+        rivalConocido: opts.rivalApodo || null
       };
 
-      estadoLobbyDuelo('<div class="alert alert-info p-2 mb-0">🌐 Conectando a la sala <strong>' + escaparDuelo(nombre) + "</strong>...</div>");
+      if (opts.modoAuto) {
+        estadoLobbyDuelo('<div class="alert alert-info p-2 mb-0">🎯 Rival encontrado. Conectando al duelo privado...</div>');
+      } else {
+        estadoLobbyDuelo('<div class="alert alert-info p-2 mb-0">🌐 Conectando a la sala <strong>' + escaparDuelo(nombre) + "</strong>...</div>");
+      }
 
       const sb = supabase.createClient(COPERO_SUPABASE.url, COPERO_SUPABASE.publishableKey);
       const canal = sb.channel(topic, { config: { broadcast: { self: false }, presence: { key: miId } } });
@@ -919,10 +1110,26 @@
           dSesion.conectado = true;
           dSesion.canal = canal;
           canal.track({ id: miId, apodo: miApodoDuelo });
-          estadoLobbyDuelo(
-            '<div class="alert alert-success p-2 mb-0">🟢 Conectado a <strong>' + escaparDuelo(nombre) +
-            "</strong>. Esperando al rival...<br><small>Compartí el nombre de la sala y la contraseña con tu oponente.</small></div>"
-          );
+          if (opts.modoAuto) {
+            estadoLobbyDuelo('<div class="alert alert-success p-2 mb-0">🟢 ¡Rival localizado! Preparando el duelo...</div>');
+            // Si el otro jugador no llegó a tiempo a la sala, se reintenta solo.
+            enTarea(function() {
+              if (!dSesion || !d || !d.iniciado) {
+                const presentes = dSesion && dSesion.canal ? Object.keys(dSesion.canal.presenceState() || {}).length : 0;
+                if (presentes < 2) {
+                  cerrarSesionDuelo();
+                  renderLobbyDuelo(miApodoDuelo);
+                  estadoLobbyDuelo('<div class="alert alert-warning p-2 mb-0">⚠️ No se pudo conectar al rival. Buscando otra vez...</div>');
+                  buscarPartidoDuelo();
+                }
+              }
+            }, 9000);
+          } else {
+            estadoLobbyDuelo(
+              '<div class="alert alert-success p-2 mb-0">🟢 Conectado a <strong>' + escaparDuelo(nombre) +
+              "</strong>. Esperando al rival...<br><small>Compartí el nombre de la sala y la contraseña con tu oponente.</small></div>"
+            );
+          }
         } else if (estado === "CHANNEL_ERROR" || estado === "TIMED_OUT") {
           estadoLobbyDuelo('<div class="alert alert-danger p-2 mb-0">🔴 No se pudo conectar a la sala. Revisá tu conexión e intentá otra vez.</div>');
           cerrarSesionDuelo();
@@ -1033,7 +1240,7 @@
     const idRival = ids[0];
     dSesion.idRival = idRival;
 
-    iniciarDuelo(dSesion.holas[idRival].apodo || "Rival");
+    iniciarDuelo(dSesion.holas[idRival].apodo || dSesion.rivalConocido || "Rival");
   }
 
   function cerrarSesionDuelo() {
@@ -1081,6 +1288,7 @@
   }
 
   function iniciarDuelo(apodoRival) {
+    const rivalFinal = apodoRival || (dSesion ? dSesion.rivalConocido : null) || "Rival";
     d = {
       activo: true,
       iniciado: true,
@@ -1088,7 +1296,7 @@
       fase: "preparando",
       temporada: 0,
       yo: construirJugadorDuelo(),
-      rival: { apodo: apodoRival, ovr: 60, goles: 0, asist: 0, moral: 60, edad: null, club: null, estado: "🟢 Conectado" },
+      rival: { apodo: rivalFinal, ovr: 60, goles: 0, asist: 0, moral: 60, edad: null, club: null, estado: "🟢 Conectado" },
       listos: {},
       evento: null,
       penales: null,
@@ -1098,19 +1306,70 @@
     const pantalla = document.getElementById(PANTALLA);
     pantalla.innerHTML =
       '<div id="duelo-hud" class="card card-custom p-3 mb-3"></div>' +
-      '<div class="card card-custom p-3"><div id="duelo-arena"></div>' +
+      '<div id="duelo-intro" class="card card-custom p-3 mb-3"></div>' +
+      '<div class="card card-custom p-3"><div id="duelo-arena" class="hidden"></div>' +
       '<div class="text-center mt-3"><button class="btn btn-outline-danger btn-sm fw-bold" onclick="abandonarDuelo()">🏳️ Abandonar duelo</button></div></div>' +
       '<div id="duelo-timer" class="text-center my-2 hidden"></div>';
 
     renderHUD();
     enviarStatsDuelo("Conectado al duelo");
-    notifDuelo(
-      "⚔️ ¡DUELO ACEPTADO!",
-      "<strong>" + escaparDuelo(d.yo.apodo) + "</strong> VS <strong>" + escaparDuelo(apodoRival) +
-      "</strong><br><br>Carrera de 10 temporadas sincronizada. Empieza la Temporada 1: " +
-      "te tocó jugar en <strong>" + escaparDuelo(d.yo.club.nombre) + "</strong> como <strong>" + d.yo.posicion + "</strong>."
-    );
-    enTarea(function() { iniciarTemporadaDuelo(); }, 800);
+    pintarIntroDuelo(miApodoDuelo, rivalFinal);
+
+    if (tieneMovimientoReducidoDuelo()) {
+      // Accesibilidad: sin animaciones, arrancamos directamente.
+      enTarea(function() { montarDueloEnCurso(); }, 400);
+    } else {
+      let n = 3;
+      var intervaloCuenta = enIntervalo(function() {
+        n--;
+        if (n <= 0) {
+          clearInterval(intervaloCuenta);
+          montarDueloEnCurso();
+          return;
+        }
+        pintarCuentaDuelo(n);
+      }, 800);
+    }
+  }
+
+  function tieneMovimientoReducidoDuelo() {
+    try { return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; }
+  }
+
+  function pintarIntroDuelo(apodoJugador, apodoRival) {
+    const intro = document.getElementById("duelo-intro");
+    if (!intro) return;
+    intro.innerHTML =
+      '<div class="duelo-intro-tag">🎯 RIVAL ENCONTRADO</div>' +
+      '<div class="d-flex justify-content-center align-items-center gap-3 my-3 flex-wrap">' +
+      '<div class="text-center duelo-intro-avatar">' + avatarIniciales(apodoJugador) +
+      '<div class="fw-bold mt-1">' + escaparDuelo(apodoJugador) + "</div>" +
+      '<div class="small text-3">' + escaparDuelo(d.yo.club.nombre) + "</div></div>" +
+      '<div class="duelo-vs-big">VS</div>' +
+      '<div class="text-center duelo-intro-avatar">' + avatarIniciales(apodoRival) +
+      '<div class="fw-bold mt-1">' + escaparDuelo(apodoRival) + "</div>" +
+      '<div class="small text-3">Jugador online</div></div>' +
+      "</div>" +
+      '<div class="small text-3 text-center mb-3">Carrera de 10 temporadas · ' +
+      "te tocó jugar en <strong>" + escaparDuelo(d.yo.club.nombre) + "</strong> como <strong>" + d.yo.posicion + "</strong>.</div>" +
+      '<div id="duelo-countdown" class="duelo-countdown text-center">3</div>';
+  }
+
+  function pintarCuentaDuelo(n) {
+    const el = document.getElementById("duelo-countdown");
+    if (el) el.textContent = String(n);
+  }
+
+  function montarDueloEnCurso() {
+    const intro = document.getElementById("duelo-intro");
+    const arena = document.getElementById("duelo-arena");
+    const cd = document.getElementById("duelo-countdown");
+    if (cd) cd.textContent = "¡YA!";
+    enTarea(function() {
+      if (intro) intro.innerHTML = "";
+      if (arena) arena.classList.remove("hidden");
+      iniciarTemporadaDuelo();
+    }, 500);
   }
 
   function enviarStatsDuelo(estado) {
@@ -1849,7 +2108,10 @@
       arena.innerHTML =
         "<h4 class='text-warning text-center'>🏳️ ¡EL RIVAL ABANDONÓ!</h4>" +
         "<p class='text-center mt-3'>Por abandono del rival, ganaste el Duelo.</p>" +
-        '<div class="text-center mt-3"><button class="btn btn-warning fw-bold px-4" onclick="volverInicioDuelo()">← Volver al inicio</button></div>';
+        '<div class="text-center mt-3 d-flex flex-wrap justify-content-center gap-2">' +
+        '<button class="btn btn-pso fw-bold" onclick="jugarDeNuevoDuelo()">🔁 JUGAR DE NUEVO</button>' +
+        '<button class="btn btn-outline-secondary fw-bold" onclick="volverInicioDuelo()">← Volver al inicio</button>' +
+        "</div>";
     }
     if (typeof lanzarConfeti === "function") lanzarConfeti(60);
   }
@@ -1865,8 +2127,17 @@
     const arena = document.getElementById("duelo-arena");
     if (arena) {
       arena.innerHTML = "<h4 class='text-center'>🏳️ Abandonaste el duelo.</h4>" +
-        '<div class="text-center mt-3"><button class="btn btn-outline-secondary fw-bold" onclick="volverInicioDuelo()">← Volver al inicio</button></div>';
+        '<div class="text-center mt-3 d-flex flex-wrap justify-content-center gap-2">' +
+        '<button class="btn btn-pso fw-bold" onclick="jugarDeNuevoDuelo()">🔁 JUGAR DE NUEVO</button>' +
+        '<button class="btn btn-outline-secondary fw-bold" onclick="volverInicioDuelo()">← Volver al inicio</button>' +
+        "</div>";
     }
+  }
+
+  function jugarDeNuevoDuelo() {
+    cerrarSesionDuelo();
+    salirDeColaDuelo();
+    abrirPantallaDuelo({ autoBuscar: true });
   }
 
   function mostrarFinalDuelo() {
@@ -1914,8 +2185,9 @@
       "<div class='col-4'><div class='duelo-stat-box'><div class='fw-bold fs-4'>" + puntajeRiv + "</div><div class='small text-secondary'>Rival</div></div></div>" +
       "</div>" +
 
-      "<div class='text-center mt-4'>" +
-      "<button class='btn btn-warning fw-bold px-4' onclick='volverInicioDuelo()'>← Volver al inicio</button>" +
+      "<div class='text-center mt-4 d-flex flex-wrap justify-content-center gap-2'>" +
+      "<button class='btn btn-warning fw-bold px-4' onclick='jugarDeNuevoDuelo()'>🔁 JUGAR DE NUEVO</button>" +
+      "<button class='btn btn-outline-secondary fw-bold' onclick='volverInicioDuelo()'>← Volver al inicio</button>" +
       "</div>" +
       "</div>";
 
@@ -1988,6 +2260,9 @@
   window.volverInicioDuelo = volverInicioDuelo;
   window.crearSalaDuelo = crearSalaDuelo;
   window.unirseSalaDuelo = unirseSalaDuelo;
+  window.buscarPartidoDuelo = buscarPartidoDuelo;
+  window.cancelarBusquedaDuelo = cancelarBusquedaDuelo;
+  window.jugarDeNuevoDuelo = jugarDeNuevoDuelo;
   window.entrenarDuelo = entrenarDuelo;
   window.elegirClubDuelo = elegirClubDuelo;
   window.elegirOpcionEventoDuelo = elegirOpcionEventoDuelo;

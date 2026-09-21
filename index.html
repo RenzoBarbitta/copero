@@ -180,9 +180,9 @@
         ▶️ Continuar Carrera Guardada
       </button>
       <div class="d-flex justify-content-center gap-2 mt-3 flex-wrap">
-        <button id="btn-modo-desafio" class="btn btn-outline-secondary btn-sm fw-bold" data-i18n="modoDesafio">🎲 Modo Desafío</button>
+        <button id="btn-modo-desafio" class="btn btn-outline-secondary btn-sm fw-bold" data-i18n="modoDesafio">🛡️ Modo Leal</button>
         <button id="btn-ranking" class="btn btn-outline-secondary btn-sm fw-bold" data-i18n="ranking">🏆 Ranking</button>
-        <button id="btn-duelo-online" class="btn btn-outline-danger btn-sm fw-bold" onclick="abrirPantallaDuelo()" data-i18n="dueloBoton">⚔️ 1v1 Online (Duelo)</button>
+        <button id="btn-duelo-online" class="btn btn-pso btn-lg fw-bold px-4" onclick="abrirPantallaDuelo()" data-i18n="dueloBoton">⚔️ Duelo 1v1 Online</button>
         <button class="btn btn-outline-secondary btn-sm fw-bold" onclick="mostrarSlots()" data-i18n="slots">💾 Slots</button>
         <select id="select-idioma" class="form-select form-select-sm" style="width:auto;">
           <option value="es">🇺🇾 ES</option>
@@ -390,7 +390,7 @@
               <div id="aviso-minijuego-usado" class="alert alert-info small hidden" role="status" data-i18n="avisoMinijuego">Ya jugaste el minijuego de esta temporada. Solo se puede jugar 1 minijuego por temporada, además del entrenamiento por atributos. Avanzá a la próxima temporada para jugar otro.</div>
               <button id="btn-entrenar-atributos" type="button" class="btn btn-pso mb-2 w-100 fw-bold" onclick="abrirEntrenamientoAtributos()" data-i18n="entrenarAtributos">Entrenar atributos</button>
               <div class="d-grid gap-2">
-                <button class="btn btn-outline-success w-100 fw-bold btn-minijuego" onclick="iniciarMinijuegoDominios()" data-i18n="dominios">⚽ Desafío Dominios</button>
+                <button class="btn btn-outline-success w-100 fw-bold btn-minijuego" onclick="iniciarMinijuegoDominios()" data-i18n="dominios">⚽ Dominios</button>
                 <button id="btn-minijuego-especifico" type="button" class="btn btn-outline-warning w-100 fw-bold text-dark btn-minijuego" onclick="iniciarMinijuegoEntrenamiento()" data-i18n="entrenamiento">⚽ Entrenamiento</button>
                 <button type="button" class="btn btn-outline-info w-100 fw-bold btn-minijuego" onclick="abrirSelectorMinijuegos()" data-i18n="masMinijuegos">🎮 Más Minijuegos</button>
                 <button type="button" class="btn btn-outline-warning w-100 fw-bold btn-minijuego" onclick="iniciarMinijuegoPenales()">🥅 <span data-i18n="tandaPenales">Tanda de Penales</span></button>
@@ -464,7 +464,7 @@
               <button class="nav-link active fw-bold" id="pesta-com-ranking" data-bs-toggle="pill" data-bs-target="#tab-com-ranking" type="button" role="tab" data-i18n="ranking">Ranking</button>
             </li>
             <li class="nav-item" role="presentation">
-              <button class="nav-link fw-bold" id="pesta-com-duelo" data-bs-toggle="pill" data-bs-target="#tab-com-duelo" type="button" role="tab" data-i18n="dueloBoton">1v1</button>
+              <button class="nav-link fw-bold" id="pesta-com-duelo" data-bs-toggle="pill" data-bs-target="#tab-com-duelo" type="button" role="tab" data-i18n="dueloTab">⚔️ Duelo 1v1</button>
             </li>
             <li class="nav-item" role="presentation">
               <button class="nav-link fw-bold" id="pesta-com-cuenta" data-bs-toggle="pill" data-bs-target="#tab-com-cuenta" type="button" role="tab" data-i18n="cuentaBoton">Cuenta</button>
@@ -645,7 +645,7 @@
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content text-center border-success">
         <div class="modal-header border-bottom-0">
-          <h5 class="modal-title w-100 fw-bold text-success" id="modalDominiosTitulo">⚽ Desafío de Dominios</h5>
+          <h5 class="modal-title w-100 fw-bold text-success" id="modalDominiosTitulo">⚽ Dominios</h5>
         </div>
         <div class="modal-body">
           <p class="mb-3" data-i18n="minijuegoIndicacion">Seguí la indicación de este minijuego:</p>

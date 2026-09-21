@@ -369,13 +369,13 @@ function renderComunidad() {
 
   const dv = document.getElementById("duelo-vista");
   if (dv) {
-    const lbDuelo = String(tfn("dueloBoton", "⚔️ 1v1")).split("(")[0].trim().replace(/[^\w\s1v]/g, "") || "1v1";
     dv.innerHTML = '<div class="vacio">' +
       '<div class="vacio-icono">' + iconoSVG("duelo", 22) + '</div>' +
-      '<div class="vacio-texto">' + tfn("dueloAbre", "Entrar a 1v1") + '</div>' +
-      '<button type="button" class="btn btn-pso fw-bold btn-sm">' + iconoSVG("duelo", 15) + ' 1v1</button></div>';
+      '<div class="vacio-titulo fw-bold">' + tfn("dueloBoton", "⚔️ Duelo 1v1 Online") + '</div>' +
+      '<div class="vacio-texto mb-2">' + tfn("dueloAbre", "Jugá la carrera de 10 temporadas contra otro jugador en tiempo real.") + '</div>' +
+      '<button type="button" class="btn btn-pso fw-bold">' + iconoSVG("duelo", 16) + ' ' + tfn("dueloBuscar", "BUSCAR PARTIDO") + '</button></div>';
     const btn = dv.querySelector("button");
-    if (btn) btn.onclick = abrirPantallaDuelo;
+    if (btn) btn.onclick = function() { abrirPantallaDuelo({ autoBuscar: true }); };
   }
 
   const cv = document.getElementById("cuenta-vista");

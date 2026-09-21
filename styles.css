@@ -915,6 +915,159 @@ body.modo-oscuro .duelo-penal-paso.completo { background: #10361f; border-color:
 body.modo-oscuro .duelo-barra-lbl { color: #f8f9fa; }
 
 /* ============================================================
+   DUELO 1v1 - BUSCAR PARTIDO (matchmaking), intro y countdown
+   ============================================================ */
+.duelo-lobby-icon {
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 6px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0d6efd, #6610f2);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(13, 110, 253, 0.45);
+}
+.duelo-lobby-icon svg { vertical-align: middle; }
+.chip-small {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #198754;
+  background: #eafaf1;
+  border: 1px solid #198754;
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+body.modo-oscuro .chip-small {
+  background: #10361f;
+  color: #75d1a3;
+  border-color: #198754;
+}
+.duelo-divisor {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #868e96;
+  font-size: 0.8rem;
+  margin: 10px 0;
+}
+.duelo-divisor::before, .duelo-divisor::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #dee2e6;
+}
+body.modo-oscuro .duelo-divisor { color: #adb5bd; }
+body.modo-oscuro .duelo-divisor::before, body.modo-oscuro .duelo-divisor::after { background: #495057; }
+
+.duelo-cola-panel {
+  border: 1px solid #dee2e6;
+  border-radius: 14px;
+  padding: 18px 14px;
+  text-align: center;
+  background: linear-gradient(180deg, #fff, #f1f3f5);
+}
+body.modo-oscuro .duelo-cola-panel {
+  border-color: #495057;
+  background: linear-gradient(180deg, #23272b, #1b1e22);
+}
+.duelo-spinner {
+  width: 42px;
+  height: 42px;
+  margin: 0 auto 10px;
+  border-radius: 50%;
+  border: 4px solid #ced4da;
+  border-top-color: #0d6efd;
+  animation: duelo-girar 0.9s linear infinite;
+}
+body.modo-oscuro .duelo-spinner { border-color: #495057; border-top-color: #ffd43b; }
+@keyframes duelo-girar { to { transform: rotate(360deg); } }
+.duelo-btn-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-right: 6px;
+  vertical-align: -2px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.5);
+  border-top-color: #fff;
+  animation: duelo-girar 0.8s linear infinite;
+}
+.duelo-cola-titulo {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 2.5px;
+  color: #0d6efd;
+}
+body.modo-oscuro .duelo-cola-titulo { color: #ffd43b; }
+.duelo-cola-titulo::after {
+  content: "…";
+  display: inline-block;
+  animation: duelo-elipsis 1.4s ease-in-out infinite;
+}
+@keyframes duelo-elipsis { 0%, 100% { opacity: 0.15; } 50% { opacity: 1; } }
+
+.duelo-intro-tag {
+  display: inline-block;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 1.5px;
+  color: #198754;
+  background: #eafaf1;
+  border: 1px solid #198754;
+  border-radius: 999px;
+  padding: 4px 14px;
+}
+body.modo-oscuro .duelo-intro-tag {
+  color: #75d1a3;
+  background: #10361f;
+}
+.duelo-vs-big {
+  font-size: 2.4rem;
+  font-weight: 900;
+  color: #ff6b6b;
+  text-shadow: 0 0 14px rgba(255, 107, 107, 0.55);
+}
+.duelo-intro-avatar .duelo-avatar {
+  width: 72px;
+  height: 72px;
+  font-size: 1.6rem;
+}
+.duelo-countdown {
+  font-size: 4.2rem;
+  font-weight: 900;
+  line-height: 1;
+  background: linear-gradient(135deg, #ffd43b, #ff6b6b, #0d6efd);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: #ffd43b;
+  animation: duelo-latido 0.8s ease-in-out infinite;
+  font-variant-numeric: tabular-nums;
+}
+@keyframes duelo-latido {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.14); }
+}
+#duelo-intro .duelo-ya {
+  background: linear-gradient(135deg, #19c819, #0d6efd);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .duelo-spinner, .duelo-btn-spinner { animation-duration: 2.2s; }
+  .duelo-cola-titulo::after { animation: none; content: "..."; }
+  .duelo-countdown { animation: none; }
+  .duelo-intro-avatar .duelo-avatar, .duelo-trophy-item { transition: none; }
+}
+
+/* ============================================================
    INTERFAZ REORGANIZADA (Carrera / Partido / Entrenamiento /
    Progreso / Comunidad) - ui.js
    Barra lateral (PC), top bar + bottom nav (móvil), tarjeta del

@@ -115,5 +115,37 @@ ok(califica, 'NITTOX: OVR 77 (Promesa) -> la opción se resuelve sin error');
   ok(L.resolverReflejoDuelo(150, false, 9999, false).r === 'gana', 'reflejo: válido vs timeout -> gana');
 
 
+// 11) Matchmaking: emparejamiento determinista de la cola online
+  ok(L.calcularParejaCola(null, 'a') === null, 'cola: sin jugadores en cola -> null');
+  ok(L.calcularParejaCola([], 'a') === null, 'cola: cola vacía -> null');
+  ok(L.calcularParejaCola([{ id: 'a', ts: 1 }], 'a') === null, 'cola: 1 solo jugador -> null');
+  const dos = [
+    { id: 'a', ts: 100 },
+    { id: 'b', ts: 200 }
+  ];
+  ok(JSON.stringify(L.calcularParejaCola(dos, 'a').ids) === JSON.stringify(['a', 'b']), 'cola: 2 jugadores, el más antiguo -> par a,b');
+  ok(JSON.stringify(L.calcularParejaCola(dos, 'b').ids) === JSON.stringify(['a', 'b']), 'cola: ambos miembros del par calculan la MISMA pareja');
+  const tres = [
+    { id: 'a', ts: 100 },
+    { id: 'b', ts: 200 },
+    { id: 'c', ts: 300 }
+  ];
+  ok(L.calcularParejaCola(tres, 'c') === null, 'cola: el más nuevo no forma el par -> sigue esperando');
+  ok(JSON.stringify(L.calcularParejaCola(tres, 'a').ids) === JSON.stringify(['a', 'b']), 'cola: 3 jugadores -> par = los 2 más antiguos');
+  const empate = [
+    { id: 'z', ts: 50 },
+    { id: 'm', ts: 50 }
+  ];
+  ok(JSON.stringify(L.calcularParejaCola(empate, 'z').ids) === JSON.stringify(['m', 'z']), 'cola: misma antigüedad -> empate resuelto por id');
+
+  // 12) Sala automática determinista para una pareja
+  const siAB = L.salaAutomaticaDuelo(['a', 'b']);
+  const siBA = L.salaAutomaticaDuelo(['b', 'a']);
+  ok(JSON.stringify(siAB) === JSON.stringify(siBA), 'sala auto: el orden de los ids no cambia la sala');
+  ok(/^auto-[0-9a-f]{6}$/.test(siAB.nombre), 'sala auto: nombre con formato auto-xxxxxx');
+  ok(/^sala[0-9a-f]{6}$/.test(siAB.clave), 'sala auto: clave con formato salaXXXXXX');
+  ok(L.salaAutomaticaDuelo(['a', 'c']).nombre !== siAB.nombre, 'sala auto: pares distintos -> salas distintas');
+
+
 if (fallos === 0) { console.log('TODO OK'); }
 else { console.error(fallos + ' pruebas fallaron'); process.exit(1); }
