@@ -3053,6 +3053,7 @@ const CONFIG_VARIANTES_FP = (function () {
       titulo: "🧤 Salida del túnel",
       indicacion: "Esquivá empujones, cámaras y micrófonos hasta llegar al micro.",
       config: {
+        variant: "tunnel",
         duration: 6000,
         obstacleInterval: 1200,
         obstacleIntervalReduction: 0.10,
@@ -3068,6 +3069,7 @@ const CONFIG_VARIANTES_FP = (function () {
       titulo: "🌧️ Corriendo bajo la lluvia",
       indicacion: "Esquivá autos, charcos y gente para llegar al vestuario antes del pitazo.",
       config: {
+        variant: "rain",
         duration: 12000,
         obstacleInterval: 900,
         obstacleSpeed: 900,
@@ -3161,6 +3163,9 @@ function iniciarMinijuegoDardos() {
   let esperaTimer = null;
   let inicioTiro = Date.now();
   let angulo = Math.PI / 2;
+  let rwX = 0;
+  let rwY = 0;
+  let dianaId = 0;
   const hoyos = [];
 
   const modalEl = document.getElementById("modalDardos");
@@ -3171,24 +3176,163 @@ function iniciarMinijuegoDardos() {
   const instruccion = document.getElementById("instruccionDardos");
 
   contenedor.innerHTML = "";
-  const canvas = document.createElement("canvas");
-  contenedor.appendChild(canvas);
-  const ctx = canvas.getContext("2d");
+  const escenario = document.createElement("div");
+  escenario.className = "dart-stage";
+  contenedor.appendChild(escenario);
 
-  function tamano() { return Math.max(150, Math.min(280, contenedor.clientWidth || 240)); }
-  const centro = () => tamano() / 2;
-  const radio = () => tamano() / 2 - 8;
-  const colores = ["#e65c54", "#2fbf8a", "#f2e3c4", "#3d6ba8"];
+  // ---------- TABLERO (SVG detallado, estilo diana real) ----------
+  const tablero = document.createElement("div");
+  tablero.className = "dart-board";
+  escenario.appendChild(tablero);
 
-  // Ajusta el tamaño del canvas a su contenedor (responsive, DPI-aware).
-  function ensureDims() {
-    const tam = tamano();
-    const dpr = window.devicePixelRatio || 1;
-    if (canvas.width === Math.round(tam * dpr) && canvas.style.width === tam + "px") return;
-    canvas.width = Math.round(tam * dpr);
-    canvas.height = Math.round(tam * dpr);
-    canvas.style.width = tam + "px";
-    canvas.style.height = tam + "px";
+  const cara = document.createElement("div");
+  cara.className = "dart-face";
+  cara.innerHTML = construirDiana();
+  tablero.appendChild(cara);
+
+  const hoyosCapa = document.createElement("div");
+  hoyosCapa.className = "dart-holes";
+  tablero.appendChild(hoyosCapa);
+
+  // ---------- MIRA (dardo + crosshair con temblor orgánico) ----------
+  const cursor = document.createElement("div");
+  cursor.className = "dart-cursor";
+  escenario.appendChild(cursor);
+
+  const reticle = document.createElement("div");
+  reticle.className = "dart-reticle";
+  reticle.innerHTML =
+    "<i class='d-tick t-t'></i><i class='d-tick t-b'></i>" +
+    "<i class='d-tick t-l'></i><i class='d-tick t-r'></i>" +
+    "<span class='d-ring'></span>";
+  cursor.appendChild(reticle);
+
+  const tipGlow = document.createElement("div");
+  tipGlow.className = "dart-glow";
+  cursor.appendChild(tipGlow);
+
+  const dartSvg = document.createElement("div");
+  dartSvg.className = "dart-shape";
+  dartSvg.innerHTML =
+    '<svg viewBox="0 0 44 130" width="44" height="130" aria-hidden="true">' +
+    '<defs><linearGradient id="dart-metal" x1="0" y1="0" x2="1" y2="0">' +
+    '<stop offset="0" stop-color="#d9dde6"/><stop offset="0.5" stop-color="#9aa3b2"/><stop offset="1" stop-color="#5b6472"/>' +
+    "</linearGradient></defs>" +
+    '<path d="M22 130 L17 104 L27 104 Z" fill="#c7cdd8" stroke="#6b7280" stroke-width="0.6"/>' +
+    '<rect x="15" y="82" width="14" height="24" rx="3" fill="url(#dart-metal)"/>' +
+    '<rect x="20.6" y="60" width="2.8" height="24" fill="#7b8392"/>' +
+    '<path d="M22 64 L8 76 L13 62 Z" fill="#d0403f"/>' +
+    '<path d="M22 64 L36 76 L31 62 Z" fill="#d0403f"/>' +
+    '<path d="M22 66 L20 80 L24 80 Z" fill="#167d9e"/>' +
+    "</svg>";
+  cursor.appendChild(dartSvg);
+
+  const burst = document.createElement("div");
+  burst.className = "dart-burst";
+  escenario.appendChild(burst);
+
+  // ---------- BUILDERS ----------
+  function construirDiana() {
+    const uid = "diana" + (dianaId++);
+    const c = 170;
+    const face = 150;
+    // Anillos de afuera hacia adentro (mismo orden que anillos[]).
+    const bandas = [
+      { up: anillos[3].hasta, lo: anillos[2].hasta, c1: "#273041", c2: "#141a24", wire: true },
+      { up: anillos[2].hasta, lo: anillos[1].hasta, c1: "#d7c49a", c2: "#a58f63", wire: true },
+      { up: anillos[1].hasta, lo: anillos[0].hasta, c1: "#1e7a55", c2: "#0f4d35", wire: true },
+      { up: anillos[0].hasta, lo: 0, c1: "#c22a35", c2: "#6f141d", wire: false }
+    ];
+    let marcas = "";
+    for (let k = 0; k < 16; k++) {
+      const a = (k / 16) * Math.PI * 2;
+      marcas += "<line x1='" + (c + Math.cos(a) * face * 0.62) + "' y1='" + (c + Math.sin(a) * face * 0.62) +
+        "' x2='" + (c + Math.cos(a) * face * 0.3) + "' y2='" + (c + Math.sin(a) * face * 0.3) +
+        "' stroke='#8a6f3f' stroke-width='0.8' opacity='0.28'/>";
+    }
+    let anillosSvg = "";
+    for (let i = 0; i < bandas.length; i++) {
+      const up = bandas[i].up * face;
+      const lo = bandas[i].lo * face;
+      anillosSvg +=
+        '<radialGradient id="' + uid + "g" + i + '" cx="0.4" cy="0.38" r="0.85">' +
+        '<stop offset="0" stop-color="' + bandas[i].c1 + '"/><stop offset="1" stop-color="' + bandas[i].c2 + '"/>' +
+        "</radialGradient>";
+      anillosSvg += "<circle cx='" + c + "' cy='" + c + "' r='" + up.toFixed(2) + "' fill='url(#" + uid + "g" + i + ")'/>";
+      if (bandas[i].wire) {
+        anillosSvg += "<circle cx='" + c + "' cy='" + c + "' r='" + up.toFixed(2) + "' fill='none' stroke='#e7dcc4' stroke-width='1.6' opacity='0.75'/>";
+      }
+    }
+    // Centro del toro (telar).
+    anillosSvg += "<circle cx='" + c + "' cy='" + c + "' r='" + (face * anillos[0].hasta * 0.32).toFixed(2) + "' fill='#7c1320'/>";
+    // Telar de alambre decorativo en el anillo beige.
+    anillosSvg += marcas;
+    return (
+      '<svg class="dart-board-svg" viewBox="0 0 340 340" role="img" aria-label="Tablero de dardos">' +
+      "<defs>" + anillosSvg +
+      '<radialGradient id="' + uid + 'mader" cx="0.5" cy="0.42" r="0.7">' +
+      '<stop offset="0" stop-color="#5a3b22"/><stop offset="0.62" stop-color="#3a2413"/><stop offset="1" stop-color="#241407"/>' +
+      "</radialGradient>" +
+      '<radialGradient id="' + uid + 'sheen" cx="0.5" cy="0.5" r="0.5">' +
+      '<stop offset="0.62" stop-color="rgba(255,255,255,0)" /><stop offset="0.97" stop-color="rgba(255,255,255,0.14)"/><stop offset="1" stop-color="rgba(255,255,255,0)"/>' +
+      "</radialGradient>" +
+      "</defs>" +
+      // marco de madera
+      "<circle cx='" + c + "' cy='" + c + "' r='169' fill='#0b0603'/>" +
+      "<circle cx='" + c + "' cy='" + c + "' r='166' fill='url(#" + uid + "mader)'/>" +
+      "<circle cx='" + c + "' cy='" + c + "' r='152' fill='#05080c'/>" +
+      "<circle cx='" + c + "' cy='" + c + "' r='150' fill='#10151c'/>" +
+      // banda del anillo más externo (5) y el resto se dibuja sobre el fondo
+      // (los círculos internos se pintan encima de este)
+      "<circle cx='" + c + "' cy='" + c + "' r='" + (face).toFixed(2) + "' fill='url(#" + uid + "g0)'/>" +
+      "<circle cx='" + c + "' cy='" + c + "' r='" + (face * bandas[0].lo).toFixed(2) + "' fill='#10151c'/>" +
+      // tornillos del marco
+      "<circle cx='28' cy='28' r='5' fill='#8d8d94'/><circle cx='28' cy='28' r='2' fill='#22242a'/>" +
+      "<circle cx='312' cy='28' r='5' fill='#8d8d94'/><circle cx='312' cy='28' r='2' fill='#22242a'/>" +
+      "<circle cx='28' cy='312' r='5' fill='#8d8d94'/><circle cx='28' cy='312' r='2' fill='#22242a'/>" +
+      "<circle cx='312' cy='312' r='5' fill='#8d8d94'/><circle cx='312' cy='312' r='2' fill='#22242a'/>" +
+      // brillo global sutil
+      "<circle cx='" + c + "' cy='" + c + "' r='166' fill='url(#" + uid + "sheen)'/>" +
+      "</svg>"
+    );
+  }
+
+  function tamanoEscena() {
+    return Math.max(150, Math.min(330, (contenedor.clientWidth || 290) - 8));
+  }
+
+  let tam = tamanoEscena();
+  let rescale = null;
+  if (typeof ResizeObserver !== "undefined") {
+    rescale = new ResizeObserver(() => {
+      tam = tamanoEscena();
+      escenario.style.height = tam + "px";
+    });
+    rescale.observe(contenedor);
+  }
+  escenario.style.height = tam + "px";
+
+  // Posición del péndulo base: 0 (borde) -> 1 (centro) -> 0 (ida y vuelta).
+  function posPenduloBase() {
+    const t = Date.now() - inicioTiro;
+    return 0.5 * (1 - Math.cos((t / periodo) * Math.PI * 2));
+  }
+
+  // Temblor orgánico de la mano: suma de senos anarmónicos + random walk.
+  function temblor(timestamp) {
+    const t = timestamp * 0.001;
+    const c1 = Math.sin(t * 0.9 + Math.sin(t * 0.23) * 2.4);
+    const c2 = Math.sin(t * 2.9 + 1.1);
+    const c3 = Math.sin(t * 7.3 + Math.sin(t * 1.9) * 1.3);
+    const c4 = Math.sin(t * 13.7 + 2.6);
+    rwX += (Math.random() - 0.5) * 0.9;
+    rwY += (Math.random() - 0.5) * 0.9;
+    rwX *= 0.93;
+    rwY *= 0.93;
+    return {
+      x: c2 * 1.1 + c3 * 0.7 + c4 * 0.3 + c1 * 0.5 + rwX,
+      y: c1 * 0.9 + c3 * 0.9 + c4 * 0.4 + rwY
+    };
   }
 
   function anilloPara(fraccionDesdeCentro) {
@@ -3198,88 +3342,88 @@ function iniciarMinijuegoDardos() {
     return anillos[anillos.length - 1].puntos;
   }
 
-  // Posición del péndulo: 0 (borde) -> 1 (centro) -> 0 (ida y vuelta).
-  function posPendulo() {
-    const t = Date.now() - inicioTiro;
-    return 0.5 * (1 - Math.cos((t / periodo) * Math.PI * 2));
-  }
+  function dibujar(timestamp) {
+    const S = tam;
+    const c = S / 2;
+    const r = S / 2 * 0.86;
 
-  function dibujar() {
-    ensureDims();
-    const tam = tamano();
-    const c = centro();
-    const r = radio();
-    ctx.setTransform(window.devicePixelRatio || 1, 0, 0, window.devicePixelRatio || 1, 0, 0);
-    ctx.clearRect(0, 0, tam, tam);
+    if (tiroEnCurso) {
+      const p = posPenduloBase();
+      const frac = 1 - p;
+      const tr = temblor(timestamp);
+      const fuerza = 0.55 + frac * 1.35;
+      const dx = Math.cos(angulo) * r * frac + tr.x * fuerza;
+      const dy = Math.sin(angulo) * r * frac + tr.y * fuerza;
+      const ax = c + dx;
+      const ay = c + dy;
 
-    // Marco exterior de la diana
-    ctx.fillStyle = "#10141c";
-    ctx.beginPath(); ctx.arc(c, c, r + 8, 0, Math.PI * 2); ctx.fill();
+      cursor.style.display = "block";
+      cursor.style.left = ax.toFixed(2) + "px";
+      cursor.style.top = ay.toFixed(2) + "px";
 
-    // Anillos concéntricos de puntaje (de afuera hacia adentro)
-    for (let i = anillos.length - 1; i >= 0; i--) {
-      const rOut = r * anillos[i].hasta;
-      const rIn = i > 0 ? r * anillos[i - 1].hasta : 0;
-      ctx.beginPath();
-      ctx.arc(c, c, rOut, 0, Math.PI * 2);
-      ctx.arc(c, c, rIn, 0, Math.PI * 2, true);
-      ctx.fillStyle = colores[i % colores.length];
-      ctx.fill();
-    }
-    ctx.strokeStyle = "rgba(255,255,255,0.16)";
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.arc(c, c, r, 0, Math.PI * 2); ctx.stroke();
+      // El crosshair se cierra al acercarse al centro (sensación de puntería).
+      const tight = p > 0.82;
+      const scale = tight
+        ? 0.62 + (p - 0.82) * 0.3
+        : lerpT(1.55, 0.35, p);
+      reticle.style.transform = "translate(-50%,-50%) scale(" + scale.toFixed(3) + ")";
+      reticle.classList.toggle("tight", tight);
+      tipGlow.style.opacity = (0.22 + frac * 0.5).toFixed(2);
 
-    // Puntos por anillo (etiquetas en diagonal)
-    ctx.fillStyle = "rgba(255,255,255,0.65)";
-    ctx.font = "11px system-ui, sans-serif";
-    ctx.textAlign = "center";
-    for (let i = 0; i < anillos.length; i++) {
-      const frac = i === 0 ? 0 : (anillos[i - 1].hasta + anillos[i].hasta) / 2;
-      const ang = -Math.PI / 4;
-      ctx.fillText(anillos[i].puntos, c + Math.cos(ang) * r * frac, c + Math.sin(ang) * r * frac + 4);
+      const rot = (angulo * 180 / Math.PI) + 90;
+      dartSvg.style.transform = "translate(-50%,-50%) rotate(" + rot.toFixed(1) + "deg)";
+    } else {
+      cursor.style.display = "none";
     }
 
-    // Hoyos de tiros anteriores
-    hoyos.forEach((h) => {
+    // Hoyos de tiros anteriores.
+    for (const h of hoyos) {
       const hr = r * (1 - h.p);
       const hx = c + Math.cos(h.ang) * hr;
       const hy = c + Math.sin(h.ang) * hr;
-      ctx.fillStyle = "#171b24";
-      ctx.beginPath(); ctx.arc(hx, hy, 4, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = "rgba(255,255,255,0.75)";
-      ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.arc(hx, hy, 4, 0, Math.PI * 2); ctx.stroke();
-    });
-
-    // Indicador pendular: el dardo apunta desde el centro hacia su punta.
-    if (tiroEnCurso) {
-      const p = posPendulo();
-      const tipR = r * (1 - p);
-      const tx = c + Math.cos(angulo) * tipR;
-      const ty = c + Math.sin(angulo) * tipR;
-      ctx.strokeStyle = "rgba(255,255,255,0.65)";
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(c, c); ctx.lineTo(tx, ty); ctx.stroke();
-      ctx.fillStyle = "#ffde3d";
-      ctx.beginPath(); ctx.arc(tx, ty, 6, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.arc(tx, ty, 6, 0, Math.PI * 2); ctx.stroke();
+      const px = (hx / S * 100).toFixed(1);
+      const py = (hy / S * 100).toFixed(1);
+      let span = hoyosCapa.querySelector('[data-la="' + h.la + '"]');
+      if (!span) {
+        span = document.createElement("span");
+        span.className = "dart-hole";
+        span.setAttribute("data-la", h.la);
+        hoyosCapa.appendChild(span);
+      }
+      span.style.left = px + "%";
+      span.style.top = py + "%";
     }
+  }
+
+  function pushBurst(puntosTiro) {
+    const p = document.createElement("div");
+    p.className = "dart-pop " + (puntosTiro >= 25 ? "good" : "bad");
+    p.textContent = "+" + puntosTiro;
+    burst.appendChild(p);
+    setTimeout(() => {
+      if (p.parentNode) p.parentNode.removeChild(p);
+    }, 1000);
   }
 
   function tirar() {
     if (terminado || !tiroEnCurso) return;
-    const p = Math.max(0, Math.min(1, posPendulo()));
+    const p = Math.max(0, Math.min(1, posPenduloBase()));
     const pts = anilloPara(1 - p);
     tiros++;
     puntos += pts;
-    hoyos.push({ p: p, ang: angulo });
+    hoyos.push({ p, ang: angulo, la: tiros });
     tiroEnCurso = false;
+    if (pts >= 25) sonidoExito();
+    pushBurst(pts);
+
+    // El tablero se menea un instante (impacto físico leve).
+    tablero.classList.remove("hit");
+    void tablero.offsetWidth;
+    tablero.classList.add("hit");
+
     if (marcador) marcador.textContent = "Tiro " + tiros + "/" + tirosTotal + " · Puntos: " + puntos;
     if (tiros < tirosTotal) {
-      if (resultado) resultado.innerHTML = "<span class='text-success fw-bold fs-5'>🎯 +" + pts + " puntos</span>";
+      if (resultado) resultado.innerHTML = "<span class='text-success fw-bold fs-5'>¡Dardo clavado!</span>";
       esperaTimer = setTimeout(prepararTiro, espera);
     } else {
       if (resultado) resultado.innerHTML = "";
@@ -3292,8 +3436,11 @@ function iniciarMinijuegoDardos() {
     tiroEnCurso = true;
     inicioTiro = Date.now();
     angulo = Math.random() * Math.PI * 2;
+    rwX = 0;
+    rwY = 0;
+    if (burst) burst.innerHTML = "";
     if (resultado) resultado.innerHTML = "";
-    if (instruccion) instruccion.textContent = "Tiro " + (tiros + 1) + "/" + tirosTotal + " — ¡tocá en el momento justo!";
+    if (instruccion) instruccion.textContent = "Tiro " + (tiros + 1) + "/" + tirosTotal + " — mirá el centro y ¡tirá en el momento justo!";
   }
 
   function finalizar() {
@@ -3301,6 +3448,7 @@ function iniciarMinijuegoDardos() {
     terminado = true;
     if (rafDardos) { cancelAnimationFrame(rafDardos); rafDardos = null; }
     if (esperaTimer) { clearTimeout(esperaTimer); esperaTimer = null; }
+    if (rescale) rescale.disconnect();
 
     const salio = puntos >= umbralMoral;
     if (salio) cambiarMoral(bonusMoral);
@@ -3308,9 +3456,9 @@ function iniciarMinijuegoDardos() {
 
     if (resultado) {
       resultado.innerHTML = salio
-        ? "<div class='text-success fw-bold fs-4'>🎯 " + puntos + " puntos</div>" +
+        ? "<div class='text-success fw-bold fs-4'>" + puntos + " puntos</div>" +
           "<p class='mb-0'>La banda quedó relajada antes del partido. <strong>+" + bonusMoral + " de moral.</strong></p>"
-        : "<div class='text-secondary fw-bold fs-4'>🎯 " + puntos + " puntos</div>" +
+        : "<div class='text-secondary fw-bold fs-4'>" + puntos + " puntos</div>" +
           "<p class='mb-0'>Le ganaron ChatGPT y Topo, pero no pasa nada: era una previa de relax. Sin consecuencias.</p>";
     }
 
@@ -3340,26 +3488,33 @@ function iniciarMinijuegoDardos() {
       if (rafDardos) { cancelAnimationFrame(rafDardos); rafDardos = null; }
       if (esperaTimer) { clearTimeout(esperaTimer); esperaTimer = null; }
     }
+    if (rescale) rescale.disconnect();
     window.removeEventListener("keydown", manejarTecla);
     btnTirar.removeEventListener("click", tirar);
-    canvas.removeEventListener("touchstart", manejarTouch);
+    escenario.removeEventListener("touchstart", manejarTouch);
+    escenario.removeEventListener("click", tirar);
     modalEl.removeEventListener("hidden.bs.modal", limpiar);
   }
 
   btnTirar.disabled = false;
   btnTirar.addEventListener("click", tirar);
-  canvas.addEventListener("touchstart", manejarTouch, { passive: false });
+  escenario.addEventListener("touchstart", manejarTouch, { passive: false });
+  escenario.addEventListener("click", tirar);
   window.addEventListener("keydown", manejarTecla);
   modalEl.addEventListener("hidden.bs.modal", limpiar);
   if (marcador) marcador.textContent = "Tiro 1/" + tirosTotal + " · Puntos: 0";
-  if (instruccion) instruccion.textContent = "Tiro 1/" + tirosTotal + " — ¡tocá en el momento justo!";
+  if (instruccion) instruccion.textContent = "Tiro 1/" + tirosTotal + " — mirá el centro y ¡tirá en el momento justo!";
   prepararTiro();
   modalDardosInstance.show();
-  rafDardos = requestAnimationFrame(function loopDardos() {
+  rafDardos = requestAnimationFrame(function loopDardos(ts) {
     if (terminado) { rafDardos = null; return; }
     rafDardos = requestAnimationFrame(loopDardos);
-    dibujar();
+    dibujar(ts);
   });
+}
+
+function lerpT(a, b, n) {
+  return a + (b - a) * n;
 }
 
 // ------------------------------------------------------------
