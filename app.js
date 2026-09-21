@@ -2836,6 +2836,7 @@ function renderizarHistorialIncremental() {
       <td>${t.partidos}</td>
       <td>${t.goles}</td>
       <td>${t.asistencias}</td>
+      <td class="text-primary fw-bold">${(t.media != null) ? t.media : "-"}</td>
       <td><small class="text-warning fw-bold">${t.trofeos}</small></td>
     `;
     tbody.appendChild(tr);

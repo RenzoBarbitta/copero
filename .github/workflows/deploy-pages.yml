@@ -23,7 +23,7 @@ jobs:
           mkdir -p dist
           cp index.html privacidad.html styles.css app.js data.js features.js \
              duelo.js camiseta.js touch-controls.js ranking-online.js \
-             supabase-config.js cuenta-api.js cuenta-ui.js pwa.js sw.js \
+             supabase-config.js cuenta-api.js cuenta-ui.js ui.js pwa.js sw.js \
              progression.js \
              manifest.webmanifest google7cb43165a7bd622a.html _headers dist/
           cp -r imagenes dist/

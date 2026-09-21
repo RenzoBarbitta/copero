@@ -29,7 +29,59 @@
   height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <!-- End Google Tag Manager (noscript) -->
 
-  <div class="container flex-grow-1" style="max-width: 1180px;">
+  <!-- NAVEGACIÓN PRINCIPAL (escritorio) -->
+  <aside id="sidebar" aria-label="Menú principal">
+    <div class="sb-marca">⚽ COPERO <small data-i18n="titulo">Carrera PSO</small></div>
+    <nav class="sb-nav">
+      <button type="button" class="sb-item activo" data-seccion="carrera" onclick="irA('carrera')"><span class="sb-ico">🏠</span><span data-i18n="navCarrera">Carrera</span></button>
+      <button type="button" class="sb-item" data-seccion="partido" onclick="irA('partido')"><span class="sb-ico">⚽</span><span data-i18n="navPartido">Partido</span></button>
+      <button type="button" class="sb-item" data-seccion="entrenamiento" onclick="irA('entrenamiento')"><span class="sb-ico">🏋️</span><span data-i18n="navEntrenamiento">Entrenamiento</span></button>
+      <button type="button" class="sb-item" data-seccion="progreso" onclick="irA('progreso')"><span class="sb-ico">📊</span><span data-i18n="navProgreso">Progreso</span></button>
+      <button type="button" class="sb-item" data-seccion="comunidad" onclick="irA('comunidad')"><span class="sb-ico">🌐</span><span data-i18n="navComunidad">Comunidad</span></button>
+    </nav>
+    <div class="sb-perfil">
+      <details id="perfil-menu">
+        <summary><span class="sb-ico">👤</span> <span data-i18n="miPerfil">Perfil</span></summary>
+        <div class="perfil-menu-content">
+          <button type="button" class="btn btn-outline-primary btn-sm w-100 mb-1 fw-bold" onclick="irA('carrera')">🧑‍🎓 <span data-i18n="miJugador">Mi jugador</span></button>
+          <button type="button" class="btn btn-outline-secondary btn-sm w-100 mb-1" onclick="mostrarSlots()">💾 <span data-i18n="misCarreras">Mis carreras</span></button>
+          <button type="button" class="btn btn-outline-secondary btn-sm w-100 mb-1" onclick="abrirPanelCuenta()">🔐 <span data-i18n="cuentaBoton">Cuenta</span></button>
+          <button type="button" class="btn btn-outline-secondary btn-sm w-100 mb-1" onclick="abrirConfiguracion()">⚙️ <span data-i18n="configTitulo">Configuración</span></button>
+          <hr class="my-2">
+          <button type="button" class="btn btn-outline-danger btn-sm w-100 mb-1" onclick="cerrarSesionPerfil()">↪ <span data-i18n="cuentaSalir">Cerrar sesión</span></button>
+          <button type="button" class="btn btn-outline-dark btn-sm w-100" onclick="reiniciarCarrera()">♻️ <span data-i18n="reiniciar">Reiniciar carrera</span></button>
+        </div>
+      </details>
+    </div>
+  </aside>
+
+  <!-- BARRA SUPERIOR (móvil / tablet) -->
+  <header id="topbar">
+    <div class="tb-marca">⚽ COPERO <small data-i18n="titulo">Carrera PSO</small></div>
+    <details id="perfil-menu-movil">
+      <summary aria-label="Perfil">👤</summary>
+      <div class="perfil-menu-content">
+        <button type="button" class="btn btn-outline-primary btn-sm w-100 mb-1 fw-bold" onclick="irA('carrera')">🧑‍🎓 <span data-i18n="miJugador">Mi jugador</span></button>
+        <button type="button" class="btn btn-outline-secondary btn-sm w-100 mb-1" onclick="mostrarSlots()">💾 <span data-i18n="misCarreras">Mis carreras</span></button>
+        <button type="button" class="btn btn-outline-secondary btn-sm w-100 mb-1" onclick="abrirPanelCuenta()">🔐 <span data-i18n="cuentaBoton">Cuenta</span></button>
+        <button type="button" class="btn btn-outline-secondary btn-sm w-100 mb-1" onclick="abrirConfiguracion()">⚙️ <span data-i18n="configTitulo">Configuración</span></button>
+        <hr class="my-2">
+        <button type="button" class="btn btn-outline-danger btn-sm w-100 mb-1" onclick="cerrarSesionPerfil()">↪ <span data-i18n="cuentaSalir">Cerrar sesión</span></button>
+        <button type="button" class="btn btn-outline-dark btn-sm w-100" onclick="reiniciarCarrera()">♻️ <span data-i18n="reiniciar">Reiniciar carrera</span></button>
+      </div>
+    </details>
+  </header>
+
+  <!-- BARRA INFERIOR (móvil / tablet) -->
+  <nav id="nav-inferior" aria-label="Menú principal">
+    <button type="button" class="nb-item activo" data-seccion="carrera" onclick="irA('carrera')"><span class="sb-ico">🏠</span><span data-i18n="navCarrera">Carrera</span></button>
+    <button type="button" class="nb-item" data-seccion="partido" onclick="irA('partido')"><span class="sb-ico">⚽</span><span data-i18n="navPartido">Partido</span></button>
+    <button type="button" class="nb-item" data-seccion="entrenamiento" onclick="irA('entrenamiento')"><span class="sb-ico">🏋️</span><span data-i18n="navEntrenamiento">Entreno</span></button>
+    <button type="button" class="nb-item" data-seccion="progreso" onclick="irA('progreso')"><span class="sb-ico">📊</span><span data-i18n="navProgreso">Progreso</span></button>
+    <button type="button" class="nb-item" data-seccion="comunidad" onclick="irA('comunidad')"><span class="sb-ico">🌐</span><span data-i18n="navComunidad">Comunidad</span></button>
+  </nav>
+
+  <div class="container flex-grow-1" id="contenido-juego" style="max-width: 1180px;">
 
     <details class="card card-custom p-3 mt-3" id="cuenta-panel">
       <summary class="fw-bold" data-i18n="cuentaTitulo">👤 Mi cuenta (opcional)</summary>
@@ -140,80 +192,254 @@
 
     <!-- PANTALLA JUEGO -->
     <div id="pantalla-juego" class="hidden">
-      <!-- HEADER JUGADOR -->
-      <div class="card card-custom p-3 mb-3 d-flex flex-row align-items-center justify-content-between">
-        <div>
-          <h2 class="m-0 fw-bold text-dark"><span id="j-nombre"></span> (<span id="j-posicion"></span>)</h2>
-          <p class="m-0 text-secondary"><span data-i18n="edad">Edad:</span> <span id="j-edad"></span> <span data-i18n="anios">años</span> | <span data-i18n="media">Media:</span> <span id="j-media" class="text-primary fw-bold"></span> OVR</p>
-          <p class="m-0 small text-muted" id="j-atributos"></p>
-          <p class="m-0 text-info fw-bold"><span data-i18n="club">Club:</span> <span id="j-club"></span></p>
-          <p class="m-0 small"><span data-i18n="moral">Moral:</span> <span id="j-moral"></span></p>
+      <!-- TARJETA DEL JUGADOR -->
+      <div class="card card-custom tarjeta-jugador mb-3">
+        <div class="tj-izq">
+          <h2 class="m-0 fw-bold text-dark">🧑‍🎓 <span id="j-nombre"></span></h2>
+          <p class="mb-2 text-secondary fw-bold" id="tj-posicion-linea"><span id="j-posicion"></span> · <span data-i18n="edad">Edad:</span> <span id="j-edad"></span> <span data-i18n="anios">años</span> · <span data-i18n="club">Club:</span> <span id="j-club"></span></p>
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="chip-small"><span data-i18n="moral">Moral:</span> <span id="j-moral" class="fw-bold"></span></span>
+            <button type="button" class="chip-small chip-click" onclick="toggleAtributosPanel()" aria-expanded="false"><span data-i18n="misAtributos">Atributos</span> ▾</button>
+          </div>
+          <div id="panel-atributos" class="tj-atributos hidden" data-panel="atributos">
+            <div id="j-atributos"></div>
+          </div>
         </div>
-        <div class="d-flex align-items-center gap-3">
-          <!-- MINI CASACA CON DORSAL -->
-          <div id="camiseta-badge" title="Tu dorsal"></div>
-          <!-- BADGE DE ROL -->
-          <div id="rol-badge" title="Tu rol actual" aria-label="Rol actual del jugador"></div>
-          <img id="club-img" src="" alt="Escudo del club" style="display: none;">
+        <div class="tj-der">
+          <div class="tj-ovr" aria-label="Media del jugador">
+            <div class="tj-ovr-num"><span id="j-media" class="text-primary fw-bold">0</span></div>
+            <div class="tj-ovr-lbl">OVR</div>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <div id="rol-badge" title="Tu rol actual" aria-label="Rol actual del jugador"></div>
+            <div id="camiseta-badge" title="Tu dorsal"></div>
+            <img id="club-img" src="" alt="Escudo del club" style="display: none;">
+          </div>
         </div>
       </div>
 
-      <div class="row">
-        <!-- ACCIONES -->
-        <div class="col-md-3 mb-3">
-          <div class="card card-custom p-3 text-center">
-            <h4 class="mb-3 text-dark fw-bold" data-i18n="acciones">Acciones</h4>
-            <div id="aviso-minijuego-usado" class="alert alert-info small hidden" role="status" data-i18n="avisoMinijuego">Ya jugaste el minijuego de esta temporada. Solo se puede jugar 1 minijuego por temporada, además del entrenamiento tradicional. Avanzá a la próxima temporada para jugar otro.</div>
-            <button id="btn-entrenar" class="btn btn-outline-primary mb-2 w-100 fw-bold" onclick="entrenar()" data-i18n="entrenar">Entrenar Tradicional</button>
-            <button id="btn-entrenar-atributos" class="btn btn-outline-primary mb-2 w-100 fw-bold" onclick="abrirEntrenamientoAtributos()" data-i18n="entrenarAtributos">🏋️ Entrenar Atributos</button>
-            <button class="btn btn-outline-success mb-2 w-100 fw-bold btn-minijuego" onclick="iniciarMinijuegoDominios()" data-i18n="dominios">⚽ Desafío Dominios</button>
-            <button id="btn-minijuego-especifico" class="btn btn-outline-warning mb-2 w-100 fw-bold text-dark btn-minijuego" onclick="iniciarMinijuegoEntrenamiento()" data-i18n="entrenamiento">⚽ Entrenamiento</button>
-            <button class="btn btn-outline-info mb-2 w-100 fw-bold btn-minijuego" onclick="abrirSelectorMinijuegos()" data-i18n="masMinijuegos">🎮 Más Minijuegos</button>
+      <!-- RUTA DE SECCIÓN -->
+      <div id="app-ruta" class="app-ruta mb-2"><span data-i18n="navCarrera">Carrera</span></div>
 
-            <hr class="border-secondary">
+      <!-- ============ VISTA CARRERA (DASHBOARD) ============ -->
+      <section id="vista-carrera" class="cp-vista">
+        <div class="row g-3">
 
-            <div class="d-flex gap-1 mb-2">
-              <button class="btn btn-outline-dark btn-sm w-100 fw-bold" onclick="mostrarPanelLogros()" data-i18n="logros">🏅 Logros</button>
-              <button class="btn btn-outline-dark btn-sm w-100 fw-bold" onclick="mostrarEstadisticas()" data-i18n="stats">📊 Stats</button>
-            </div>
-            <button class="btn btn-outline-danger mb-2 w-100 fw-bold" onclick="mostrarRedesSociales()">📱 Redes Sociales</button>
-
-            <div id="mensaje-espera-eventos" class="alert alert-light border p-2 small text-muted" data-i18n="sinEventos">No hay eventos sociales esta temporada.</div>
-            <button id="btn-evento-unico" class="btn btn-warning mb-2 w-100 hidden fw-bold" onclick="abrirModalEvento()"></button>
-
-            <button id="btn-simular" class="btn btn-primary btn-lg w-100 mt-2 fw-bold" onclick="simularTemporada()" data-i18n="simular">Simular Temporada</button>
-            <button class="btn btn-outline-danger btn-sm w-100 mt-3 fw-bold" onclick="reiniciarCarrera()" data-i18n="reiniciar">Reiniciar Carrera</button>
-          </div>
-        </div>
-
-        <!-- TABLA TEMPORADAS -->
-        <div class="col-md-6 mb-3">
-          <div class="card card-custom p-3">
-            <h4 class="mb-3 text-dark fw-bold" data-i18n="historial">Historial de Carrera</h4>
-            <div class="table-responsive">
-              <table class="table table-hover align-middle text-center m-0 border tabla-historial">
-                <thead class="table-dark">
-                  <tr>
-                    <th scope="col" data-i18n="thTemp">Temp</th>
-                    <th scope="col" data-i18n="thClub">Club</th>
-                    <th scope="col" data-i18n="thPJ">PJ</th>
-                    <th scope="col" data-i18n="thGoles">Goles</th>
-                    <th scope="col" data-i18n="thAsist">Asist.</th>
-                    <th scope="col" data-i18n="thTitulos">Títulos / Logros</th>
-                  </tr>
-                </thead>
-                <tbody id="tabla-temporadas-body"></tbody>
-              </table>
+          <!-- PRÓXIMO PARTIDO -->
+          <div class="col-lg-7">
+            <div class="card card-custom h-100 card-partido">
+              <div class="card-partido-cabecera d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold text-dark m-0" data-i18n="proximoPartido">⚽ Próximo partido</h5>
+                <span class="badge bg-primary" data-i18n="thTemp">Temporada</span>
+              </div>
+              <div class="card-partido-cuerpo">
+                <div class="equipo-local">
+                  <img id="carrera-escudo-local" src="" alt="Tu club" class="escudo-equipo" onerror="this.style.display='none'">
+                  <div class="fw-bold" id="carrera-club-local">—</div>
+                </div>
+                <div class="vs">VS</div>
+                <div class="equipo-visitante">
+                  <img id="carrera-escudo-rival" src="" alt="Rival" class="escudo-equipo" onerror="this.style.display='none'">
+                  <div class="fw-bold" id="carrera-club-rival">—</div>
+                </div>
+              </div>
+              <div class="card-partido-pie">
+                <span class="text-muted small" id="carrera-competen">Liga</span>
+                <button id="btn-jugar-partido" type="button" class="btn btn-pso btn-lg fw-bold w-100" onclick="simularTemporada()">
+                  ⚽ <span data-i18n="jugarPartido">JUGAR PARTIDO</span>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-        <aside class="col-md-3 mb-3" aria-label="Redes sociales">
-          <div class="card card-custom p-3 redes-lateral">
-            <h5 class="fw-bold text-danger mb-3" data-i18n="redesTitulo">📱 Redes sociales</h5>
-            <div id="redes-feed-lateral"></div>
+
+          <!-- RESUMEN DE TEMPORADA -->
+          <div class="col-lg-5">
+            <div class="card card-custom h-100">
+              <h5 class="fw-bold text-dark mb-3" data-i18n="resumenTemporada">📊 Resumen de temporada</h5>
+              <div class="row g-2 text-center resumen-temp">
+                <div class="col-4"><span class="rt-label" data-i18n="thPJ">PJ</span><strong id="res-pj">0</strong></div>
+                <div class="col-4"><span class="rt-label" data-i18n="thGoles">Goles</span><strong id="res-goles">0</strong></div>
+                <div class="col-4"><span class="rt-label" data-i18n="thAsist">Asist.</span><strong id="res-asist">0</strong></div>
+                <div class="col-4"><span class="rt-label" data-i18n="thTitulos">Títulos</span><strong id="res-titulos">0</strong></div>
+                <div class="col-4"><span class="rt-label">OVR</span><strong id="res-media">0</strong></div>
+                <div class="col-4"><span class="rt-label" data-i18n="temporadaActual">Temporada</span><strong id="res-num-temp">0</strong></div>
+              </div>
+              <div class="mt-3">
+                <div id="mensaje-espera-eventos" class="alert alert-light border p-2 small text-muted mb-0" data-i18n="sinEventos">No hay eventos sociales esta temporada.</div>
+                <button id="btn-evento-unico" type="button" class="btn btn-warning w-100 hidden fw-bold" onclick="abrirModalEvento()"></button>
+              </div>
+            </div>
           </div>
-        </aside>
-      </div>
+
+          <!-- ACCIONES RÁPIDAS -->
+          <div class="col-lg-12">
+            <div class="card card-custom">
+              <h5 class="fw-bold text-dark mb-3" data-i18n="accionesRapidas">⚡ Acciones rápidas</h5>
+              <div class="row g-2">
+                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-pso w-100 fw-bold" onclick="simularTemporada()">⚽ <span data-i18n="jugar">Jugar</span></button></div>
+                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-outline-primary w-100 fw-bold" onclick="irA('entrenamiento')">🏋️ <span data-i18n="entrenar">Entrenar</span></button></div>
+                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-outline-success w-100 fw-bold" onclick="generarOfertasDeFichaje()">💰 <span data-i18n="mercadoPases">Mercado</span></button></div>
+                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-outline-info w-100 fw-bold" onclick="irA('progreso')">📊 <span data-i18n="stats">Stats</span></button></div>
+                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-outline-secondary w-100 fw-bold" onclick="irA('partido')">📅 <span data-i18n="calendario">Calendario</span></button></div>
+                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-outline-danger w-100 fw-bold" onclick="mostrarRedesSociales()">📰 <span data-i18n="noticiasCarrera">Noticias</span></button></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- NOTICIAS / ACTIVIDAD -->
+          <div class="col-lg-12">
+            <div class="card card-custom">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold text-dark m-0" data-i18n="noticiasCarrera">📰 Noticias de tu carrera</h5>
+                <button type="button" class="btn btn-sm btn-outline-danger fw-bold" onclick="mostrarRedesSociales()">📱 <span data-i18n="redesTitulo">Redes</span></button>
+              </div>
+              <div id="redes-feed-lateral"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ VISTA PARTIDO ============ -->
+      <section id="vista-partido" class="cp-vista hidden">
+        <div class="row g-3">
+          <div class="col-lg-4">
+            <div class="card card-custom h-100 text-center">
+              <h5 class="fw-bold text-dark" data-i18n="navPartido">⚽ Partido</h5>
+              <p class="text-secondary small" id="partido-info-base"></p>
+              <button type="button" class="btn btn-pso fw-bold w-100" onclick="simularTemporada()">🎲 <span data-i18n="simular">Simular temporada</span></button>
+              <hr>
+              <button id="btn-partido-evento" type="button" class="btn btn-warning w-100 hidden fw-bold" onclick="abrirModalEvento()"></button>
+            </div>
+            <div class="card card-custom mt-3">
+              <h5 class="fw-bold text-dark mb-2" data-i18n="historial">📜 Historial</h5>
+              <p class="text-secondary small mb-1" data-i18n="verHistorial">Resultados de tu carrera por temporada.</p>
+              <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" onclick="irA('progreso')" data-i18n="verHistorialBtn">Ver historial completo</button>
+            </div>
+          </div>
+          <div class="col-lg-8">
+            <div class="card card-custom">
+              <div class="d-flex gap-2 mb-3 flex-wrap" role="tablist" aria-label="Partido">
+                <button type="button" class="btn btn-sm btn-pso fw-bold tab-partido activo" onclick="tabPartido('destaques')" data-i18n="momentosClave">Momentos clave</button>
+                <button type="button" class="btn btn-sm btn-outline-primary fw-bold tab-partido" onclick="tabPartido('penales')" data-i18n="penales">Penales</button>
+                <button type="button" class="btn btn-sm btn-outline-primary fw-bold tab-partido" onclick="tabPartido('libres')" data-i18n="tirosLibres">Tiros libres</button>
+                <button type="button" class="btn btn-sm btn-outline-primary fw-bold tab-partido" onclick="tabPartido('especiales')" data-i18n="partidosEspeciales">Partidos especiales</button>
+              </div>
+              <div id="contenido-partido"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ VISTA ENTRENAMIENTO ============ -->
+      <section id="vista-entrenamiento" class="cp-vista hidden">
+        <div class="row g-3">
+          <div class="col-lg-4">
+            <div class="card card-custom">
+              <h5 class="fw-bold text-dark mb-3" data-i18n="navEntrenamiento">🏋️ Entrenamiento</h5>
+              <div id="aviso-minijuego-usado" class="alert alert-info small hidden" role="status" data-i18n="avisoMinijuego">Ya jugaste el minijuego de esta temporada. Solo se puede jugar 1 minijuego por temporada, además del entrenamiento tradicional. Avanzá a la próxima temporada para jugar otro.</div>
+              <button id="btn-entrenar" type="button" class="btn btn-outline-primary mb-2 w-100 fw-bold" onclick="entrenar()" data-i18n="entrenar">Entrenar Tradicional</button>
+              <button id="btn-entrenar-atributos" type="button" class="btn btn-outline-primary mb-2 w-100 fw-bold" onclick="abrirEntrenamientoAtributos()" data-i18n="entrenarAtributos">🏋️ Entrenar Atributos</button>
+              <button class="btn btn-outline-success mb-2 w-100 fw-bold btn-minijuego" onclick="iniciarMinijuegoDominios()" data-i18n="dominios">⚽ Desafío Dominios</button>
+              <button id="btn-minijuego-especifico" type="button" class="btn btn-outline-warning mb-2 w-100 fw-bold text-dark btn-minijuego" onclick="iniciarMinijuegoEntrenamiento()" data-i18n="entrenamiento">⚽ Entrenamiento</button>
+              <button type="button" class="btn btn-outline-info mb-2 w-100 fw-bold btn-minijuego" onclick="abrirSelectorMinijuegos()" data-i18n="masMinijuegos">🎮 Más Minijuegos</button>
+              <button type="button" class="btn btn-outline-warning mb-2 w-100 fw-bold btn-minijuego" onclick="iniciarMinijuegoPenales()">🥅 <span data-i18n="tandaPenales">Tanda de Penales</span></button>
+            </div>
+          </div>
+          <div class="col-lg-8">
+            <div class="card card-custom">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold text-dark m-0" data-i18n="misAtributos">📈 Mis atributos</h5>
+                <button type="button" class="btn btn-sm btn-pso fw-bold" onclick="abrirEntrenamientoAtributos()" data-i18n="entrenar">Entrenar</button>
+              </div>
+              <p class="text-secondary small mt-0 mb-3" data-i18n="atributosAyuda">Presioná un atributo para abrir el centro de entrenamiento. Cada sesión sube un atributo y puede aumentar tu OVR.</p>
+              <div id="atributos-vista" class="row g-2"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ VISTA PROGRESO ============ -->
+      <section id="vista-progreso" class="cp-vista hidden">
+        <div class="card card-custom">
+          <ul class="nav nav-pills mb-3" role="tablist" aria-label="Progreso">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active fw-bold" id="pesta-prog-stats" data-bs-toggle="pill" data-bs-target="#tab-prog-stats" type="button" role="tab" data-i18n="stats">📊 Estadísticas</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link fw-bold" id="pesta-prog-evol" data-bs-toggle="pill" data-bs-target="#tab-prog-evol" type="button" role="tab" data-i18n="evolucion">📈 Evolución</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link fw-bold" id="pesta-prog-temp" data-bs-toggle="pill" data-bs-target="#tab-prog-temp" type="button" role="tab" data-i18n="temporadas">🗓 Temporadas</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link fw-bold" id="pesta-prog-logros" data-bs-toggle="pill" data-bs-target="#tab-prog-logros" type="button" role="tab" data-i18n="logros">🏅 Logros</button>
+            </li>
+          </ul>
+          <div class="tab-content">
+            <div class="tab-pane fade show active" id="tab-prog-stats" role="tabpanel">
+              <div id="stats-vista"></div>
+            </div>
+            <div class="tab-pane fade" id="tab-prog-evol" role="tabpanel">
+              <div id="evol-vista"></div>
+            </div>
+            <div class="tab-pane fade" id="tab-prog-temp" role="tabpanel">
+              <div class="table-responsive">
+                <table class="table table-hover align-middle text-center m-0 border tabla-historial">
+                  <thead class="table-dark">
+                    <tr>
+                      <th scope="col" data-i18n="thTemp">Temp</th>
+                      <th scope="col" data-i18n="thClub">Club</th>
+                      <th scope="col" data-i18n="thPJ">PJ</th>
+                      <th scope="col" data-i18n="thGoles">Goles</th>
+                      <th scope="col" data-i18n="thAsist">Asist.</th>
+                      <th scope="col">OVR</th>
+                      <th scope="col" data-i18n="thTitulos">Títulos / Logros</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tabla-temporadas-body"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="tab-pane fade" id="tab-prog-logros" role="tabpanel">
+              <div id="logros-vista"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ VISTA COMUNIDAD ============ -->
+      <section id="vista-comunidad" class="cp-vista hidden">
+        <div class="card card-custom">
+          <ul class="nav nav-pills mb-3" role="tablist" aria-label="Comunidad">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active fw-bold" id="pesta-com-ranking" data-bs-toggle="pill" data-bs-target="#tab-com-ranking" type="button" role="tab" data-i18n="ranking">🏆 Ranking</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link fw-bold" id="pesta-com-duelo" data-bs-toggle="pill" data-bs-target="#tab-com-duelo" type="button" role="tab" data-i18n="dueloBoton">⚔️ 1v1</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link fw-bold" id="pesta-com-redes" data-bs-toggle="pill" data-bs-target="#tab-com-redes" type="button" role="tab" data-i18n="redesTitulo">📱 Redes</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link fw-bold" id="pesta-com-cuenta" data-bs-toggle="pill" data-bs-target="#tab-com-cuenta" type="button" role="tab" data-i18n="cuentaBoton">🔐 Cuenta</button>
+            </li>
+          </ul>
+          <div class="tab-content">
+            <div class="tab-pane fade show active" id="tab-com-ranking" role="tabpanel">
+              <div id="ranking-vista"></div>
+            </div>
+            <div class="tab-pane fade" id="tab-com-duelo" role="tabpanel">
+              <div id="duelo-vista"></div>
+            </div>
+            <div class="tab-pane fade" id="tab-com-redes" role="tabpanel">
+              <div id="redes-vista"></div>
+            </div>
+            <div class="tab-pane fade" id="tab-com-cuenta" role="tabpanel">
+              <div id="cuenta-vista"></div>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
 
     <!-- PANTALLA RESUMEN FINAL -->
@@ -252,6 +478,9 @@
     <p class="mb-0"><strong data-i18n="colaboracion">Colaboración:</strong> Nasty</p>
     <p class="mt-2 mb-0"><a href="privacidad.html" target="_blank" rel="noopener" data-i18n="privacidadLink">Política de privacidad</a></p>
   </footer>
+
+  <!-- NOTIFICACIONES -->
+  <div id="toast-copero" class="toast-copero" aria-live="polite" aria-atomic="true"></div>
 
   <!-- MODALES -->
   <div class="modal fade" id="infoModal" tabindex="-1" aria-hidden="true" aria-labelledby="infoModalTitulo">
@@ -490,6 +719,31 @@
     </div>
   </div>
 
+  <!-- MODAL CONFIGURACIÓN -->
+  <div class="modal fade" id="modalConfiguracion" tabindex="-1" aria-hidden="true" aria-labelledby="configTitulo">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content card-custom border-secondary">
+        <div class="modal-header border-bottom-0">
+          <h5 class="modal-title fw-bold" data-i18n="configTitulo">⚙️ Configuración</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="select-idioma-perfil" class="form-label fw-bold" data-i18n="idioma">🌐 Idioma</label>
+            <select id="select-idioma-perfil" class="form-select"></select>
+          </div>
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="btn-modo-oscuro-perfil">
+            <label class="form-check-label fw-bold" for="btn-modo-oscuro-perfil" data-i18n="modoOscuro">🌙 Modo oscuro</label>
+          </div>
+        </div>
+        <div class="modal-footer border-top-0 justify-content-center pt-0">
+          <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" data-bs-dismiss="modal" data-i18n="btnCerrar">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="data.js"></script>
   <script src="progression.js"></script>
@@ -503,6 +757,7 @@
   <script src="cuenta-ui.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="duelo.js"></script>
+  <script src="ui.js"></script>
   <script src="pwa.js"></script>
 </body>
 </html>

@@ -913,3 +913,321 @@ body.modo-oscuro .duelo-penal-paso { border-color: #495057; color: #adb5bd; }
 body.modo-oscuro .duelo-penal-paso.activo { background: #4d3b00; border-color: #ffc107; color: #ffe066; }
 body.modo-oscuro .duelo-penal-paso.completo { background: #10361f; border-color: #198754; color: #75d1a3; }
 body.modo-oscuro .duelo-barra-lbl { color: #f8f9fa; }
+
+/* ============================================================
+   INTERFAZ REORGANIZADA (Carrera / Partido / Entrenamiento /
+   Progreso / Comunidad) - ui.js
+   Barra lateral (PC), top bar + bottom nav (móvil), tarjeta del
+   jugador, vistas, toasts y animaciones.
+   ============================================================ */
+
+/* --- La navegación solo aparece en modo juego --- */
+#sidebar, #topbar, #nav-inferior { display: none !important; }
+
+body.app-juego #sidebar { display: block !important; }
+body.app-juego #topbar { display: flex !important; }
+body.app-juego #nav-inferior { display: grid !important; }
+
+@media (min-width: 992px) {
+  body.app-juego #topbar { display: none !important; }
+  body.app-juego #nav-inferior { display: none !important; }
+}
+
+/* --- Contenido desplazado según el modo --- */
+body.app-juego #contenido-juego { padding-top: 1rem; }
+@media (max-width: 991.98px) {
+  body.app-juego #contenido-juego { padding-bottom: 84px; }
+}
+@media (min-width: 992px) {
+  body.app-juego #contenido-juego { margin-left: 260px; }
+}
+body.app-juego footer { margin-bottom: 60px; }
+@media (min-width: 992px) {
+  body.app-juego footer { margin-bottom: 16px; }
+}
+
+/* --- Barra lateral (escritorio) --- */
+#sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 240px;
+  z-index: 1030;
+  background: linear-gradient(180deg, #0d6efd 0%, #0a3d8f 100%);
+  color: #ffffff;
+}
+.sb-marca {
+  padding: 1.1rem 1.2rem 1rem;
+  font-size: 1.15rem;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+}
+.sb-marca small { display: block; font-weight: 400; opacity: 0.85; font-size: 0.78rem; }
+.sb-nav { padding: 0.5rem; display: flex; flex-direction: column; gap: 0.35rem; }
+.sb-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  padding: 0.68rem 0.9rem;
+  border-radius: 10px;
+  font-weight: 700;
+  text-align: left;
+  transition: background 0.15s ease;
+}
+.sb-item .sb-ico { font-size: 1.1rem; }
+.sb-item:hover { background: rgba(255, 255, 255, 0.12); }
+.sb-item.activo { background: rgba(255, 255, 255, 0.22); box-shadow: inset 3px 0 0 #ffd43b; }
+.sb-perfil { position: absolute; left: 0.85rem; right: 0.85rem; bottom: 1rem; }
+#perfil-menu > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.12);
+}
+#perfil-menu > summary::-webkit-details-marker { display: none; }
+.perfil-menu-content {
+  margin-top: 0.5rem;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 0.5rem;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.25);
+}
+
+/* --- Barra superior (móvil / tablet) --- */
+#topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1040;
+  background: linear-gradient(90deg, #0d6efd 0%, #0a3d8f 100%);
+  color: #ffffff;
+  padding: 0.6rem 1rem;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+}
+.tb-marca { font-weight: 900; letter-spacing: 0.5px; }
+.tb-marca small { display: block; font-weight: 400; opacity: 0.85; font-size: 0.72rem; }
+#perfil-menu-movil { position: relative; }
+#perfil-menu-movil > summary {
+  list-style: none;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+#perfil-menu-movil > summary::-webkit-details-marker { display: none; }
+#perfil-menu-movil .perfil-menu-content {
+  position: absolute;
+  right: 0;
+  top: 48px;
+  width: 235px;
+  z-index: 1050;
+}
+
+/* --- Barra inferior (móvil / tablet) --- */
+#nav-inferior {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1030;
+  background: #ffffff;
+  border-top: 1px solid #dee2e6;
+  grid-template-columns: repeat(5, 1fr);
+  padding: 0.35rem 0.2rem calc(0.35rem + env(safe-area-inset-bottom));
+  box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.08);
+}
+.nb-item {
+  border: none;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #6c757d;
+  padding: 0.25rem 0.1rem;
+}
+.nb-item .sb-ico { font-size: 1.25rem; }
+.nb-item.activo { color: #0d6efd; }
+.nb-item.activo .sb-ico { transform: translateY(-1px); }
+
+/* --- Ruta de sección (miga) --- */
+.app-ruta {
+  font-weight: 700;
+  color: #0d6efd;
+  font-size: 0.95rem;
+  letter-spacing: 0.3px;
+}
+
+/* --- Tarjeta del jugador --- */
+.tarjeta-jugador {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.tj-der {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.tj-ovr { text-align: center; min-width: 78px; }
+.tj-ovr-num { font-size: 2.5rem; line-height: 1; font-weight: 900; }
+.tj-ovr-lbl { letter-spacing: 4px; color: #0d6efd; font-weight: 800; font-size: 0.75rem; }
+.chip-small {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: #e9ecef;
+  font-size: 0.85rem;
+  color: #212529;
+}
+.chip-click {
+  cursor: pointer;
+  background: #fff3cd;
+  border: 1px solid #ffe69c;
+  transition: transform 0.12s ease;
+}
+.chip-click:hover { transform: translateY(-1px); }
+.tj-atributos {
+  margin-top: 0.75rem;
+  padding: 0.8rem;
+  background: #f1f5f9;
+  border-radius: 10px;
+  font-size: 0.85rem;
+}
+@media (min-width: 768px) {
+  .tarjeta-jugador { flex-direction: row; align-items: center; justify-content: space-between; }
+  .chip-small { font-size: 0.9rem; }
+}
+
+/* --- Vista: Partido (próximo partido) --- */
+.card-partido-cuerpo {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 1rem 0;
+}
+.equipo-local, .equipo-visitante { text-align: center; min-width: 0; }
+.equipo-visitante { order: 3; }
+.equipo-local .fw-bold, .equipo-visitante .fw-bold { font-size: 0.95rem; }
+.vs { font-weight: 900; font-size: 1.35rem; color: #adb5bd; order: 2; }
+.escudo-equipo { height: 54px; width: auto; object-fit: contain; margin-bottom: 0.35rem; }
+.card-partido-pie {
+  border-top: 1px dashed #dee2e6;
+  margin-top: 0.25rem;
+  padding-top: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* --- Resumen de temporada --- */
+.rt-label {
+  display: block;
+  font-size: 0.7rem;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.resumen-temp strong { font-size: 1.15rem; }
+
+/* --- Tarjetas de atributos --- */
+.attr-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  cursor: pointer;
+}
+.attr-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+/* --- Gráfico de evolución --- */
+.con-evol { overflow-x: auto; padding-bottom: 0.25rem; }
+.barra-evol { position: relative; min-width: 26px; transition: height 0.4s ease; }
+.barra-valor {
+  position: absolute;
+  top: -1.3rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #0d6efd;
+  white-space: nowrap;
+}
+
+/* --- Toasts --- */
+#toast-copero {
+  position: fixed;
+  z-index: 2100;
+  right: 16px;
+  bottom: 86px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(92vw, 340px);
+  pointer-events: none;
+}
+@media (min-width: 992px) {
+  #toast-copero { bottom: 24px; right: 24px; }
+}
+.toast-item {
+  background: #212529;
+  color: #ffffff;
+  padding: 10px 14px;
+  border-radius: 12px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+  font-size: 0.92rem;
+  animation: toastIn 0.28s ease;
+}
+.toast-item.saliendo { animation: toastOut 0.3s ease forwards; }
+.toast-ovr {
+  background: linear-gradient(135deg, #198754 0%, #0d6efd 100%);
+  font-weight: 600;
+}
+@keyframes toastIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes toastOut { to { opacity: 0; transform: translateY(8px); } }
+
+/* --- Animación de OVR --- */
+@keyframes ovrPulse {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.35); color: #198754; }
+  100% { transform: scale(1); }
+}
+#j-media.ovr-up { animation: ovrPulse 0.9s ease; }
+
+/* --- Modo oscuro: piezas de la nueva interfaz --- */
+body.modo-oscuro .chip-small { background: #1e293b; color: #e9ecef; }
+body.modo-oscuro .chip-click { background: #4d3b00; border-color: #ffc107; color: #ffe066; }
+body.modo-oscuro .tj-atributos { background: #1e293b; color: #e9ecef; }
+body.modo-oscuro .tj-ovr-lbl { color: #8ab4ff; }
+body.modo-oscuro #app-ruta { color: #8ab4ff; }
+body.modo-oscuro .attr-card { background: #1e293b; border-color: #33465c !important; }
+body.modo-oscuro .eq-club-lbl { color: #e9ecef; }
+body.modo-oscuro .resumen-temp strong { color: #e9ecef; }
+body.modo-oscuro .barra-valor { color: #8ab4ff; }
+body.modo-oscuro #nav-inferior { background: #1a252f; border-top-color: #33465c; }
+body.modo-oscuro .nb-item { color: #8fa3b8; }
+body.modo-oscuro .nb-item.activo { color: #8ab4ff; }
+body.modo-oscuro .perfil-menu-content { background: #1e293b; }
+body.modo-oscuro #perfil-menu > summary,
+body.modo-oscuro #perfil-menu-movil > summary { background: rgba(255, 255, 255, 0.14); }
+body.modo-oscuro #j-media.ovr-up { animation-name: ovrPulse; }

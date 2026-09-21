@@ -6,7 +6,7 @@
 //  Para publicar una version nueva, subir CACHE_NOMBRE (v1->v2).
 // ============================================================
 
-const CACHE_NOMBRE = "pso-carrera-v22";
+const CACHE_NOMBRE = "pso-carrera-v23";
 
 const ARCHIVOS_BASE = [
   "./",
@@ -24,6 +24,7 @@ const ARCHIVOS_BASE = [
   "./supabase-config.js",
   "./cuenta-api.js",
   "./cuenta-ui.js",
+  "./ui.js",
   "./pwa.js",
   "./manifest.webmanifest",
   "./imagenes/logo.png",
