@@ -6,13 +6,14 @@
 //  Para publicar una version nueva, subir CACHE_NOMBRE (v1->v2).
 // ============================================================
 
-const CACHE_NOMBRE = "pso-carrera-v25";
+const CACHE_NOMBRE = "pso-carrera-v26";
 
 const ARCHIVOS_BASE = [
   "./",
   "./index.html",
   "./privacidad.html",
   "./styles.css",
+  "./theme.css",
   "./app.js",
   "./data.js",
   "./progression.js",

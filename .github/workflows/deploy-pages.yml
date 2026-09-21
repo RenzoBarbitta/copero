@@ -21,7 +21,7 @@ jobs:
       - name: Preparar carpeta de publicacion
         run: |
           mkdir -p dist
-          cp index.html privacidad.html styles.css app.js data.js features.js \
+          cp index.html privacidad.html styles.css theme.css app.js data.js features.js \
              duelo.js camiseta.js touch-controls.js ranking-online.js \
              supabase-config.js cuenta-api.js cuenta-ui.js ui.js pwa.js sw.js \
              progression.js \

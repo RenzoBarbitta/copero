@@ -12,7 +12,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Simulador de Carrera - PSO Uruguay</title>
-  <meta name="theme-color" content="#0d6efd">
+  <meta name="theme-color" content="#0F1117">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -20,8 +20,12 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="192x192" href="imagenes/icon-192.png">
   <link rel="apple-touch-icon" href="imagenes/icon-180.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="theme.css">
 </head>
 <body class="p-3 d-flex flex-column min-vh-100">
   <!-- Google Tag Manager (noscript) -->
@@ -31,17 +35,18 @@
 
   <!-- NAVEGACIÓN PRINCIPAL (escritorio) -->
   <aside id="sidebar" aria-label="Menú principal">
-    <div class="sb-marca">⚽ COPERO <small data-i18n="titulo">Carrera PSO</small></div>
+    <div class="sb-marca"><span><span class="marca-icono">◆</span> COPERO <small data-i18n="titulo">Carrera PSO</small></span></div>
     <nav class="sb-nav">
-      <button type="button" class="sb-item activo" data-seccion="carrera" onclick="irA('carrera')"><span class="sb-ico">🏠</span><span data-i18n="navCarrera">Carrera</span></button>
-      <button type="button" class="sb-item" data-seccion="partido" onclick="irA('partido')"><span class="sb-ico">⚽</span><span data-i18n="navPartido">Partido</span></button>
-      <button type="button" class="sb-item" data-seccion="entrenamiento" onclick="irA('entrenamiento')"><span class="sb-ico">🏋️</span><span data-i18n="navEntrenamiento">Entrenamiento</span></button>
-      <button type="button" class="sb-item" data-seccion="progreso" onclick="irA('progreso')"><span class="sb-ico">📊</span><span data-i18n="navProgreso">Progreso</span></button>
-      <button type="button" class="sb-item" data-seccion="comunidad" onclick="irA('comunidad')"><span class="sb-ico">🌐</span><span data-i18n="navComunidad">Comunidad</span></button>
+      <span class="sb-seccion" data-i18n="navCarrera">Carrera</span>
+      <button type="button" class="sb-item activo" data-seccion="carrera" onclick="irA('carrera')"><span class="sb-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22v-9h6v9"/></svg></span><span data-i18n="navCarrera">Carrera</span></button>
+      <button type="button" class="sb-item" data-seccion="partido" onclick="irA('partido')"><span class="sb-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span><span data-i18n="navPartido">Partido</span></button>
+      <button type="button" class="sb-item" data-seccion="entrenamiento" onclick="irA('entrenamiento')"><span class="sb-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5v17"/><path d="M17.5 3.5v17"/><path d="M2.5 8v8"/><path d="M21.5 8v8"/><path d="M6.5 12h11"/></svg></span><span data-i18n="navEntrenamiento">Entrenamiento</span></button>
+      <button type="button" class="sb-item" data-seccion="progreso" onclick="irA('progreso')"><span class="sb-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M8 17v-5"/><path d="M13 17V8"/><path d="M18 17v-8"/></svg></span><span data-i18n="navProgreso">Progreso</span></button>
+      <button type="button" class="sb-item" data-seccion="comunidad" onclick="irA('comunidad')"><span class="sb-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span data-i18n="navComunidad">Comunidad</span></button>
     </nav>
     <div class="sb-perfil">
       <details id="perfil-menu">
-        <summary><span class="sb-ico">👤</span> <span data-i18n="miPerfil">Perfil</span></summary>
+        <summary><span class="sb-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span> <span data-i18n="miPerfil">Perfil</span></summary>
         <div class="perfil-menu-content">
           <button type="button" class="btn btn-outline-primary btn-sm w-100 mb-1 fw-bold" onclick="irA('carrera')">🧑‍🎓 <span data-i18n="miJugador">Mi jugador</span></button>
           <button type="button" class="btn btn-outline-secondary btn-sm w-100 mb-1" onclick="mostrarSlots()">💾 <span data-i18n="misCarreras">Mis carreras</span></button>
@@ -57,9 +62,9 @@
 
   <!-- BARRA SUPERIOR (móvil / tablet) -->
   <header id="topbar">
-    <div class="tb-marca">⚽ COPERO <small data-i18n="titulo">Carrera PSO</small></div>
+    <div class="tb-marca">◆ COPERO <small data-i18n="titulo">Carrera PSO</small></div>
     <details id="perfil-menu-movil">
-      <summary aria-label="Perfil">👤</summary>
+      <summary aria-label="Perfil"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></summary>
       <div class="perfil-menu-content">
         <button type="button" class="btn btn-outline-primary btn-sm w-100 mb-1 fw-bold" onclick="irA('carrera')">🧑‍🎓 <span data-i18n="miJugador">Mi jugador</span></button>
         <button type="button" class="btn btn-outline-secondary btn-sm w-100 mb-1" onclick="mostrarSlots()">💾 <span data-i18n="misCarreras">Mis carreras</span></button>
@@ -74,11 +79,11 @@
 
   <!-- BARRA INFERIOR (móvil / tablet) -->
   <nav id="nav-inferior" aria-label="Menú principal">
-    <button type="button" class="nb-item activo" data-seccion="carrera" onclick="irA('carrera')"><span class="sb-ico">🏠</span><span data-i18n="navCarrera">Carrera</span></button>
-    <button type="button" class="nb-item" data-seccion="partido" onclick="irA('partido')"><span class="sb-ico">⚽</span><span data-i18n="navPartido">Partido</span></button>
-    <button type="button" class="nb-item" data-seccion="entrenamiento" onclick="irA('entrenamiento')"><span class="sb-ico">🏋️</span><span data-i18n="navEntrenamiento">Entreno</span></button>
-    <button type="button" class="nb-item" data-seccion="progreso" onclick="irA('progreso')"><span class="sb-ico">📊</span><span data-i18n="navProgreso">Progreso</span></button>
-    <button type="button" class="nb-item" data-seccion="comunidad" onclick="irA('comunidad')"><span class="sb-ico">🌐</span><span data-i18n="navComunidad">Comunidad</span></button>
+    <button type="button" class="nb-item activo" data-seccion="carrera" onclick="irA('carrera')"><span class="sb-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22v-9h6v9"/></svg></span><span data-i18n="navCarrera">Carrera</span></button>
+    <button type="button" class="nb-item" data-seccion="partido" onclick="irA('partido')"><span class="sb-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span><span data-i18n="navPartido">Partido</span></button>
+    <button type="button" class="nb-item" data-seccion="entrenamiento" onclick="irA('entrenamiento')"><span class="sb-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5v17"/><path d="M17.5 3.5v17"/><path d="M2.5 8v8"/><path d="M21.5 8v8"/><path d="M6.5 12h11"/></svg></span><span data-i18n="navEntrenamiento">Entreno</span></button>
+    <button type="button" class="nb-item" data-seccion="progreso" onclick="irA('progreso')"><span class="sb-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M8 17v-5"/><path d="M13 17V8"/><path d="M18 17v-8"/></svg></span><span data-i18n="navProgreso">Progreso</span></button>
+    <button type="button" class="nb-item" data-seccion="comunidad" onclick="irA('comunidad')"><span class="sb-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span data-i18n="navComunidad">Comunidad</span></button>
   </nav>
 
   <div class="container flex-grow-1" id="contenido-juego" style="max-width: 1180px;">
@@ -195,19 +200,19 @@
       <!-- TARJETA DEL JUGADOR -->
       <div class="card card-custom tarjeta-jugador mb-3">
         <div class="tj-izq">
-          <h2 class="m-0 fw-bold text-dark">🧑‍🎓 <span id="j-nombre"></span></h2>
-          <p class="mb-2 text-secondary fw-bold" id="tj-posicion-linea"><span id="j-posicion"></span> · <span data-i18n="edad">Edad:</span> <span id="j-edad"></span> <span data-i18n="anios">años</span> · <span data-i18n="club">Club:</span> <span id="j-club"></span></p>
+          <h2 class="m-0 fw-bold"><span id="j-nombre"></span></h2>
+          <p class="mb-2 fw-bold" id="tj-posicion-linea"><span class="chip-small d-inline-flex"><span id="j-posicion"></span></span><span class="mx-2 text-3">·</span><span data-i18n="edad">Edad:</span> <span id="j-edad"></span> <span data-i18n="anios">años</span><span class="mx-2 text-3">·</span><span data-i18n="club">Club:</span> <span id="j-club"></span></p>
           <div class="d-flex align-items-center gap-2 flex-wrap">
             <span class="chip-small"><span data-i18n="moral">Moral:</span> <span id="j-moral" class="fw-bold"></span></span>
-            <button type="button" class="chip-small chip-click" onclick="toggleAtributosPanel()" aria-expanded="false"><span data-i18n="misAtributos">Atributos</span> ▾</button>
+            <button type="button" class="chip-small chip-click" onclick="toggleAtributosPanel()" aria-expanded="false"><span data-i18n="misAtributos">Atributos</span></button>
           </div>
           <div id="panel-atributos" class="tj-atributos hidden" data-panel="atributos">
             <div id="j-atributos"></div>
           </div>
         </div>
-        <div class="tj-der">
+        <div class="tj-der d-flex align-items-center gap-3">
           <div class="tj-ovr" aria-label="Media del jugador">
-            <div class="tj-ovr-num"><span id="j-media" class="text-primary fw-bold">0</span></div>
+            <div class="tj-ovr-num"><span id="j-media" class="fw-bold">0</span></div>
             <div class="tj-ovr-lbl">OVR</div>
           </div>
           <div class="d-flex align-items-center gap-2">
@@ -225,23 +230,33 @@
       <section id="vista-carrera" class="cp-vista">
         <div class="row g-3">
 
-          <!-- TEMPORADA ACTUAL -->
+          <!-- PRÓXIMO PARTIDO (VS) -->
           <div class="col-lg-7">
-            <div class="card card-custom h-100 d-flex flex-column">
+            <div class="card card-custom vs-card h-100 d-flex flex-column">
               <div class="d-flex justify-content-between align-items-center">
-                <h5 class="fw-bold text-dark m-0" data-i18n="temporadaTitulo">🏁 Temporada actual</h5>
+                <span class="vs-etiqueta" data-i18n="proximoPartido">Próximo partido</span>
                 <span class="badge bg-primary">T<strong id="temporada-actual">1</strong></span>
               </div>
-              <div class="flex-grow-1 d-flex align-items-center justify-content-center text-center my-3">
-                <div>
-                  <div class="fw-bold fs-4 text-primary" id="carrera-competen">Primera División</div>
-                  <div class="text-muted small mt-2" data-i18n="partidosPorTemporada">Partidos por temporada</div>
-                  <div class="fs-5 fw-bold" id="carrera-partidos-aprox">25–30</div>
+              <div class="vs-cuerpo">
+                <div class="vs-equipo">
+                  <div class="vs-escudo" id="carrera-escudo-local"><span class="sin-img">DAV</span></div>
+                  <div class="vs-nombre" id="carrera-club-local">Davoneta</div>
+                </div>
+                <div class="vs-badge-vs" aria-hidden="true">VS</div>
+                <div class="vs-equipo">
+                  <div class="vs-escudo" id="carrera-escudo-rival"><span class="sin-img">?</span></div>
+                  <div class="vs-nombre rival" id="carrera-club-rival">—</div>
                 </div>
               </div>
-              <div class="mt-auto">
+              <div class="text-center vs-info">
+                <span id="carrera-competen">Primera División</span>
+                <span aria-hidden="true"> · </span>
+                <span data-i18n="partidosPorTemporada">Partidos por temporada:</span>
+                <strong id="carrera-partidos-aprox">25–30</strong>
+              </div>
+              <div class="mt-auto pt-3">
                 <button id="btn-jugar-partido" type="button" class="btn btn-pso btn-lg fw-bold w-100" onclick="simularTemporada()">
-                  🎲 <span data-i18n="simular">SIMULAR TEMPORADA</span>
+                  <span data-i18n="simular">SIMULAR TEMPORADA</span>
                 </button>
               </div>
             </div>
@@ -250,7 +265,7 @@
           <!-- RESUMEN DE TEMPORADA -->
           <div class="col-lg-5">
             <div class="card card-custom h-100">
-              <h5 class="fw-bold text-dark mb-3" data-i18n="resumenTemporada">📊 Resumen de temporada</h5>
+              <h5 data-i18n="resumenTemporada">Resumen de temporada</h5>
               <div class="row g-2 text-center resumen-temp">
                 <div class="col-4"><span class="rt-label" data-i18n="thPJ">PJ</span><strong id="res-pj">0</strong></div>
                 <div class="col-4"><span class="rt-label" data-i18n="thGoles">Goles</span><strong id="res-goles">0</strong></div>
@@ -260,7 +275,7 @@
                 <div class="col-4"><span class="rt-label" data-i18n="temporadaActual">Temporada</span><strong id="res-num-temp">0</strong></div>
               </div>
               <div class="mt-3">
-                <div id="mensaje-espera-eventos" class="alert alert-light border p-2 small text-muted mb-0" data-i18n="sinEventos">No hay eventos sociales esta temporada.</div>
+                <div id="mensaje-espera-eventos" class="alert alert-light border p-2 small mb-0" data-i18n="sinEventos">No hay eventos sociales esta temporada.</div>
                 <button id="btn-evento-unico" type="button" class="btn btn-warning w-100 hidden fw-bold" onclick="abrirModalEvento()"></button>
               </div>
             </div>
@@ -269,14 +284,14 @@
           <!-- ACCIONES RÁPIDAS -->
           <div class="col-lg-12">
             <div class="card card-custom">
-              <h5 class="fw-bold text-dark mb-3" data-i18n="accionesRapidas">⚡ Acciones rápidas</h5>
+              <h5 data-i18n="accionesRapidas">Acciones rápidas</h5>
               <div class="row g-2" id="acciones-rapidas">
-                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-pso w-100 fw-bold" onclick="simularTemporada()">🎲 <span data-i18n="simular">Simular temporada</span></button></div>
-                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-outline-primary w-100 fw-bold" onclick="irA('entrenamiento')">🏋️ <span data-i18n="entrenar">Entrenar</span></button></div>
-                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-outline-success w-100 fw-bold" onclick="generarOfertasDeFichaje()">💰 <span data-i18n="mercadoPases">Mercado</span></button></div>
-                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-outline-info w-100 fw-bold" onclick="irA('progreso')">📊 <span data-i18n="stats">Stats</span></button></div>
-                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-outline-secondary w-100 fw-bold" onclick="irA('partido')">📅 <span data-i18n="calendario">Calendario</span></button></div>
-                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-outline-danger w-100 fw-bold" onclick="mostrarRedesSociales()">📰 <span data-i18n="noticiasCarrera">Noticias</span></button></div>
+                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-pso w-100 fw-bold" onclick="simularTemporada()"><span class="rap-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6.3 3.4 10.5 8.55a.5.5 0 0 1 0 .8L6.3 21.3a.5.5 0 0 1-.8-.4V3.8a.5.5 0 0 1 .8-.4z" transform="rotate(-15 12 12)"/></svg></span><span data-i18n="simular">Simular temporada</span></button></div>
+                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-outline-primary w-100 fw-bold" onclick="irA('entrenamiento')"><span class="rap-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5v17"/><path d="M17.5 3.5v17"/><path d="M2.5 8v8"/><path d="M21.5 8v8"/><path d="M6.5 12h11"/></svg></span><span data-i18n="entrenar">Entrenar</span></button></div>
+                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-outline-success w-100 fw-bold" onclick="generarOfertasDeFichaje()"><span class="rap-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></svg></span><span data-i18n="mercadoPases">Mercado</span></button></div>
+                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-outline-info w-100 fw-bold" onclick="irA('progreso')"><span class="rap-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M8 17v-5"/><path d="M13 17V8"/><path d="M18 17v-8"/></svg></span><span data-i18n="stats">Stats</span></button></div>
+                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-outline-secondary w-100 fw-bold" onclick="irA('partido')"><span class="rap-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span><span data-i18n="calendario">Calendario</span></button></div>
+                <div class="col-6 col-md-4 col-xl-2"><button type="button" class="btn btn-outline-danger w-100 fw-bold" onclick="mostrarRedesSociales()"><span class="rap-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0V4"/><path d="M18 14h-8M15 18h-5M10 6h8v4h-8z"/></svg></span><span data-i18n="noticiasCarrera">Noticias</span></button></div>
               </div>
             </div>
           </div>
@@ -285,10 +300,16 @@
           <div class="col-lg-12">
             <div class="card card-custom">
               <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="fw-bold text-dark m-0" data-i18n="noticiasCarrera">📰 Noticias de tu carrera</h5>
-                <button type="button" class="btn btn-sm btn-outline-danger fw-bold" onclick="mostrarRedesSociales()">📱 <span data-i18n="redesTitulo">Redes</span></button>
+                <h5 class="m-0" data-i18n="noticiasCarrera">Noticias de tu carrera</h5>
+                <button type="button" class="btn btn-sm btn-outline-danger fw-bold" onclick="mostrarRedesSociales()"><span data-i18n="redesTitulo">Redes</span></button>
               </div>
-              <div id="redes-feed-lateral"></div>
+              <div id="redes-feed-lateral">
+                <div class="vacio">
+                  <div class="vacio-icono" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0V4"/><path d="M18 14h-8M15 18h-5M10 6h8v4h-8z"/></svg></div>
+                  <div class="vacio-titulo" data-i18n="sinNoticiasTitulo">Sin novedades todavía</div>
+                  <div class="vacio-texto" data-i18n="sinNoticiasTexto">Simulá tu primera temporada para que comience la actividad de tu carrera.</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -297,27 +318,40 @@
       <!-- ============ VISTA PARTIDO ============ -->
       <section id="vista-partido" class="cp-vista hidden">
         <div class="row g-3">
-          <div class="col-lg-4">
-            <div class="card card-custom h-100 text-center">
-              <h5 class="fw-bold text-dark" data-i18n="navPartido">⚽ Partido</h5>
-              <p class="text-secondary small" id="partido-info-base"></p>
-              <button id="btn-partido-evento" type="button" class="btn btn-warning w-100 hidden fw-bold" onclick="abrirModalEvento()"></button>
-            </div>
-            <div class="card card-custom mt-3">
-              <h5 class="fw-bold text-dark mb-2" data-i18n="historial">📜 Historial</h5>
-              <p class="text-secondary small mb-1" data-i18n="verHistorial">Resultados de tu carrera por temporada.</p>
-              <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" onclick="irA('progreso')" data-i18n="verHistorialBtn">Ver historial completo</button>
+          <div class="col-lg-8">
+            <div class="card card-custom h-100">
+              <div class="campo-meta vs-cuerpo d-flex flex-column gap-2">
+                <div class="vs-cuerpo w-100">
+                  <div class="vs-equipo">
+                    <div class="vs-escudo" id="partido-escudo-local"><span class="sin-img">DAV</span></div>
+                    <div class="vs-nombre" id="partido-club-local">Davoneta</div>
+                  </div>
+                  <div class="vs-badge-vs" aria-hidden="true">VS</div>
+                  <div class="vs-equipo">
+                    <div class="vs-escudo" id="partido-escudo-rival"><span class="sin-img">?</span></div>
+                    <div class="vs-nombre rival" id="partido-club-rival">—</div>
+                  </div>
+                </div>
+                <div class="vs-info" id="partido-info-base"></div>
+                <button type="button" class="btn btn-pso btn-lg fw-bold w-100" onclick="simularTemporada()"><span data-i18n="simular">SIMULAR TEMPORADA</span></button>
+                <button id="btn-partido-evento" type="button" class="btn btn-warning w-100 hidden fw-bold" onclick="abrirModalEvento()"></button>
+              </div>
+              <div class="mt-3">
+                <div class="d-flex gap-2 mb-2 flex-wrap" role="tablist" aria-label="Partido">
+                  <button type="button" class="btn btn-sm btn-pso fw-bold tab-partido activo" onclick="tabPartido('destaques')" data-i18n="momentosClave">Momentos clave</button>
+                  <button type="button" class="btn btn-sm btn-outline-primary fw-bold tab-partido" onclick="tabPartido('penales')" data-i18n="penales">Penales</button>
+                  <button type="button" class="btn btn-sm btn-outline-primary fw-bold tab-partido" onclick="tabPartido('libres')" data-i18n="tirosLibres">Tiros libres</button>
+                  <button type="button" class="btn btn-sm btn-outline-primary fw-bold tab-partido" onclick="tabPartido('especiales')" data-i18n="partidosEspeciales">Partidos especiales</button>
+                </div>
+                <div id="contenido-partido"></div>
+              </div>
             </div>
           </div>
-          <div class="col-lg-8">
+          <div class="col-lg-4">
             <div class="card card-custom">
-              <div class="d-flex gap-2 mb-3 flex-wrap" role="tablist" aria-label="Partido">
-                <button type="button" class="btn btn-sm btn-pso fw-bold tab-partido activo" onclick="tabPartido('destaques')" data-i18n="momentosClave">Momentos clave</button>
-                <button type="button" class="btn btn-sm btn-outline-primary fw-bold tab-partido" onclick="tabPartido('penales')" data-i18n="penales">Penales</button>
-                <button type="button" class="btn btn-sm btn-outline-primary fw-bold tab-partido" onclick="tabPartido('libres')" data-i18n="tirosLibres">Tiros libres</button>
-                <button type="button" class="btn btn-sm btn-outline-primary fw-bold tab-partido" onclick="tabPartido('especiales')" data-i18n="partidosEspeciales">Partidos especiales</button>
-              </div>
-              <div id="contenido-partido"></div>
+              <h5 data-i18n="historial">Historial</h5>
+              <p class="text-secondary small mb-1" data-i18n="verHistorial">Resultados de tu carrera por temporada.</p>
+              <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" onclick="irA('progreso')" data-i18n="verHistorialBtn">Ver historial completo</button>
             </div>
           </div>
         </div>
@@ -328,23 +362,26 @@
         <div class="row g-3">
           <div class="col-lg-4">
             <div class="card card-custom">
-              <h5 class="fw-bold text-dark mb-3" data-i18n="navEntrenamiento">🏋️ Entrenamiento</h5>
+              <h5 data-i18n="navEntrenamiento">Entrenamiento</h5>
+              <p class="text-secondary small mb-3" data-i18n="entrenoAyuda">Elegí una sesión por atributo o un minijuego para la temporada.</p>
               <div id="aviso-minijuego-usado" class="alert alert-info small hidden" role="status" data-i18n="avisoMinijuego">Ya jugaste el minijuego de esta temporada. Solo se puede jugar 1 minijuego por temporada, además del entrenamiento por atributos. Avanzá a la próxima temporada para jugar otro.</div>
-              <button id="btn-entrenar-atributos" type="button" class="btn btn-outline-primary mb-2 w-100 fw-bold" onclick="abrirEntrenamientoAtributos()" data-i18n="entrenarAtributos">🏋️ Entrenar Atributos</button>
-              <button class="btn btn-outline-success mb-2 w-100 fw-bold btn-minijuego" onclick="iniciarMinijuegoDominios()" data-i18n="dominios">⚽ Desafío Dominios</button>
-              <button id="btn-minijuego-especifico" type="button" class="btn btn-outline-warning mb-2 w-100 fw-bold text-dark btn-minijuego" onclick="iniciarMinijuegoEntrenamiento()" data-i18n="entrenamiento">⚽ Entrenamiento</button>
-              <button type="button" class="btn btn-outline-info mb-2 w-100 fw-bold btn-minijuego" onclick="abrirSelectorMinijuegos()" data-i18n="masMinijuegos">🎮 Más Minijuegos</button>
-              <button type="button" class="btn btn-outline-warning mb-2 w-100 fw-bold btn-minijuego" onclick="iniciarMinijuegoPenales()">🥅 <span data-i18n="tandaPenales">Tanda de Penales</span></button>
+              <button id="btn-entrenar-atributos" type="button" class="btn btn-pso mb-2 w-100 fw-bold" onclick="abrirEntrenamientoAtributos()" data-i18n="entrenarAtributos">Entrenar atributos</button>
+              <div class="d-grid gap-2">
+                <button class="btn btn-outline-success w-100 fw-bold btn-minijuego" onclick="iniciarMinijuegoDominios()" data-i18n="dominios">⚽ Desafío Dominios</button>
+                <button id="btn-minijuego-especifico" type="button" class="btn btn-outline-warning w-100 fw-bold text-dark btn-minijuego" onclick="iniciarMinijuegoEntrenamiento()" data-i18n="entrenamiento">⚽ Entrenamiento</button>
+                <button type="button" class="btn btn-outline-info w-100 fw-bold btn-minijuego" onclick="abrirSelectorMinijuegos()" data-i18n="masMinijuegos">🎮 Más Minijuegos</button>
+                <button type="button" class="btn btn-outline-warning w-100 fw-bold btn-minijuego" onclick="iniciarMinijuegoPenales()">🥅 <span data-i18n="tandaPenales">Tanda de Penales</span></button>
+              </div>
             </div>
           </div>
           <div class="col-lg-8">
             <div class="card card-custom">
-              <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="fw-bold text-dark m-0" data-i18n="misAtributos">📈 Mis atributos</h5>
+              <div class="d-flex justify-content-between align-items-center">
+                <h5 class="m-0" data-i18n="misAtributos">Mis atributos</h5>
                 <button type="button" class="btn btn-sm btn-pso fw-bold" onclick="abrirEntrenamientoAtributos()" data-i18n="entrenar">Entrenar</button>
               </div>
               <p class="text-secondary small mt-0 mb-3" data-i18n="atributosAyuda">Presioná un atributo para abrir el centro de entrenamiento. Cada sesión sube un atributo y puede aumentar tu OVR.</p>
-              <div id="atributos-vista" class="row g-2"></div>
+              <div id="atributos-vista" class="row g-2 row-cols-2 row-cols-md-3 row-cols-xl-4"></div>
             </div>
           </div>
         </div>
@@ -355,16 +392,16 @@
         <div class="card card-custom">
           <ul class="nav nav-pills mb-3" role="tablist" aria-label="Progreso">
             <li class="nav-item" role="presentation">
-              <button class="nav-link active fw-bold" id="pesta-prog-stats" data-bs-toggle="pill" data-bs-target="#tab-prog-stats" type="button" role="tab" data-i18n="stats">📊 Estadísticas</button>
+              <button class="nav-link active fw-bold" id="pesta-prog-stats" data-bs-toggle="pill" data-bs-target="#tab-prog-stats" type="button" role="tab" data-i18n="stats">Estadísticas</button>
             </li>
             <li class="nav-item" role="presentation">
-              <button class="nav-link fw-bold" id="pesta-prog-evol" data-bs-toggle="pill" data-bs-target="#tab-prog-evol" type="button" role="tab" data-i18n="evolucion">📈 Evolución</button>
+              <button class="nav-link fw-bold" id="pesta-prog-evol" data-bs-toggle="pill" data-bs-target="#tab-prog-evol" type="button" role="tab" data-i18n="evolucion">Evolución</button>
             </li>
             <li class="nav-item" role="presentation">
-              <button class="nav-link fw-bold" id="pesta-prog-temp" data-bs-toggle="pill" data-bs-target="#tab-prog-temp" type="button" role="tab" data-i18n="temporadas">🗓 Temporadas</button>
+              <button class="nav-link fw-bold" id="pesta-prog-temp" data-bs-toggle="pill" data-bs-target="#tab-prog-temp" type="button" role="tab" data-i18n="temporadas">Temporadas</button>
             </li>
             <li class="nav-item" role="presentation">
-              <button class="nav-link fw-bold" id="pesta-prog-logros" data-bs-toggle="pill" data-bs-target="#tab-prog-logros" type="button" role="tab" data-i18n="logros">🏅 Logros</button>
+              <button class="nav-link fw-bold" id="pesta-prog-logros" data-bs-toggle="pill" data-bs-target="#tab-prog-logros" type="button" role="tab" data-i18n="logros">Logros</button>
             </li>
           </ul>
           <div class="tab-content">
@@ -404,16 +441,16 @@
         <div class="card card-custom">
           <ul class="nav nav-pills mb-3" role="tablist" aria-label="Comunidad">
             <li class="nav-item" role="presentation">
-              <button class="nav-link active fw-bold" id="pesta-com-ranking" data-bs-toggle="pill" data-bs-target="#tab-com-ranking" type="button" role="tab" data-i18n="ranking">🏆 Ranking</button>
+              <button class="nav-link active fw-bold" id="pesta-com-ranking" data-bs-toggle="pill" data-bs-target="#tab-com-ranking" type="button" role="tab" data-i18n="ranking">Ranking</button>
             </li>
             <li class="nav-item" role="presentation">
-              <button class="nav-link fw-bold" id="pesta-com-duelo" data-bs-toggle="pill" data-bs-target="#tab-com-duelo" type="button" role="tab" data-i18n="dueloBoton">⚔️ 1v1</button>
+              <button class="nav-link fw-bold" id="pesta-com-duelo" data-bs-toggle="pill" data-bs-target="#tab-com-duelo" type="button" role="tab" data-i18n="dueloBoton">1v1</button>
             </li>
             <li class="nav-item" role="presentation">
-              <button class="nav-link fw-bold" id="pesta-com-redes" data-bs-toggle="pill" data-bs-target="#tab-com-redes" type="button" role="tab" data-i18n="redesTitulo">📱 Redes</button>
+              <button class="nav-link fw-bold" id="pesta-com-redes" data-bs-toggle="pill" data-bs-target="#tab-com-redes" type="button" role="tab" data-i18n="redesTitulo">Redes</button>
             </li>
             <li class="nav-item" role="presentation">
-              <button class="nav-link fw-bold" id="pesta-com-cuenta" data-bs-toggle="pill" data-bs-target="#tab-com-cuenta" type="button" role="tab" data-i18n="cuentaBoton">🔐 Cuenta</button>
+              <button class="nav-link fw-bold" id="pesta-com-cuenta" data-bs-toggle="pill" data-bs-target="#tab-com-cuenta" type="button" role="tab" data-i18n="cuentaBoton">Cuenta</button>
             </li>
           </ul>
           <div class="tab-content">
@@ -465,10 +502,8 @@
   </div>
 
   <!-- FOOTER -->
-  <footer class="text-center py-3 text-muted mt-4">
-    <p class="mb-0"><strong data-i18n="desarrollado">Desarrollado por:</strong> Caseros</p>
-    <p class="mb-0"><strong data-i18n="colaboracion">Colaboración:</strong> Nasty</p>
-    <p class="mt-2 mb-0"><a href="privacidad.html" target="_blank" rel="noopener" data-i18n="privacidadLink">Política de privacidad</a></p>
+  <footer class="text-center py-3 mt-4">
+    <p class="mb-0 small"><strong data-i18n="desarrollado">Desarrollado por:</strong> Caseros · <strong data-i18n="colaboracion">Colaboración:</strong> Nasty · <a href="privacidad.html" target="_blank" rel="noopener" data-i18n="privacidadLink">Política de privacidad</a></p>
   </footer>
 
   <!-- NOTIFICACIONES -->
@@ -645,19 +680,15 @@
     <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
       <div class="modal-content card-custom border-warning">
         <div class="modal-header border-bottom-0">
-          <h5 class="modal-title w-100 fw-bold text-warning" id="modalRankingTitulo"><span data-i18n="rankTitulo">🏆 Ranking</span></h5>
+          <h5 class="modal-title w-100 fw-bold text-warning" id="modalRankingTitulo"><span data-i18n="rankTitulo">Ranking</span></h5>
         </div>
         <div class="modal-body">
           <ul class="nav nav-pills justify-content-center mb-3" role="tablist">
             <li class="nav-item" role="presentation">
-              <button class="nav-link active fw-bold" data-bs-toggle="pill" data-bs-target="#tab-ranking-online" type="button" role="tab" aria-selected="true">
-                🌍 <span data-i18n="rankTabGlobal">Global (Online)</span>
-              </button>
+              <button class="nav-link active fw-bold" data-bs-toggle="pill" data-bs-target="#tab-ranking-online" type="button" role="tab" aria-selected="true"><span data-i18n="rankTabGlobal">Global (Online)</span></button>
             </li>
             <li class="nav-item" role="presentation">
-              <button class="nav-link fw-bold" data-bs-toggle="pill" data-bs-target="#tab-ranking-local" type="button" role="tab" aria-selected="false">
-                📱 <span data-i18n="rankTabLocal">Este dispositivo</span>
-              </button>
+              <button class="nav-link fw-bold" data-bs-toggle="pill" data-bs-target="#tab-ranking-local" type="button" role="tab" aria-selected="false"><span data-i18n="rankTabLocal">Este dispositivo</span></button>
             </li>
           </ul>
           <div class="tab-content">
@@ -671,7 +702,7 @@
           <div id="ranking-online-estado" class="text-center mt-2"></div>
         </div>
         <div class="modal-footer border-top-0 justify-content-center pt-0">
-          <button type="button" id="btn-ranking-actualizar" class="btn btn-outline-secondary btn-sm fw-bold" data-i18n="rankActualizar">🔄 Actualizar</button>
+          <button type="button" id="btn-ranking-actualizar" class="btn btn-outline-secondary btn-sm fw-bold" data-i18n="rankActualizar">Actualizar</button>
           <button type="button" class="btn btn-warning fw-bold px-4" data-bs-dismiss="modal" data-i18n="btnCerrar">Cerrar</button>
         </div>
       </div>
@@ -682,7 +713,7 @@
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content card-custom border-danger">
         <div class="modal-header border-bottom-0">
-          <h5 class="modal-title text-danger fw-bold" id="modalRedesSocialesTitulo" data-i18n="redesTitulo">📱 Redes Sociales</h5>
+          <h5 class="modal-title text-danger fw-bold" id="modalRedesSocialesTitulo" data-i18n="redesTitulo">Redes Sociales</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <div class="modal-body" id="redes-feed"></div>
@@ -695,7 +726,7 @@
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content card-custom border-primary">
         <div class="modal-header border-bottom-0">
-          <h5 class="modal-title text-primary fw-bold" id="modalEntrenamientoTitulo" data-i18n="entrenamientoTitulo">🏋️ Centro de Entrenamiento</h5>
+          <h5 class="modal-title text-primary fw-bold" id="modalEntrenamientoTitulo" data-i18n="entrenamientoTitulo">Centro de Entrenamiento</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <div class="modal-body" id="modalEntrenamientoCuerpo">
@@ -716,7 +747,7 @@
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content card-custom border-secondary">
         <div class="modal-header border-bottom-0">
-          <h5 class="modal-title fw-bold" data-i18n="configTitulo">⚙️ Configuración</h5>
+          <h5 class="modal-title fw-bold" data-i18n="configTitulo">Configuración</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <div class="modal-body">
