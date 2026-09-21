@@ -1048,7 +1048,7 @@ body.app-juego footer { margin-bottom: 60px; }
   z-index: 1030;
   background: #ffffff;
   border-top: 1px solid #dee2e6;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   padding: 0.35rem 0.2rem calc(0.35rem + env(safe-area-inset-bottom));
   box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.08);
 }
@@ -1120,18 +1120,6 @@ body.app-juego footer { margin-bottom: 60px; }
 /* --- Vista: Carrera (temporada actual) --- */
 #temporada-actual { font-weight: 700; }
 #carrera-partidos-aprox { letter-spacing: 0.5px; }
-
-/* --- Acciones rápidas: botones del mismo tamaño --- */
-#acciones-rapidas > [class*="col-"] { display: flex; }
-#acciones-rapidas .btn {
-  flex: 1 1 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.3rem;
-  text-align: center;
-  white-space: normal;
-}
 
 /* --- Resumen de temporada --- */
 .rt-label {

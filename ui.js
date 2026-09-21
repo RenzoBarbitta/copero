@@ -1,16 +1,15 @@
 // ============================================================
 //  CARRERA PSO - ui.js
 //  Interfaz reorganizada: navegación por secciones (Carrera,
-//  Partido, Entrenamiento, Progreso, Comunidad), tarjeta del
+//  Entrenamiento, Progreso, Comunidad), tarjeta del
 //  jugador, vistas, notificaciones y menú de perfil.
 //  Se carga DESPUÉS de features.js y duelo.js.
 //  No reemplaza lógica de juego: solo la presentación.
 // ============================================================
 
-const UI_SECCIONES = ["carrera", "partido", "entrenamiento", "progreso", "comunidad"];
+const UI_SECCIONES = ["carrera", "entrenamiento", "progreso", "comunidad"];
 const UI_RUTAS = {
   carrera: ["navCarrera"],
-  partido: ["navPartido"],
   entrenamiento: ["navEntrenamiento"],
   progreso: ["navProgreso"],
   comunidad: ["navComunidad"]
@@ -239,76 +238,6 @@ function renderCarrera() {
   setValNum("res-titulos", titulos);
   setValNum("res-media", media);
   setValNum("res-num-temp", jugador.temporadaActual);
-}
-
-// ============================================================
-//  VISTA: PARTIDO
-// ============================================================
-function tabPartido(kind) {
-  document.querySelectorAll(".tab-partido").forEach(function(b) {
-    const on = (b.getAttribute("onclick") || "").indexOf(kind) > -1;
-    b.classList.toggle("btn-pso", on);
-    b.classList.toggle("btn-outline-primary", !on);
-    b.classList.toggle("activo", on);
-  });
-  const c = document.getElementById("contenido-partido");
-  if (!c) return;
-  const tfn = uiT;
-  let html = "";
-  if (kind === "destaques") {
-    html = panelPartido("trofeo", tfn("tabMomentos", "Momentos clave"), tfn("momentosTexto", ""), null);
-  } else if (kind === "penales") {
-    html = panelPartido("target", tfn("tabPenales", "Penales"), tfn("penalesTexto", ""), { lb: tfn("abrirTanda", "Jugar tanda de penales"), fn: "iniciarMinijuegoPenales()" });
-  } else if (kind === "libres") {
-    html = panelPartido("zap", tfn("tabLibres", "Tiros libres"), tfn("tiroLibreTexto", ""), { lb: tfn("abrirTiroLibre", "Jugar tiro libre"), fn: "iniciarMinijuegoTiroLibre('entrenamiento')" });
-  } else if (kind === "especiales") {
-    html = panelPartido("partido", tfn("tabEspeciales", "Partidos especiales"), tfn("especialesTexto", ""), null);
-  }
-  c.innerHTML = html;
-}
-
-function panelPartido(icono, titulo, texto, boton) {
-  let b = "";
-  if (boton) {
-    b = '<button type="button" class="btn btn-pso btn-sm fw-bold mt-2" onclick="' + boton.fn + '">' + iconoSVG("jugar", 14) + " " + boton.lb + '</button>';
-  }
-  return '<div class="contenido-partido-panel">' +
-    '<div class="d-flex align-items-center gap-2 mb-1"><span class="attr-icono" style="width:30px;height:30px;">' + iconoSVG(icono, 15) + '</span>' +
-    '<h6 class="fw-bold m-0">' + titulo + '</h6></div>' +
-    '<p class="text-muted small mb-0">' + texto + '</p>' + b + '</div>';
-}
-
-function renderPartido() {
-  const club = jugador && jugador.clubActual ? jugador.clubActual : null;
-  const rival = club ? rivalDeLaTemporada() : null;
-  if (club) {
-    const cl = document.getElementById("partido-club-local");
-    if (cl) cl.innerText = club.nombre;
-    const cr = document.getElementById("partido-club-rival");
-    if (cr) cr.innerText = rival ? rival.nombre : "—";
-    pintarEscudo("partido-escudo-local", club);
-    pintarEscudo("partido-escudo-rival", rival);
-  }
-  const base = document.getElementById("partido-info-base");
-  if (base) {
-    if (club) {
-      const esPrimera = jugador.division === 1 && !(jugador.temporadasForzadoSegunda > 0);
-      const liga = uiT(esPrimera ? "primeraDivision" : "segundaDivision", esPrimera ? "Primera División" : "Segunda División");
-      base.innerText = liga + " · " + uiT("temporadaActual", "Temporada") + " " + jugador.temporadaActual + textoPartidoDeTemporada(uiT);
-    } else {
-      base.innerText = "";
-    }
-  }
-  const btnEv = document.getElementById("btn-partido-evento");
-  if (btnEv) {
-    if (jugador && jugador.eventoDisponibleActual) {
-      btnEv.classList.remove("hidden");
-      btnEv.innerText = "⭐ Evento Social";
-    } else {
-      btnEv.classList.add("hidden");
-    }
-  }
-  tabPartido("destaques");
 }
 
 // ============================================================
