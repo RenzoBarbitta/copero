@@ -3,10 +3,23 @@
 //  Cachea el juego para que funcione OFFLINE en el telefono.
 //  - Al instalar: precachea el shell del juego (mismo origen).
 //  - Bootstrap (CDN) se cachea la primera vez que se usa.
-//  Para publicar una version nueva, subir CACHE_NOMBRE (v1->v2).
+//
+//  Estrategias de cache (clave para que el deploy se vea al toque):
+//   - Navegacion (index.html y demas documentos): NETWORK-FIRST.
+//     Siempre se pide la version nueva al servidor (que revalida
+//     con ETag, sin costo). La cache solo se usa offline. Asi un
+//     deploy jamas deja a un usuario con la version vieja.
+//   - Archivos del mismo origen (JS, CSS, imagenes): NETWORK-FIRST
+//     con respaldo en cache para offline. Como no llevan hash, la
+//     unica forma correcta es revalidar contra la red en cada
+//     visita; la cache se refresca sola.
+//   - Bootstrap (CDN, version fija): CACHE-FIRST.
+//
+//  CACHE_NOMBRE es solo por higiene: al cambiarlo se purga toda la
+//  cache de golpe, pero no es necesario para ver las novedades.
 // ============================================================
 
-const CACHE_NOMBRE = "pso-carrera-v33";
+const CACHE_NOMBRE = "pso-carrera-v35";
 
 const ARCHIVOS_BASE = [
   "./",
@@ -67,8 +80,12 @@ self.addEventListener("fetch", (evento) => {
 
   const url = new URL(req.url);
 
-  // Las consultas de datos nunca pasan por la cache del juego.
+  // Los datos propios (Supabase: ranking, cuenta, duelo) NUNCA pasan
+  // por la cache del juego: se excluye por caché de red y por dominio.
   if (req.cache === "no-store") return;
+  const host = url.hostname;
+  if (host === "supabase.co" || host.endsWith(".supabase.co") ||
+      host === "supabase.co." || host.endsWith(".supabase.co.")) return;
   if (url.origin !== self.location.origin &&
       !(url.hostname === "cdn.jsdelivr.net" && url.pathname.startsWith("/npm/bootstrap@"))) return;
 
@@ -89,17 +106,26 @@ self.addEventListener("fetch", (evento) => {
     return;
   }
 
-  // Mismo origen: stale-while-revalidate (rapido y siempre actualizado)
+  // Mismo origen: network-first con respaldo offline.
+  // La red manda para que siempre veas la ultima version publicada:
+  // los requests se revalidan contra el servidor (304 barato) y la
+  // copia en cache solo se usa sin conexion o si el servidor falla.
+  const esNavegacion = req.mode === "navigate";
+  // Se guarda la respuesta con una Request normal (evita problemas
+  // al almacenar requests de tipo navigate en Cache Storage).
+  const claveCache = new Request(url.href);
+
   evento.respondWith(
-    caches.match(req).then((cacheado) => {
-      const red = fetch(req).then((res) => {
-        if (res && res.ok) {
-          const copia = res.clone();
-          caches.open(CACHE_NOMBRE).then((cache) => cache.put(req, copia));
-        }
-        return res;
-      }).catch(() => cacheado);
-      return cacheado || red;
-    })
+    fetch(req).then((res) => {
+      if (res && res.ok && res.status === 200) {
+        const copia = res.clone();
+        caches.open(CACHE_NOMBRE).then((cache) => cache.put(claveCache, copia));
+      }
+      return res;
+    }).catch(() =>
+      caches.match(claveCache).then((cacheado) =>
+        cacheado || (esNavegacion ? caches.match("./index.html") : undefined)
+      )
+    )
   );
 });

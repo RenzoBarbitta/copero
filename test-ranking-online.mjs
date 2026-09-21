@@ -25,6 +25,10 @@ const storageStub = {
 
 const peticiones = [];
 let respuesta = { ok: true, status: 200, body: [] };
+let gateActive = false;   // si true, la siguiente peticion queda "en vuelo"
+let gateResolve = null;   // la libera gateActive = false + llamar a gateRelease()
+
+function gateRelease() { if (gateResolve) { const r = gateResolve; gateResolve = null; r(); } }
 
 const sandbox = {
   console, Date, JSON, Math, Promise, setTimeout, clearTimeout, AbortController,
@@ -38,6 +42,7 @@ const sandbox = {
   fetch: async (url, opts) => {
     peticiones.push({ url: String(url), opts: opts || {} });
     if (respuesta.error) throw respuesta.error;
+    if (gateActive) await new Promise(function(r) { gateResolve = r; });
     return {
       ok: respuesta.ok, status: respuesta.status,
       json: async () => respuesta.body,
@@ -127,6 +132,92 @@ asertar(escapado.indexOf("<img") === -1 && escapado.indexOf("&lt;img") !== -1, "
 // 7) Construccion sin sesion: user_id null (no imita a otros usuarios)
 const registroAnonimo = vm.runInContext("construirRegistroRanking(jugador, null)", sandbox);
 asertar(registroAnonimo.user_id === null, "sin sesion el registro no declara user_id ajeno");
+
+// 8) 403 de RLS: el registro queda en cola (igual que 401, no se pierde ni se cierra sesion)
+respuesta = { ok: false, status: 403, body: { message: "new row violates row-level security policy" } };
+vm.runInContext("intentarEnviarRankingOnline();", sandbox);
+await new Promise(r => setTimeout(r, 50));
+await vm.runInContext("vaciarOutbox();", sandbox);
+await new Promise(r => setTimeout(r, 50));
+asertar(!!storageStub.getItem("pso_ranking_outbox"), "403: el registro queda en cola para reintentar");
+
+// 9) Fallo de red: el resultado no se pierde, sigue en la cola
+respuesta.error = new Error("Sin conexion");
+vm.runInContext("intentarEnviarRankingOnline();", sandbox);
+await new Promise(r => setTimeout(r, 50));
+await vm.runInContext("vaciarOutbox();", sandbox);
+await new Promise(r => setTimeout(r, 50));
+asertar(!!storageStub.getItem("pso_ranking_outbox"), "fallo de red: el registro queda en cola");
+delete respuesta.error;
+
+// 10) Recuperacion de red: se publica, se vacia la cola y se invalida la cache del ranking
+storageStub.setItem("pso_ranking_cache_online", JSON.stringify({ ts: Date.now(), lista: [{ nombre: "Vieja" }] }));
+respuesta = { ok: true, status: 201, body: [] };
+await vm.runInContext("vaciarOutbox();", sandbox);
+await new Promise(r => setTimeout(r, 50));
+asertar(!storageStub.getItem("pso_ranking_outbox"), "recuperacion de red: se publica y la cola queda vacia");
+asertar(!storageStub.getItem("pso_ranking_cache_online"), "publicar exitoso invalida la cache del ranking");
+
+// 11) Actualizar una cuenta existente: el upsert SIEMPRE va a la fila del usuario en sesion
+vm.runInContext("intentarEnviarRankingOnline();", sandbox);
+await new Promise(r => setTimeout(r, 50));
+await vm.runInContext("vaciarOutbox();", sandbox);
+await new Promise(r => setTimeout(r, 50));
+const cuerpo3 = JSON.parse(peticiones[peticiones.length - 1].opts.body);
+asertar(cuerpo3.user_id === "user-1111", "actualizar la misma cuenta reusa user_id (sin duplicados)");
+
+// 12) Ranking vacio devuelve una lista vacia (no rompe la UI)
+respuesta = { ok: true, status: 200, body: [] };
+const listaVacia = await vm.runInContext("obtenerRankingOnline(true)", sandbox);
+asertar(Array.isArray(listaVacia) && listaVacia.length === 0, "ranking vacio devuelve []");
+
+// 13) Cache vieja (>5 min) NUNCA bloquea: se lee la red aun sin forzar
+storageStub.setItem("pso_ranking_cache_online",
+  JSON.stringify({ ts: Date.now() - 10 * 60 * 1000, lista: [{ user_id: "x", nombre: "Cache", media: 10, titulos: 0, anio: 2026, ts: "2026-09-20T00:00:00Z" }] }));
+respuesta = { ok: true, status: 200, body: [{ user_id: "a", display_name: "Nuevo", posicion: "DEL", club: "", media: 90, titulos: 1, anio: 2026, ts: "2026-09-20T12:00:00Z" }] };
+const l2 = await vm.runInContext("obtenerRankingOnline(false)", sandbox);
+asertar(l2[0].nombre === "Nuevo", "cache vieja (>5 min) no bloquea: se lee la red aunque no se fuerce");
+
+// 14) Cache reciente es SOLO fallback visual: se usa sin forzar, nunca con forzar
+storageStub.setItem("pso_ranking_cache_online",
+  JSON.stringify({ ts: Date.now(), lista: [{ user_id: "x", nombre: "Cache", media: 10, titulos: 0, anio: 2026, ts: "2026-09-20T00:00:00Z" }] }));
+respuesta = { ok: true, status: 200, body: [{ user_id: "a", display_name: "Nuevo", posicion: "DEL", club: "", media: 90, titulos: 1, anio: 2026, ts: "2026-09-20T12:00:00Z" }] };
+const l3 = await vm.runInContext("obtenerRankingOnline(false)", sandbox);
+asertar(l3[0].nombre === "Cache", "cache reciente sirve de fallback visual solo sin forzar");
+const l4 = await vm.runInContext("obtenerRankingOnline(true)", sandbox);
+asertar(l4[0].nombre === "Nuevo", "FORZAR siempre consulta Supabase aunque haya cache reciente");
+
+// 15) Ordenamiento: media > titulos > ts mas reciente (igual que el back-end)
+const orden = vm.runInContext(
+  "[" +
+  "{user_id:'a',nombre:'A',media:80,titulos:1,ts:300}," +
+  "{user_id:'b',nombre:'B',media:90,titulos:0,ts:900}," +
+  "{user_id:'c',nombre:'C',media:80,titulos:3,ts:100}," +
+  "{user_id:'d',nombre:'D',media:80,titulos:3,ts:400}" +
+  "].sort(compararRankingOnline).map(function(r){return r.nombre;}).join(',')",
+  sandbox);
+asertar(orden === "B,D,C,A", "orden: media desc, titulos desc, timestamp mas reciente primero");
+
+// 16) RACE de cola: si durante el POST en vuelo se encola un registro NUEVO,
+//     el POST del registro viejo NO debe borrarlo de la cola.
+storageStub.removeItem("pso_ranking_outbox");
+respuesta = { ok: true, status: 201, body: [] };
+gateActive = true;
+vm.runInContext(
+  "encolarRegistro({ user_id: 'u1', display_name: 'Viejo', posicion: 'DEL', club: '', media: 70, titulos: 1, anio: 2026, ts: '2026-09-20T10:00:00Z' });",
+  sandbox);
+const pVuelo = vm.runInContext("vaciarOutbox();", sandbox);
+await new Promise(r => setTimeout(r, 50)); // el POST quedo "en vuelo" (gate activo)
+vm.runInContext(
+  "encolarRegistro({ user_id: 'u1', display_name: 'Nuevo', posicion: 'DEL', club: '', media: 95, titulos: 5, anio: 2026, ts: '2026-09-20T11:00:00Z' });",
+  sandbox);
+gateActive = false;
+gateRelease();
+await pVuelo;
+await new Promise(r => setTimeout(r, 50));
+asertar(!!storageStub.getItem("pso_ranking_outbox"), "race: el POST del registro viejo no vacia la cola por error");
+const enCola = JSON.parse(storageStub.getItem("pso_ranking_outbox"));
+asertar(enCola.display_name === "Nuevo", "race: la cola conserva el registro MAS nuevo");
 
 console.log(fallos === 0 ? "TODO OK" : ("CON " + fallos + " FALLOS"));
 process.exit(fallos === 0 ? 0 : 1);

@@ -1,10 +1,18 @@
 # Encabezados para Cloudflare Pages
-# index.html y sw.js sin caché para que el PWA siempre vea la versión nueva.
+# Estrategia de cache (se revalida siempre, el deploy se ve al toque):
+#  - HTML, JS, CSS y el resto por defecto: max-age=0, must-revalidate
+#    -> el navegador guarda el archivo pero revalida con ETag en cada
+#    visita (respuesta 304, casi sin costo). Nunca sirve una version vieja.
+#  - index.html y sw.js: no-cache (siempre se revalidan).
+#  - Imagenes: cache larga (public, max-age=604800, immutable) porque son
+#    archivos estaticos de contenido estable (escudos, logos, iconos PWA).
+#  - manifest.webmanifest: cache corta de 1 hora.
 
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: geolocation=(), microphone=(), camera=()
+  Cache-Control: public, max-age=0, must-revalidate
 
 /index.html
   Cache-Control: no-cache

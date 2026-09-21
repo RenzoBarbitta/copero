@@ -81,7 +81,34 @@ await timer.fn();
 assert.equal(lecturas, antesOculto, 'Pestaña oculta no consulta');
 document.visibilityState = 'visible';
 await document.handlers.visibilitychange();
-assert.equal(lecturas, antesOculto + 1);
+assert.equal(lecturas, antesOculto + 1, 'Volver a la pestaña consulta de nuevo');
+await run('rankingCarga'); // dejar que muera la lectura en vuelo antes del bloque realtime
+
+// Realtime: con canal activo y sin novedades se evita el polling; un cambio remoto avisa.
+run('rankingRealtimeActivo = true; rankingErrorLectura = false; rankingObsoleto = false;');
+const antesRealtime = lecturas;
+await avanzarTiempo(15000);
+assert.equal(lecturas, antesRealtime, 'Con realtime activo y sin novedades no hace polling');
+run('notificarCambioRemotoRanking();');
+await run('rankingCarga');
+assert.equal(lecturas, antesRealtime + 1, 'El evento realtime de otro dispositivo provoca leer de inmediato');
+run('rankingRealtimeActivo = false;');
+
+// Invalidacion del fallback visual
+run('guardarCacheOnline([{nombre:"Snapshot",media:5}]); invalidarCacheOnline();');
+assert.ok(!store.has('pso_ranking_cache_online'), 'invalidarCacheOnline borra la cache de fallback visual');
+
+// Publicar con exito invalida y fuerza lectura fresca (aunque haya una en vuelo)
+contenido.innerHTML = '';
+run('guardarCacheOnline([{nombre:"Snapshot",media:5}]);');
+const antesFresco = lecturas;
+await run('refrescarRankingAhora()');
+assert.equal(lecturas, antesFresco + 1, 'refrescarRankingAhora fuerza una lectura fresca tras publicar');
+let cacheFresca = JSON.parse(store.get('pso_ranking_cache_online') || 'null');
+assert.ok(cacheFresca && cacheFresca.lista && cacheFresca.lista.length,
+  'la lectura fresca reemplaza el snapshot viejo por datos actuales');
+assert.equal(cacheFresca.lista[0].user_id, 'otro', 'el snapshot de cache ya NO es el viejo sino el ranking real');
+
 modal.handlers['hidden.bs.modal']();
 assert.ok(![...timers.values()].some(t => t.ms === 10000), 'Cierre cancela intervalo');
 const antesCierre = lecturas;

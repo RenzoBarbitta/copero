@@ -18,8 +18,21 @@
 //     UPSERT (una sola entrada por cuenta; la nueva reemplaza a
 //     la anterior). Sin sesion queda en cola y se envia sola
 //     cuando el jugador inicie sesion o vuelva internet.
-//   - El boton 🏆 Ranking muestra: 🌍 Global (Supabase) y
-//     📱 Este dispositivo (localStorage, igual que siempre).
+//   - GLOBAL es la fuente real (Supabase). "Este dispositivo" es
+//     solo la carrera guardada (localStorage) y NO se mezcla con
+//     el ranking: la cola (outbox) es un canal de sincronizacion.
+//
+//  FRESCURA GARANTIZADA:
+//   - La cache en localStorage es SOLO un fallback visual/offline.
+//     Nunca se sirve como dato "actual": tiene un tope de
+//     antiguedad (RANKING_CACHE_MAX_MS) y todos los caminos que
+//     piden datos (abrir, actualizar, publicar, volver a la
+//     pestaña, reconectar) fuerzan una lectura a Supabase.
+//   - polling cada RANKING_REFRESH_MS como red de seguridad MAS
+//     Supabase Realtime: cuando un canal esta suscripto, el
+//     ranking avisa al instante si cambia desde otro dispositivo
+//     y deja de hacer polls innecesarios.
+//   - El Service Worker NO intercepta supabase.co (ver sw.js).
 //
 //  Se carga DESPUES de cuenta-api.js (usa window.CoperoCuenta).
 // ============================================================
@@ -31,7 +44,12 @@ const RANKING_SYNC_KEY = "pso_ranking_ultimo_sync";
 const RANKING_CACHE_KEY = "pso_ranking_cache_online";
 const RANKING_MAX = 100;
 const RANKING_TIMEOUT_MS = 10000;
-const RANKING_CACHE_MS = 60000;
+// Cache de "fallback visual": solo se usa si esta MUY reciente.
+const RANKING_CACHE_MS = 15000;
+// Tope absoluto: aunque pidan !forzar, una cache con mas de 5 min
+// NUNCA se considera actual (se lee la red).
+const RANKING_CACHE_MAX_MS = 5 * 60 * 1000;
+const RANKING_REFRESH_MS = 10000;
 
 let RANKING_ENVIANDO = false;
 let _modalRankingBs = null;
@@ -40,7 +58,12 @@ let rankingTimer = null;
 let rankingCarga = null;
 let rankingUltimaLectura = 0;
 let rankingErrorLectura = false;
-const RANKING_REFRESH_MS = 10000;
+// El ranking "quedo viejo" (cambio remoto, publicacion propia, etc).
+// Mientras sea true, aunque haya realtime, se vuelve a leer.
+let rankingObsoleto = false;
+// true solo cuando el canal de realtime esta suscripto OK.
+let rankingRealtimeActivo = false;
+let _canalRealtime = null;
 
 function compararRankingOnline(a, b) {
   if (typeof compararRanking === "function") return compararRanking(a, b);
@@ -134,7 +157,8 @@ function headersRanking(token) {
 }
 
 // Sesion activa para publicar (o null). La sesion vive en cuenta-api.js:
-// es en memoria, con token que se renueva solo.
+// es en memoria, con token que se renueva solo. Nunca se lee localStorage:
+// si la sesion real no esta restaurada, no se publica (queda en cola).
 function sesionRanking() {
   const cuenta = (typeof window !== "undefined") && window.CoperoCuenta;
   if (!cuenta || typeof cuenta.tieneSesion !== "function" || !cuenta.tieneSesion()) return null;
@@ -218,9 +242,18 @@ async function publicarEnNube(registro) {
     try { console.error("[ranking-online] publicarEnNube sin token", e && e.message); } catch (e2) { /* silencio */ }
     return false;
   }
-  // Defensa extra: SIEMPRE se publica sobre la fila del usuario en sesion,
-  // sin importar que diga el registro encolado.
-  const cuerpo = Object.assign({}, registro, { user_id: sesion.userId });
+  // La fila SIEMPRE es la del usuario en sesion, y el cuerpo va EXACTO a las
+  // columnas de la tabla (nada de campos extra que PostgREST rechace).
+  const cuerpo = {
+    user_id: sesion.userId,
+    display_name: registro.display_name,
+    posicion: registro.posicion || "",
+    club: registro.club || "",
+    media: registro.media,
+    titulos: registro.titulos,
+    anio: registro.anio,
+    ts: registro.ts
+  };
   const res = await fetchConTimeout(urlRanking(), {
     method: "POST",
     headers: Object.assign(headersRanking(token), { Prefer: "resolution=merge-duplicates" }),
@@ -243,14 +276,37 @@ async function publicarEnNube(registro) {
 // ------------------- COLA OFFLINE / SINCRONIZACION -------------------
 
 function leerOutbox() { return leerJSONLS(RANKING_OUTBOX_KEY, null); }
-function encolarRegistro(registro) { escribirJSONLS(RANKING_OUTBOX_KEY, registro); }
-function borrarOutbox() {
-  try { localStorage.removeItem(RANKING_OUTBOX_KEY); } catch (e) { /* ignorar */ }
+
+// Cada registro encolado lleva un _id unico. Sirve para que una publicacion
+// en vuelo NO borre por error un registro NUEVO que se encolo despues.
+function encolarRegistro(registro) {
+  const conId = Object.assign({}, registro, {
+    _id: (registro && registro._id) ||
+      ("r" + Date.now().toString(36) + Math.random().toString(36).slice(2, 10))
+  });
+  escribirJSONLS(RANKING_OUTBOX_KEY, conId);
+  return conId;
 }
+
+// Borra SOLO si la cola sigue teniendo el mismo registro publicado.
+function borrarOutboxSi(pendiente) {
+  if (!pendiente) return;
+  const actual = leerOutbox();
+  if (actual && actual._id && actual._id === pendiente._id) {
+    try { localStorage.removeItem(RANKING_OUTBOX_KEY); } catch (e) { /* ignorar */ }
+  }
+}
+
 function marcarSync() { escribirJSONLS(RANKING_SYNC_KEY, Date.now()); }
+
+// La cache SOLO es un fallback visual/offline (nunca "datos actuales").
+// Por eso se puede invalidar sin miedo: es un render temporal.
+function invalidarCacheOnline() {
+  try { localStorage.removeItem(RANKING_CACHE_KEY); } catch (e) { /* ignorar */ }
+}
 function leerCacheOnline() { return leerJSONLS(RANKING_CACHE_KEY, null); }
 function guardarCacheOnline(lista) {
-  escribirJSONLS(RANKING_CACHE_KEY, { ts: Date.now(), lista: (lista || []).slice(0, 50) });
+  escribirJSONLS(RANKING_CACHE_KEY, { ts: Date.now(), lista: (lista || []).slice(0, RANKING_MAX) });
 }
 
 // Intenta publicar el registro en cola. Sin sesion NO gasta red: queda
@@ -263,10 +319,14 @@ async function vaciarOutbox() {
   try {
     const publicado = await publicarEnNube(pendiente);
     if (!publicado) return false; // sin sesion o rechazado: queda en cola
-    borrarOutbox();
+    // Solo borrar si sigue siendo el MISMO registro (no uno mas nuevo).
+    borrarOutboxSi(pendiente);
     marcarSync();
+    // Publicado = la vista debe refrescarse, asi que el cache vuela.
+    invalidarCacheOnline();
     try { actualizarEstadoSync(); } catch (e) { /* silencio */ }
-    if (rankingAbierto) refrescarRankingVisible(); // mostrar la carrera recien publicada
+    // Lectura fresca (espera cualquier peticion en vuelo y vuelve a leer).
+    refrescarRankingAhora();
     return true;
   } catch (e) {
     try { console.error("[ranking-online] vaciarOutbox", e && e.message); } catch (e2) { /* silencio */ }
@@ -276,14 +336,32 @@ async function vaciarOutbox() {
   }
 }
 
+// Lee el ranking. Siempre que pedimos datos (forzar=true) va a la red.
+// El cache (solo-fallback) se usa unica y exclusivamente en llamadas
+// explicitas !forzar y ademas con un tope de antiguedad (no puede
+// bloquear un dato del servidor).
 async function obtenerRankingOnline(forzar) {
   const cache = leerCacheOnline();
-  if (!forzar && cache && cache.lista && (Date.now() - cache.ts) < RANKING_CACHE_MS) {
+  const esValida = cache && Array.isArray(cache.lista) && cache.ts &&
+    (Date.now() - cache.ts) <= RANKING_CACHE_MAX_MS;
+  if (!forzar && esValida && (Date.now() - cache.ts) < RANKING_CACHE_MS) {
     return cache.lista;
   }
   const lista = await leerRankingNube();
   guardarCacheOnline(lista);
   return lista;
+}
+
+// Fuerza una lectura a Supabase DESPUES de que termine cualquier peticion
+// en vuelo. Asi un refresh nunca "hereda" el resultado de una lectura que
+// arranco ANTES de la publicacion/cambio que queremos ver.
+function refrescarRankingAhora() {
+  rankingObsoleto = true;
+  rankingErrorLectura = false;
+  const enVuelo = rankingCarga;
+  return Promise.resolve(enVuelo)
+    .catch(function() { /* una peticion previa que fallo no bloquea */ })
+    .then(function() { return cargarRankingOnlineUI(true).catch(function() { return null; }); });
 }
 
 // Punto de entrada: se llama al terminar una carrera. Devuelve la promesa de
@@ -293,8 +371,49 @@ function intentarEnviarRankingOnline() {
     if (typeof jugador === "undefined" || !jugador || !jugador.nombre) return false;
     const s = sesionRanking();
     encolarRegistro(construirRegistroRanking(jugador, s ? s.userId : null));
+    invalidarCacheOnline(); // la carrera local cambio: el fallback visual ya no aplica
     return vaciarOutbox();
   } catch (e) { return false; }
+}
+
+// ------------------- REALTIME (cambios desde OTRO dispositivo) -------------------
+
+function notificarCambioRemotoRanking() {
+  // Puede venir por INSERT/UPDATE desde otro cliente (o por moderacion DELETE).
+  rankingObsoleto = true;
+  rankingErrorLectura = false;
+  refrescarRankingVisible();
+}
+
+function conectarRealtimeRanking() {
+  if (_canalRealtime) return;
+  if (typeof window === "undefined" || typeof window.getSupabaseClient !== "function") return;
+  let sb;
+  try { sb = window.getSupabaseClient(); } catch (e) { return; }
+  const canal = sb.channel("ranking-global");
+  canal.on("postgres_changes",
+    { event: "*", schema: "public", table: "copero_ranking" },
+    function() { notificarCambioRemotoRanking(); }
+  );
+  canal.subscribe(function(estado) {
+    if (estado === "SUBSCRIBED") {
+      rankingRealtimeActivo = true;
+    } else if (estado === "CHANNEL_ERROR" || estado === "TIMED_OUT" || estado === "CLOSED") {
+      // Realtime no disponible (o fallo): el polling toma el control.
+      rankingRealtimeActivo = false;
+      try { sb.removeChannel(canal); } catch (e) { /* silencio */ }
+      _canalRealtime = null;
+    }
+  });
+  _canalRealtime = { sb: sb, canal: canal };
+}
+
+function desconectarRealtimeRanking() {
+  if (!_canalRealtime) return;
+  try { _canalRealtime.sb.removeChannel(_canalRealtime.canal); } catch (e) { /* silencio */ }
+  _canalRealtime = null;
+  rankingRealtimeActivo = false;
+  rankingObsoleto = false;
 }
 
 // ------------------- INTERFAZ (MODAL RANKING) -------------------
@@ -354,6 +473,7 @@ function cargarRankingOnlineUI(forzar) {
           tRanking("rankVacioOnline", "Todavía no hay carreras en el ranking global. ¡Terminá una carrera y sé el primero!") + "</p>";
       rankingUltimaLectura = Date.now();
       rankingErrorLectura = false;
+      rankingObsoleto = false;
     } catch (e) {
       // Mantener los resultados anteriores: no reemplazar la tabla por un error.
       rankingErrorLectura = true;
@@ -369,16 +489,24 @@ function cargarRankingOnlineUI(forzar) {
 }
 
 function refrescarRankingVisible() {
-  if (rankingAbierto && document.visibilityState === "visible") {
-    return cargarRankingOnlineUI(true);
-  }
-  return Promise.resolve();
+  if (!rankingAbierto || document.visibilityState !== "visible") return Promise.resolve();
+  // Con realtime activo solo se vuelve a leer si algo cambio o fallo la ultima vez.
+  // Sin realtime, el polling hace la lectura siempre (red de seguridad).
+  if (rankingRealtimeActivo && !rankingObsoleto && !rankingErrorLectura) return Promise.resolve();
+  return cargarRankingOnlineUI(true);
+}
+
+function alVolverVisible() {
+  if (document.visibilityState !== "visible") return;
+  rankingObsoleto = true; // volver a la app SIEMPRE consulta de nuevo
+  refrescarRankingVisible();
 }
 
 function iniciarRefrescoRanking() {
   rankingAbierto = true;
   if (rankingTimer !== null) clearInterval(rankingTimer);
   rankingTimer = setInterval(refrescarRankingVisible, RANKING_REFRESH_MS);
+  conectarRealtimeRanking();
   return refrescarRankingVisible();
 }
 
@@ -386,6 +514,8 @@ function detenerRefrescoRanking() {
   rankingAbierto = false;
   if (rankingTimer !== null) clearInterval(rankingTimer);
   rankingTimer = null;
+  rankingObsoleto = false;
+  desconectarRealtimeRanking();
 }
 
 // Cuando la sesión cambia (inicio/cierre de cuenta), actualizar estado y,
@@ -399,7 +529,8 @@ function onSesionCambiada() {
         const ok = await vaciarOutbox();
         if (ok) {
           try { actualizarEstadoSync(); } catch (e) { /* silencio */ }
-          if (rankingAbierto) refrescarRankingVisible();
+          rankingObsoleto = true;
+          refrescarRankingAhora();
         }
       } catch (e) { /* silencio */ }
     })();
@@ -437,7 +568,8 @@ function actualizarEstadoSync() {
     return;
   }
   if (rankingUltimaLectura) {
-    el.textContent = "🟢 Consultado a las " + horaCorta(rankingUltimaLectura) + " · Actualización automática cada 10 s";
+    const cadencia = rankingRealtimeActivo ? "en vivo" : "cada 10 s";
+    el.textContent = "🟢 Consultado a las " + horaCorta(rankingUltimaLectura) + " · " + cadencia;
     return;
   }
   if (ultimo) {
@@ -475,23 +607,24 @@ document.addEventListener("DOMContentLoaded", function() {
   const btnActualizar = document.getElementById("btn-ranking-actualizar");
   if (btnActualizar) {
     btnActualizar.addEventListener("click", function() {
-      vaciarOutbox(); // primero se descarga la cola pendiente, luego se refresca
-      cargarRankingOnlineUI(true);
+      // Primero se descarga la cola pendiente; la lectura fresca se hace
+      // siempre, esperando cualquier peticion en vuelo.
+      rankingObsoleto = true;
+      vaciarOutbox();
+      refrescarRankingAhora();
     });
   }
 
   // Reintentos automaticos
-  window.addEventListener("online", async function() {
-    await vaciarOutbox();
+  window.addEventListener("online", function() {
+    rankingObsoleto = true;
+    vaciarOutbox();
     refrescarRankingVisible();
   });
-  document.addEventListener("visibilitychange", refrescarRankingVisible);
-  window.addEventListener("focus", refrescarRankingVisible);
+  document.addEventListener("visibilitychange", alVolverVisible);
+  window.addEventListener("focus", alVolverVisible);
   setInterval(function() {
     if (document.visibilityState === "visible" && leerOutbox()) vaciarOutbox();
   }, 45000);
   vaciarOutbox(); // al abrir la app
 });
-
-
-

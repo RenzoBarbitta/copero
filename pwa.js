@@ -19,7 +19,10 @@
 
   if ("serviceWorker" in navigator && contextoValido) {
     window.addEventListener("load", function() {
-      navigator.serviceWorker.register("./sw.js").catch(function() {
+      // updateViaCache: none -> el navegador siempre revalida sw.js
+      // (nunca lo toma de la cache HTTP) y detecta la version nueva
+      // del service worker en cuanto se despliega.
+      navigator.serviceWorker.register("./sw.js", { updateViaCache: "none" }).catch(function() {
         /* sin SW el juego funciona igual, solo sin offline */
       });
     });
