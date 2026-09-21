@@ -470,15 +470,18 @@ Object.assign(CONFIG, {
     OVR_INICIAL_PROMESA: 75,
     ATR_MIN: 20,
     ATR_MAX: 99,
-    // Progresion base del entrenamiento: +1 (60%), +2 (30%), +3 (10%)
-    PROB_SUBIDA: [0.60, 0.30, 0.10],
-    // Penalidad de progresion segun el valor actual del atributo
+    // Progresion base del entrenamiento: +1 (72%), +2 (22%), +3 (6%)
+    // (antes +1 60% / +2 30% / +3 10%: ahora es mas dificil conseguir +2/+3)
+    PROB_SUBIDA: [0.72, 0.22, 0.06],
+    // Penalidad de progresion segun el valor actual del atributo.
+    // Pisos mas bajos y factores mas duros: cuesta mucho subir de 60 en adelante.
     DIFICULTAD_RANGOS: [
-      { hasta: 69, factor: 1.0 },
-      { hasta: 79, factor: 0.90 },
-      { hasta: 89, factor: 0.75 },
-      { hasta: 94, factor: 0.50 },
-      { hasta: 98, factor: 0.25 }
+      { hasta: 59, factor: 1.0 },
+      { hasta: 69, factor: 0.85 },
+      { hasta: 79, factor: 0.70 },
+      { hasta: 89, factor: 0.50 },
+      { hasta: 94, factor: 0.30 },
+      { hasta: 98, factor: 0.15 }
     ],
     // Atributos de campo (6) y de arquero (6), escala 0-99
     ATRIBUTOS_CAMPO: ["VEL", "PAS", "REM", "DEF", "REG", "RES"],

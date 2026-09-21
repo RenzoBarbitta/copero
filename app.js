@@ -1444,8 +1444,8 @@ function simularTemporada() {
   let subidaRendimiento = 0;
   let participaciones = goles + asistencias;
 
-  if (jugador.posicion === "DEL" && participaciones >= 12) subidaRendimiento = Math.floor(Math.random() * 3) + 1;
-  else if (jugador.posicion === "CM" && participaciones >= 8) subidaRendimiento = Math.floor(Math.random() * 3) + 1;
+  if (jugador.posicion === "DEL" && participaciones >= 12) subidaRendimiento = Math.floor(Math.random() * 2) + 1;
+  else if (jugador.posicion === "CM" && participaciones >= 8) subidaRendimiento = Math.floor(Math.random() * 2) + 1;
   else if (jugador.posicion === "DEF" && partidos >= 25) subidaRendimiento = Math.floor(Math.random() * 2) + 1;
   else if (jugador.posicion === "GK" && partidos >= 28) subidaRendimiento = Math.floor(Math.random() * 2) + 1;
 

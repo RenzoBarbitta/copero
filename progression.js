@@ -71,16 +71,17 @@
   function obtenerFactorDificultad(valor) {
     const c = cfg();
     const rangos = c.DIFICULTAD_RANGOS || [
-      { hasta: 69, factor: 1.0 },
-      { hasta: 79, factor: 0.90 },
-      { hasta: 89, factor: 0.75 },
-      { hasta: 94, factor: 0.50 },
-      { hasta: 98, factor: 0.25 }
+      { hasta: 59, factor: 1.0 },
+      { hasta: 69, factor: 0.85 },
+      { hasta: 79, factor: 0.70 },
+      { hasta: 89, factor: 0.50 },
+      { hasta: 94, factor: 0.30 },
+      { hasta: 98, factor: 0.15 }
     ];
     for (const rango of rangos) {
       if (valor <= rango.hasta) return rango.factor;
     }
-    return 0.25;
+    return 0.10;
   }
 
   function limites() {
@@ -169,7 +170,7 @@
     const ovrAntes = calcularOVR(atributos, pos);
     const factor = obtenerFactorDificultad(actual);
     const c = cfg();
-    const prob = c.PROB_SUBIDA || [0.60, 0.30, 0.10];
+    const prob = c.PROB_SUBIDA || [0.72, 0.22, 0.06];
     const randVal = alea();
     const p1 = prob[0] * factor;
     const p2 = (prob[0] + prob[1]) * factor;

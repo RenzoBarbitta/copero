@@ -61,18 +61,18 @@ const valOriginal = attrsEnt.REM;
 const r1 = W.entrenarAtributoConDado(attrsEnt, 'REM', 'DEL', () => 0.5);
 ok(r1.exitoso && r1.delta === 1 && attrsEnt.REM === valOriginal + 1, 'dado 0.5 -> REM +1');
 const s2 = W.generarAtributosIniciales('DEL', false); s2.REM = 40;
-const r2 = W.entrenarAtributoConDado(s2, 'REM', 'DEL', () => 0.7);
-ok(r2.exitoso && r2.delta === 2, 'dado 0.7 -> REM +2');
+const r2 = W.entrenarAtributoConDado(s2, 'REM', 'DEL', () => 0.85);
+ok(r2.exitoso && r2.delta === 2, 'dado 0.85 -> REM +2');
 const s3 = W.generarAtributosIniciales('DEL', false); s3.REM = 40;
-const r3 = W.entrenarAtributoConDado(s3, 'REM', 'DEL', () => 0.95);
-ok(r3.exitoso && r3.delta === 3, 'dado 0.95 -> REM +3');
+const r3 = W.entrenarAtributoConDado(s3, 'REM', 'DEL', () => 0.96);
+ok(r3.exitoso && r3.delta === 3, 'dado 0.96 -> REM +3');
 
 // 6) Dificultad por rango: valor alto baja la probabilidad (falla posible)
 const attrsAlto = Object.assign({}, attrsEnt, { REM: 80 });
 const rFallido = W.entrenarAtributoConDado(attrsAlto, 'REM', 'DEL', () => 0.99);
 ok(rFallido.exitoso === false && attrsAlto.REM === 80, 'REM 80 + dado 0.99 -> falla y no modifica nada');
-const rDificil = W.entrenarAtributoConDado(attrsAlto, 'REM', 'DEL', () => 0.5);
-ok(rDificil.exitoso && attrsAlto.REM > 80, 'REM 80 + dado 0.5 -> con dificultad todavía puede subir');
+const rDificil = W.entrenarAtributoConDado(attrsAlto, 'REM', 'DEL', () => 0.45);
+ok(rDificil.exitoso && attrsAlto.REM > 80, 'REM 80 + dado 0.45 -> con dificultad todavía puede subir');
 
 // 7) Entrenar un atributo que no corresponde a la posición no muta nada
 const attrsArco = W.generarAtributosIniciales('GK', false);
