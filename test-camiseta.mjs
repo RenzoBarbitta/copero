@@ -49,6 +49,7 @@ function crearElementoSimple(extra = {}) {
     innerHTML: "",
     title: "",
     listeners: {},
+    style: { setProperty: function() {} },
     classList: {
       _set: new Set(["hidden"]),
       add(c) { this._set.add(c); },
