@@ -271,6 +271,17 @@ function renderEntrenamiento() {
   cont.innerHTML = html;
 }
 
+function calcularStatsHistorial() {
+  const h = jugador && Array.isArray(jugador.historialTemporadas) ? jugador.historialTemporadas : [];
+  if (!h.length) return null;
+  const totalPJ = h.reduce(function(a, x) { return a + (x.partidos || 0); }, 0);
+  const totalG = h.reduce(function(a, x) { return a + (x.goles || 0); }, 0);
+  const promGoles = h.length ? (totalG / h.length).toFixed(1) : "0.0";
+  const mejor = h.reduce(function(a, x) { return (x.goles || 0) > (a.goles || 0) ? x : a; }, h[0]);
+  const mejorOVR = Math.max.apply(null, h.map(function(x) { return x.media || 0; }));
+  return { totalPJ: totalPJ, totalG: totalG, promGoles: promGoles, mejor: mejor, mejorOVR: mejorOVR, temporadas: h.length };
+}
+
 // ============================================================
 //  VISTA: PROGRESO
 // ============================================================
@@ -279,8 +290,7 @@ function renderProgreso() {
 
   const statsEl = document.getElementById("stats-vista");
   if (statsEl) {
-    let datos = null;
-    if (typeof calcularEstadisticas === "function") { try { datos = calcularEstadisticas(); } catch (ign) {} }
+    let datos = calcularStatsHistorial();
     if (!datos) {
       statsEl.innerHTML = '<p class="text-secondary small mb-0">' + tfn("sinDatos", "Sin datos todavía.") + '</p>';
     } else {

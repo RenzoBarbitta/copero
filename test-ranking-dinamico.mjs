@@ -92,13 +92,6 @@ await run('rankingCarga');
 assert.equal(lecturas, antesCierre + 1, 'Reabrir vuelve a consultar');
 assert.equal([...timers.values()].filter(t => t.ms === 10000).length, 1);
 lista = [{ user_id: 'otro', display_name: 'Al volver a Global', club: '', media: 95, titulos: 2, anio: 2026, ts: '2026-09-20T10:10:00Z' }];
-const antesTab = lecturas;
-modal.handlers['shown.bs.tab']({ target: { getAttribute: () => '#tab-ranking-local' } });
-assert.equal(lecturas, antesTab, 'Cambiar a local no fuerza consulta');
-modal.handlers['shown.bs.tab']({ target: { getAttribute: () => '#tab-ranking-online' } });
-await run('rankingCarga');
-assert.equal(lecturas, antesTab + 1, 'Volver a Global consulta inmediatamente');
-assert.match(contenido.innerHTML, /Al volver a Global/);
 // Ejecutar handler real del SW: la API debe quedar a cargo de la red.
 const swHandlers = {};
 vm.runInNewContext(read('sw.js'), { URL,

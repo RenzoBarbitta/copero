@@ -290,19 +290,6 @@ function tablaRankingHtml(lista, esLocal) {
     "</tr></thead><tbody>" + filas + "</tbody></table></div>";
 }
 
-function renderizarRankingLocal() {
-  const cont = document.getElementById("ranking-local-contenido");
-  if (!cont) return;
-  let ranking = [];
-  try { ranking = JSON.parse(localStorage.getItem(RANKING_KEY) || "[]"); } catch (e) { /* ignorar */ }
-  if (!ranking.length) {
-    cont.innerHTML = "<p class='text-secondary text-center my-4 mb-0'>" +
-      tRanking("rankVacioLocal", "Todavía no hay carreras registradas en este dispositivo.") + "</p>";
-    return;
-  }
-  cont.innerHTML = tablaRankingHtml(ranking, true);
-}
-
 function cargarRankingOnlineUI(forzar) {
   if (rankingCarga) return rankingCarga;
   const cont = document.getElementById("ranking-online-contenido");
@@ -414,17 +401,13 @@ function actualizarEstadoSync() {
 
 // ------------------- OVERRIDES -------------------
 
-// guardarEnRanking (de features.js): guarda local y ademas manda online
-const _guardarEnRankingBase = guardarEnRanking;
-guardarEnRanking = function() {
-  _guardarEnRankingBase();
-  intentarEnviarRankingOnline();
-};
+// guardarEnRanking (de features.js): ahora solo manda a cola online
+// (el guardado local fue eliminado de features.js).
+// La función ya existe en features.js y envía a online directamente.
 
 // mostrarRanking (de features.js): ahora abre el modal con pestañas
-// Global (online) y Este dispositivo (local)
+// Global (online)
 mostrarRanking = function() {
-  renderizarRankingLocal();
   instanciaModalRanking().show();
 };
 
@@ -434,22 +417,14 @@ document.addEventListener("DOMContentLoaded", function() {
   const modalEl = document.getElementById("modalRanking");
   if (modalEl) {
     modalEl.addEventListener("shown.bs.modal", function() {
-      renderizarRankingLocal();
       iniciarRefrescoRanking();
     });
     modalEl.addEventListener("hidden.bs.modal", detenerRefrescoRanking);
-    // Bootstrap propaga el evento de la pestaña: consultar al volver a Global.
-    modalEl.addEventListener("shown.bs.tab", function(evento) {
-      if (evento.target.getAttribute("data-bs-target") === "#tab-ranking-online") {
-        refrescarRankingVisible();
-      }
-    });
   }
 
   const btnActualizar = document.getElementById("btn-ranking-actualizar");
   if (btnActualizar) {
     btnActualizar.addEventListener("click", function() {
-      renderizarRankingLocal();
       cargarRankingOnlineUI(true);
     });
   }

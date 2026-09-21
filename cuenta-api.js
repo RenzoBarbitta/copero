@@ -50,6 +50,13 @@
     };
   }
 
+  // Avisa al resto de la app (ranking, UI) cuando cambia la sesión.
+  function avisarCambioSesion() {
+    try {
+      window.dispatchEvent(new CustomEvent("cuenta:sesion-cambiada"));
+    } catch (e) { /* sin window (tests) o evento no soportado */ }
+  }
+
   async function tokenActual() {
     if (!sesion) throw new Error(textoConta("cuentaErrorIniciar", "Iniciá sesión para usar tu perfil."));
     if (sesion.vence > Date.now() + 60000) return sesion.token;
@@ -98,12 +105,14 @@
       });
       if (version !== generacion) throw new Error("Se canceló el inicio de sesión.");
       aceptarSesion(datos);
+      avisarCambioSesion();
     },
     async salir() {
       const anterior = sesion;
       ++generacion;
       sesion = null;
       if (anterior) await solicitar("/auth/v1/logout?scope=local", "POST", undefined, anterior.token);
+      avisarCambioSesion();
     },
     async perfil() {
       const token = await tokenActual();

@@ -224,63 +224,32 @@ function cargarSlotDesdePanel(n) {
 }
 
 // ------------------------------------------------------------
-//  RANKING LOCAL
+//  Ranking: ahora es puramente online (Supabase).
+//  Al terminar una carrera se encola para publicación
+//  (ranking-online.js). No hay ranking local.
 // ------------------------------------------------------------
-const RANKING_KEY = "pso_ranking_v1";
 function guardarEnRanking() {
-  try {
-    let ranking = JSON.parse(localStorage.getItem(RANKING_KEY) || "[]");
-    const titulos = (jugador.trofeos.primeraDivision || 0) + (jugador.trofeos.segundaDivision || 0) +
-                    (jugador.trofeos.copaDeCampeones || 0) + (jugador.trofeos.copaArgentina || 0) +
-                    (jugador.trofeos.copaApa || 0);
-    ranking.push({ nombre: jugador.nombre, media: jugador.media, titulos: titulos, anio: new Date().getFullYear(), ts: Date.now() });
-    ranking.sort(compararRanking);
-    ranking = ranking.slice(0, 10);
-    localStorage.setItem(RANKING_KEY, JSON.stringify(ranking));
-  } catch (e) {}
+  if (typeof intentarEnviarRankingOnline === "function") {
+    intentarEnviarRankingOnline();
+  }
 }
 
 function mostrarRanking() {
-  let ranking = [];
-  try { ranking = JSON.parse(localStorage.getItem(RANKING_KEY) || "[]"); } catch (e) {}
-  if (ranking.length === 0) { mostrarNotificacion("Ranking", "Todavía no hay carreras registradas."); return; }
-  ranking.sort(compararRanking);
-  let html = "<h6>🏆 Mejores Carreras</h6><ol class='mt-2'>";
-  ranking.forEach(function(r) {
-    html += "<li><strong>" + r.nombre + "</strong> — " + r.media + " OVR, " + r.titulos + " títulos</li>";
-  });
-  html += "</ol>";
-  mostrarNotificacion("Ranking Local", html);
+  if (typeof instanciaModalRanking === "function") {
+    instanciaModalRanking().show();
+  } else {
+    mostrarNotificacion("Ranking", "Todavía no hay carreras registradas.");
+  }
 }
 
-// ------------------------------------------------------------
-//  ESTADISTICAS AVANZADAS
-// ------------------------------------------------------------
-function calcularEstadisticas() {
-  const h = jugador.historialTemporadas || [];
-  if (h.length === 0) return null;
-  const totalPJ = h.reduce(function(a, x) { return a + x.partidos; }, 0);
-  const totalG = h.reduce(function(a, x) { return a + x.goles; }, 0);
-  const promGoles = (totalG / h.length).toFixed(1);
-  const mejor = h.reduce(function(a, x) { return x.goles > a.goles ? x : a; }, h[0]);
-  const mejorOVR = Math.max.apply(null, h.map(function(x) { return x.media; }));
-  return { totalPJ: totalPJ, totalG: totalG, promGoles: promGoles, mejor: mejor, mejorOVR: mejorOVR, temporadas: h.length };
-}
 
-function mostrarEstadisticas() {
-  const s = calcularEstadisticas();
-  if (!s) { mostrarNotificacion("Estadísticas", "Todavía no jugaste ninguna temporada."); return; }
-  mostrarNotificacion("📊 Estadísticas Avanzadas",
-    "<ul class='mb-0'>" +
-    "<li>Temporadas jugadas: <strong>" + s.temporadas + "</strong></li>" +
-    "<li>Partidos totales: <strong>" + s.totalPJ + "</strong></li>" +
-    "<li>Goles totales: <strong>" + s.totalG + "</strong></li>" +
-    "<li>Promedio de goles/temporada: <strong>" + s.promGoles + "</strong></li>" +
-    "<li>Mejor temporada: <strong>Temp. " + s.mejor.temporada + "</strong> (" + s.mejor.goles + " goles)</li>" +
-    "<li>OVR máximo alcanzado: <strong>" + s.mejorOVR + "</strong></li>" +
-    "</ul>"
-  );
-}
+// ------------------------------------------------------------
+//  APOYO / SUSCRIPCIÓN
+//  La tarjeta de apoyo (pantalla de inicio) invita a unirse al
+//  Discord del proyecto. Los planes de pago futuros (básico 1 USD,
+//  premium 3 USD) cubrirán costos de base de datos y hosting.
+//  No dan ventaja en ranking ni en 1v1 (no es pay-to-win).
+// ------------------------------------------------------------
 
 // ------------------------------------------------------------
 //  MODAL DE MINIJUEGOS (selector)
