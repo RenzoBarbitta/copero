@@ -26,8 +26,12 @@ body {
   flex-wrap: wrap;
   margin-bottom: 15px;
 }
+.logos-principales a {
+  display: block;
+  line-height: 0;
+}
 .logo-principal {
-  height: 88px;
+  height: 104px;
   width: auto;
   border-radius: 10px;
 }
@@ -475,7 +479,7 @@ body.modo-oscuro .ranking-fila-propia { background-color: rgba(255, 212, 59, 0.1
 
 /* ==== AJUSTES EN PANTALLAS CHICAS ==== */
 @media (max-width: 576px) {
-  .logo-principal { height: 66px; }
+  .logo-principal { height: 78px; }
   h1 { font-size: 1.6rem; }
   #pantalla-juego h2 { font-size: 1.15rem; }
   .card-custom.p-3, .card-custom.p-4 { padding: 0.75rem !important; }
