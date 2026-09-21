@@ -633,6 +633,7 @@ function chequearModoDesafio() {
   if (!jugador.modoDesafio || jugador.desafioCompletado) return;
   if (titulosTotalesDesafio() >= 5) {
     jugador.desafioCompletado = true;
+    jugador.modoLeal = true;
     guardarPartida();
     lanzarConfeti(120);
     mostrarNotificacion(
@@ -640,6 +641,12 @@ function chequearModoDesafio() {
       "Le ganaste <strong>5 títulos</strong> a " + (jugador.clubActual ? jugador.clubActual.nombre : "tu club") +
       ".<br><br>Sos una leyenda del club. 🎉"
     );
+    setTimeout(() => {
+      mostrarNotificacion(
+        "🔒 MODO LEAL ACTIVADO",
+        "Ahora sos <strong>fiel a tu club para siempre</strong>: no habrá ofertas de fichaje ni eventos que te cambien de equipo. Seguí sumando títulos donde estés."
+      );
+    }, 1500);
   }
 }
 
@@ -890,6 +897,8 @@ finalizarCarrera = function() {
   const f = mostrarFinal();
   if (f && (f.id === "leyenda" || f.id === "estrella")) lanzarConfeti(80);
   if (jugador.modoDesafio) chequearModoDesafio();
+  // Si completó el Desafío, entró en Modo Leal: bloqueamos eventos de cambio
+  // de club y ofertas de fichaje. Esto se valida en cada evento y en el mercado.
 };
 
 // ------------------------------------------------------------

@@ -36,6 +36,12 @@ function crearJugadorInicial() {
     eventosUsados: [],
     modoDesafio: false,
     desafioCompletado: false,
+    // --- Modo Leal (post-Desafío) ---
+    // Cuando el jugador completa el Desafío (5 títulos al club), entra en
+    // Modo Leal: no llegan ofertas de fichaje nuevas ni eventos que cambien
+    // de club. Sigue entrenando, jugando partidos y sumando títulos, pero
+    // su fidelidad al club está bloqueada por diseño.
+    modoLeal: false,
     // --- Nuevas mecanicas ---
     moral: 60,
     seleccionConvocado: false,
@@ -1826,6 +1832,21 @@ function finalizarResumenTemporada(partidos, goles, asistencias, subidaAplicada,
 }
 
 function generarOfertasDeFichaje(ascendio = false) {
+  // Modo Leal: el jugador es fiel a su club para siempre.
+  // No llegan ofertas de fichaje ni se abre el mercado de transferencias.
+  if (jugador.modoLeal) {
+    const contenedor = document.getElementById("contenedor-ofertas");
+    if (contenedor) {
+      contenedor.innerHTML = "";
+      const nota = document.createElement("div");
+      nota.className = "alert alert-info p-2 small mb-3";
+      nota.innerHTML = `🔒 <strong>Modo Leal activado:</strong> sos fiel a <strong>${jugador.clubActual ? jugador.clubActual.nombre : "tu club"}</strong> para siempre. No hay ofertas de fichaje ni cambios de equipo.` +
+        (jugador.modoDesafio ? " (Desafío completado)" : "");
+      contenedor.appendChild(nota);
+    }
+    return;
+  }
+
   let candidatos = CLUBES.filter(c => c.nombre !== jugador.clubActual.nombre);
 
   if (jugador.temporadasForzadoSegunda > 0) {
@@ -2155,12 +2176,16 @@ function resolverEvento(acepta) {
         resultadoTxt = "📚 Aprendes las habilidades de Ronnie y Flowy (+2 OVR).";
         break;
       case "BAREIRO": {
-        if (!jugador.modoDesafio) {
+        if (!jugador.modoDesafio && !jugador.modoLeal) {
           const argentinos = CLUBES.find(c => c.nombre === "Argentinos Juniors");
           if (argentinos) jugador.clubActual = argentinos;
         }
         sincronizarDivision();
-        resultadoTxt = "🔴⚪ ¡Te vas a jugar a Argentinos Juniors con Bareiro! Cambio de club inmediato.";
+        if (jugador.modoLeal) {
+          resultadoTxt = "🔴⚪ No te dejás ir con invitaciones: seguís fiel a tu club. (Modo Leal)";
+        } else {
+          resultadoTxt = "🔴⚪ ¡Te vas a jugar a Argentinos Juniors con Bareiro! Cambio de club inmediato.";
+        }
         break;
       }
       case "MUSA":
@@ -2196,33 +2221,47 @@ function resolverEvento(acepta) {
         resultadoTxt = "⛏️ Vas a jugar al Terraria con ellos. ¡HICISITE UNA BUENA ELECCION! (+10 de moral)";
         break;
       case "MATUTE": {
-        if (!jugador.modoDesafio) {
+        if (!jugador.modoDesafio && !jugador.modoLeal) {
           const chaco = CLUBES.find(c => c.nombre === "Chaco For Ever");
           if (chaco) jugador.clubActual = chaco;
         }
         sincronizarDivision();
-        resultadoTxt = "🌰 Vas a jugar a Chaco For Ever. Equipo donde salieron grandes jugadores.";
+        if (jugador.modoLeal) {
+          resultadoTxt = "🌰 No te dejás llevar por las invitaciones: seguís fiel a tu club. Seguí sumando títulos donde estás. (Modo Leal)";
+        } else {
+          resultadoTxt = "🌰 Vas a jugar a Chaco For Ever. Equipo donde salieron grandes jugadores.";
+        }
         break;
       }
 
       case "KROSTY": {
-        const hasbulitah = CLUBES.find(c => c.nombre === "Hasbullitah");
-        if (hasbulitah) jugador.clubActual = hasbulitah;
+        if (!jugador.modoLeal) {
+          const hasbulitah = CLUBES.find(c => c.nombre === "Hasbullitah");
+          if (hasbulitah) jugador.clubActual = hasbulitah;
+        }
         sincronizarDivision();
-        resultadoTxt = "🧔 Aceptaste la invitación rara: cambiaste de equipo a Hasbullitah.";
+        if (jugador.modoLeal) {
+          resultadoTxt = "🧔 No te dejás llevar por invitaciones raras: seguís fiel a tu club. (Modo Leal)";
+        } else {
+          resultadoTxt = "🧔 Aceptaste la invitación rara: cambiaste de equipo a Hasbullitah.";
+        }
         break;
       }
 
       case "COCCARO": {
-        // Coccaro: te llevás por la guita a Laferrere. En Modo Desafío no hay
-        // cambio de club (estás fichado para siempre), pero sí la penalidad.
-        if (!jugador.modoDesafio) {
+        // Coccaro: te llevás por la guita a Laferrere. En Modo Desafío y Modo Leal
+        // no hay cambio de club (estás fichado para siempre), pero sí la penalidad.
+        if (!jugador.modoDesafio && !jugador.modoLeal) {
           const laferrere = CLUBES.find(c => c.nombre === "Laferrere");
           if (laferrere) jugador.clubActual = laferrere;
         }
         sincronizarDivision();
         sumarMedia(-3);
-        resultadoTxt = "💰 Te fuiste por la guita: -3 OVR. Cambiaste a Laferrere.";
+        if (jugador.modoLeal) {
+          resultadoTxt = "💰 Te fuiste por la guita: -3 OVR. Te quedás en tu club (Modo Leal).";
+        } else {
+          resultadoTxt = "💰 Te fuiste por la guita: -3 OVR. Cambiaste a Laferrere.";
+        }
         break;
       }
 
@@ -2341,10 +2380,16 @@ function resolverEventoDosOpciones(id, opcion) {
         resultadoTxt = "✋ Los mandaste a cagar a Benjita y a Theo. No pasa nada.";
       } else {
         // Aceptás: te fuiste a BODO a jugar.
-        const bodo = CLUBES.find(c => c.nombre === "Bodo Glimt");
-        if (bodo) jugador.clubActual = bodo;
+        if (!jugador.modoLeal) {
+          const bodo = CLUBES.find(c => c.nombre === "Bodo Glimt");
+          if (bodo) jugador.clubActual = bodo;
+        }
         sincronizarDivision();
-        resultadoTxt = "🧑‍🤝‍🧑 Te hiciste tan amigo que te fuiste a BODO a jugar. ¡Cambio de club inmediato a Bodo Glimt!";
+        if (jugador.modoLeal) {
+          resultadoTxt = "🧑‍🤝‍🧑 No te dejás llevar por las invitaciones: seguís fiel a tu club. (Modo Leal)";
+        } else {
+          resultadoTxt = "🧑‍🤝‍🧑 Te hiciste tan amigo que te fuiste a BODO a jugar. ¡Cambio de club inmediato a Bodo Glimt!";
+        }
       }
       break;
 

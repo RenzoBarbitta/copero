@@ -358,6 +358,22 @@ function detenerRefrescoRanking() {
   rankingTimer = null;
 }
 
+// Cuando la sesión cambia (inicio/cierre de cuenta), actualizar estado y,
+// si hay sesión, intentar vaciar lo que quedó en cola de ranking.
+function onSesionCambiada() {
+  try { actualizarEstadoSync(); } catch (e) { /* silencio */ }
+  if (sesionRanking() && typeof intentarEnviarRankingOnline === "function") {
+    (async function () {
+      const ok = await intentarEnviarRankingOnline();
+      if (ok) { try { actualizarEstadoSync(); } catch (e) { /* silencio */ } }
+    })();
+  }
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("cuenta:sesion-cambiada", onSesionCambiada);
+}
+
 function horaCorta(ts) {
   try {
     return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
