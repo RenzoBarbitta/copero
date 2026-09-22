@@ -37,7 +37,7 @@ function crearJugadorInicial() {
     modoDesafio: false,
     desafioCompletado: false,
     // --- Modo Leal (post-Desafío) ---
-    // Cuando el jugador completa el Desafío (5 títulos al club), entra en
+    // Cuando el jugador completa el Desafío (10 títulos al club), entra en
     // Modo Leal: no llegan ofertas de fichaje nuevas ni eventos que cambien
     // de club. Sigue entrenando, jugando partidos y sumando títulos, pero
     // su fidelidad al club está bloqueada por diseño.

@@ -3,6 +3,7 @@ const CLUBES = [
     { nombre: "Alessandria", reputacion: 7, imagen: "imagenes/alessandria.png" },
     { nombre: "Alumni", reputacion: 2, imagen: "imagenes/alumni.png" },
     { nombre: "Aerolíneas Splinter", reputacion: 5, imagen: "imagenes/areolineasplinter.png" },
+    { nombre: "Asesinos del Futbol", reputacion: 6, imagen: "imagenes/asesinosdelfutbol.png" },
     { nombre: "Arsenal", reputacion: 5, imagen: "imagenes/arsenal.png" },
     { nombre: "Argentinos Juniors", reputacion: 4, imagen: "imagenes/argentinosjrs.png" },
     { nombre: "B15", reputacion: 6, imagen: "imagenes/b15.png" },
@@ -60,8 +61,15 @@ const CLUBES = [
     { nombre: "Nitegy", reputacion: 7, imagen: "imagenes/nitegy.png" },
     { nombre: "Night Ravens", reputacion: 8, imagen: "imagenes/nightravens.png" },
     { nombre: "Laferrere", reputacion: 1, imagen: "imagenes/laferrere.png" },
-    { nombre: "POD", reputacion: 7, imagen: "imagenes/podfc.png" },
-    { nombre: "Xheaston", reputacion: 5, imagen: "imagenes/xheaston.png" }
+    { nombre: "POD", reputacion: 10, imagen: "imagenes/podfc.png" },
+    { nombre: "Xheaston", reputacion: 5, imagen: "imagenes/xheaston.png" },
+    { nombre: "Sportivo Italiano", reputacion: 4, imagen: "imagenes/sportivoitaliano.png" },
+    { nombre: "Fenix", reputacion: 7, imagen: "imagenes/fenix.png" },
+    { nombre: "Plaza Colonia", reputacion: 9, imagen: "imagenes/plazacolonia.png"},
+    { nombre: "Montevideo City Torque", reputacion: 7, imagen: "imagenes/montevideocitytorque.png"},
+    { nombre: "Wanderers", reputacion: 6, imagen: "imagenes/wanderers.png"},
+    { nombre: "Cerro", reputacion: 5, imagen: "imagenes/cerrolargo.png"},
+    { nombre: "Danubio", reputacion: 6, imagen: "imagenes/danubio.png"}
 ];
 
 // Fuerza de rivalidad: 1-10 (10 = máxima rivalidad histórica)
@@ -82,6 +90,10 @@ const RIVALIDADES = [
   { clubA: "Orlando City", clubB: "Nacional", fuerza: 3 },
   { clubA: "Roma", clubB: "Lions", fuerza: 3 },
   { clubA: "Napoli", clubB: "Roma", fuerza: 4 },
+  { clubA: "Imperial", clubB: "Nacional", fuerza: 8 },
+  { clubA: "Lechonidas", clubB: "Alessandria", fuerza: 9},
+  { clubA: "Asesinos del Futbol", clubB: "El Bondi", fuerza: 8},
+  { clubA: "San Lorenzo", clubB: "Los Andes", fuerza: 7}
 ];
 
 // Helper: obtener fuerza de rivalidad entre dos clubes
@@ -325,6 +337,7 @@ const TEXTOS_UI = {
     posCancha: "📍 Posición en cancha", tuCasaca: "👕 Tu casaca", dorsal: "🔢 Dorsal",
     posDEL: "Delantero (DEL)", posCM: "Mediocampista (CM)", posDEF: "Defensa (DEF)", posGK: "Arquero (GK)",
     iniciar: "Iniciar Carrera", continuar: "▶️ Continuar Carrera Guardada", modoDesafio: "🛡️ Modo Leal",
+    modoLealInfo: "Carrera de un solo club que no afecta el ranking online. Objetivo: ganarle <strong>10 títulos</strong> a tu club.",
     ranking: "🏆 Ranking", slots: "💾 Slots", modoOscuroTitulo: "Modo oscuro", dueloBoton: "⚔️ Duelo 1v1 Online", dueloTab: "⚔️ Duelo 1v1", dueloBuscar: "BUSCAR PARTIDO", dueloAbre: "Jugá la carrera de 10 temporadas contra otro jugador en tiempo real.",
     edad: "Edad:", anios: "años", media: "Media:", club: "Club:", moral: "Moral:", acciones: "Acciones",
     entrenar: "Entrenar", dominios: "⚽ Dominios", entrenamiento: "⚽ Entrenamiento",
@@ -359,7 +372,7 @@ const TEXTOS_UI = {
   },
   en: {
     titulo: "PSO CAREER", nombreJugador: "Player Name:", placeholderNombre: "Ex: Caseros", posCancha: "📍 Position on the pitch", tuCasaca: "👕 Your shirt", dorsal: "🔢 Shirt number",
-    posDEL: "Forward (DEL)", posCM: "Midfielder (CM)", posDEF: "Defender (DEF)", posGK: "Goalkeeper (GK)", iniciar: "Start Career", continuar: "▶️ Continue Saved Career", modoDesafio: "🛡️ Loyal Mode", ranking: "🏆 Ranking", slots: "💾 Slots", modoOscuroTitulo: "Dark mode", dueloBoton: "⚔️ 1v1 Duel Online", dueloTab: "⚔️ 1v1 Duel", dueloBuscar: "FIND MATCH", dueloAbre: "Play the 10-season career against another player in real time.",
+    posDEL: "Forward (DEL)", posCM: "Midfielder (CM)", posDEF: "Defender (DEF)", posGK: "Goalkeeper (GK)", iniciar: "Start Career", continuar: "▶️ Continue Saved Career", modoDesafio: "🛡️ Loyal Mode", modoLealInfo: "A one-club career that does NOT affect the online ranking. Goal: win <strong>10 titles</strong> for your club.", ranking: "🏆 Ranking", slots: "💾 Slots", modoOscuroTitulo: "Dark mode", dueloBoton: "⚔️ 1v1 Duel Online", dueloTab: "⚔️ 1v1 Duel", dueloBuscar: "FIND MATCH", dueloAbre: "Play the 10-season career against another player in real time.",
     edad: "Age:", anios: "years", media: "Rating:", club: "Club:", moral: "Morale:", acciones: "Actions", entrenar: "Train", dominios: "⚽ Ball Juggling", entrenamiento: "⚽ Training", masMinijuegos: "🎮 More Minigames", logros: "🏅 Achievements", stats: "📊 Stats", sinEventos: "No social events this season.", sinEventosTitulo: "No events right now", eventoSecTitulo: "⭐ Social event", eventoAyuda: "Accept or decline the offer: it can raise your rating, move you to another club or shake up your socials.",
   supportTitulo: "❤️ Help me keep COPERO PSO SA alive", supportSubtitulo: "I'm currently a student, and keeping the databases that store your progress, accounts and ranking has a real cost every month. With your support you help cover it and give me the motivation to keep adding content.",
   supportBasicoTitulo: "🥉 Basic", supportBasicoPrecio: "1 USD/month", supportBasicoDesc: "Supporter badge, access to Ultrarealistic mode and our eternal gratitude.",
@@ -389,6 +402,7 @@ Object.assign(TEXTOS_UI.es, {
 });
 Object.assign(TEXTOS_UI.es, {
   navCarrera: "Carrera", navEntrenamiento: "Entrenamiento", navProgreso: "Progreso", navComunidad: "Comunidad",
+  otrosModos: "Otros modos",
   miPerfil: "Perfil", miJugador: "Mi jugador", misCarreras: "Mis carreras", configTitulo: "⚙️ Configuración", configIdioma: "🌐 Idioma",
   proximoPartido: "⚽ Próximo partido", jugarPartido: "JUGAR PARTIDO", resumenTemporada: "📊 Resumen de temporada",
   calendario: "Calendario", noticiasCarrera: "📰 Noticias de tu carrera", mercadoPases: "Mercado", verHistorial: "Resultados de tu carrera por temporada.", verHistorialBtn: "Ver historial completo",
@@ -414,6 +428,7 @@ Object.assign(TEXTOS_UI.en, {
 });
 Object.assign(TEXTOS_UI.en, {
   navCarrera: "Career", navEntrenamiento: "Training", navProgreso: "Progress", navComunidad: "Community",
+  otrosModos: "Other modes",
   miPerfil: "Profile", miJugador: "My player", misCarreras: "My careers", configTitulo: "⚙️ Settings", configIdioma: "🌐 Language",
   proximoPartido: "⚽ Next match", jugarPartido: "PLAY MATCH", resumenTemporada: "📊 Season summary",
   calendario: "Calendar", noticiasCarrera: "📰 Career news", mercadoPases: "Market", verHistorial: "Your season results.", verHistorialBtn: "See full history",
@@ -439,6 +454,7 @@ Object.assign(TEXTOS_UI.pt, {
 });
 Object.assign(TEXTOS_UI.pt, {
   navCarrera: "Carreira", navEntrenamiento: "Treino", navProgreso: "Progresso", navComunidad: "Comunidade",
+  otrosModos: "Outros modos",
   miPerfil: "Perfil", miJugador: "Meu jogador", misCarreras: "Minhas carreiras", configTitulo: "⚙️ Configurações", configIdioma: "🌐 Idioma",
   proximoPartido: "⚽ Próxima partida", jugarPartido: "JOGAR PARTIDA", resumenTemporada: "📊 Resumo da temporada",
   calendario: "Calendário", noticiasCarrera: "📰 Notícias da carreira", mercadoPases: "Mercado", verHistorial: "Seus resultados por temporada.", verHistorialBtn: "Ver histórico completo",

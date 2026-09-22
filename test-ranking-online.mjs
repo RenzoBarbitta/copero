@@ -25,10 +25,18 @@ const storageStub = {
 
 const peticiones = [];
 let respuesta = { ok: true, status: 200, body: [] };
+// Respuesta por ruta: permite distinguir el RPC (005) de la tabla (002/004).
+let respuestaPorUrl = null;
 let gateActive = false;   // si true, la siguiente peticion queda "en vuelo"
 let gateResolve = null;   // la libera gateActive = false + llamar a gateRelease()
 
 function gateRelease() { if (gateResolve) { const r = gateResolve; gateResolve = null; r(); } }
+
+// Body real que devuelve Supabase cuando el RPC del 005 no esta instalado.
+const RPC_NO_INSTALADO = {
+  ok: false, status: 404, statusText: "Not Found",
+  body: { code: "PGRST202", message: "Could not find the function public.copero_publicar_ranking(p_club, p_display_name, p_evento, p_media, p_nonce, p_posicion, p_titulos) in the schema cache" }
+};
 
 const sandbox = {
   console, Date, JSON, Math, Promise, setTimeout, clearTimeout, AbortController,
@@ -40,13 +48,15 @@ const sandbox = {
   setInterval: () => 0,
   clearInterval() {},
   fetch: async (url, opts) => {
-    peticiones.push({ url: String(url), opts: opts || {} });
-    if (respuesta.error) throw respuesta.error;
-    if (gateActive) await new Promise(function(r) { gateResolve = r; });
+    const u = String(url);
+    peticiones.push({ url: u, opts: opts || {} });
+    const r = (respuestaPorUrl && respuestaPorUrl(u)) || respuesta;
+    if (r.error) throw r.error;
+    if (gateActive) await new Promise(function(res) { gateResolve = res; });
     return {
-      ok: respuesta.ok, status: respuesta.status,
-      json: async () => respuesta.body,
-      text: async () => JSON.stringify(respuesta.body)
+      ok: r.ok, status: r.status, statusText: r.statusText || "",
+      json: async () => r.body,
+      text: async () => (typeof r.body === "string" ? r.body : JSON.stringify(r.body))
     };
   },
   // Config publica del proyecto (misma estructura que supabase-config.js)
@@ -79,19 +89,20 @@ await new Promise(r => setTimeout(r, 50));
 asertar(!!storageStub.getItem("pso_ranking_outbox"), "sin sesion: la carrera queda en cola");
 asertar(peticiones.length === 0, "sin sesion: no hay peticiones de escritura a la nube");
 
-// 2) Con sesion: vaciarOutbox hace el upsert seguro
+// 2) Con sesion: vaciarOutbox publica con el RPC validado (005)
 sesionActiva = true;
 await vm.runInContext("vaciarOutbox();", sandbox);
 await new Promise(r => setTimeout(r, 50));
 asertar(peticiones.length === 1, "con sesion: se hace exactamente 1 peticion");
 const envio = peticiones[0];
-asertar(/\/rest\/v1\/copero_ranking/.test(envio.url), "la peticion apunta a copero_ranking");
-asertar(envio.opts.method === "POST", "la publicacion usa POST (upsert)");
-asertar(envio.opts.headers && envio.opts.headers.Prefer === "resolution=merge-duplicates", "usa Prefer: merge-duplicates (una entrada por cuenta)");
+asertar(/\/rest\/v1\/rpc\/copero_publicar_ranking$/.test(envio.url), "primero usa el RPC validado (005)");
+asertar(envio.opts.method === "POST", "la publicacion usa POST");
 asertar(envio.opts.headers.apikey === "clave-publica-test", "envia la clave publishable");
 asertar(envio.opts.headers.Authorization === "Bearer token-de-prueba", "envia el token de sesion");
 const cuerpo = JSON.parse(envio.opts.body);
-asertar(cuerpo.user_id === "user-1111", "el upsert va SIEMPRE a la fila del usuario en sesion");
+asertar(cuerpo.user_id === undefined, "el RPC no manda user_id: lo pone el servidor con auth.uid()");
+asertar(cuerpo.evento === "carrera", "declara el evento carrera");
+asertar(typeof cuerpo.nonce === "string" && cuerpo.nonce.length > 0, "manda un nonce (idempotencia anti-replay)");
 asertar(cuerpo.display_name === "TestBot", "display_name correcto");
 asertar(cuerpo.media === 88 && cuerpo.titulos === 3, "media 88 y titulos 3 (2 liga + 1 copa)");
 asertar(!storageStub.getItem("pso_ranking_outbox"), "enviado: la cola queda vacia");
@@ -158,13 +169,15 @@ await new Promise(r => setTimeout(r, 50));
 asertar(!storageStub.getItem("pso_ranking_outbox"), "recuperacion de red: se publica y la cola queda vacia");
 asertar(!storageStub.getItem("pso_ranking_cache_online"), "publicar exitoso invalida la cache del ranking");
 
-// 11) Actualizar una cuenta existente: el upsert SIEMPRE va a la fila del usuario en sesion
+// 11) Reintento de una carrera en la misma cuenta: el nonce (id de la cola)
+//     hace el reenvio idempotente; el RPC sigue sin mandar user_id.
 vm.runInContext("intentarEnviarRankingOnline();", sandbox);
 await new Promise(r => setTimeout(r, 50));
 await vm.runInContext("vaciarOutbox();", sandbox);
 await new Promise(r => setTimeout(r, 50));
 const cuerpo3 = JSON.parse(peticiones[peticiones.length - 1].opts.body);
-asertar(cuerpo3.user_id === "user-1111", "actualizar la misma cuenta reusa user_id (sin duplicados)");
+asertar(cuerpo3.user_id === undefined, "reintento: la fila propia la fija auth.uid() en el servidor");
+asertar(typeof cuerpo3.nonce === "string" && cuerpo3.nonce.length > 0, "reintento: manda nonce para no duplicar");
 
 // 12) Ranking vacio devuelve una lista vacia (no rompe la UI)
 respuesta = { ok: true, status: 200, body: [] };
@@ -218,6 +231,62 @@ await new Promise(r => setTimeout(r, 50));
 asertar(!!storageStub.getItem("pso_ranking_outbox"), "race: el POST del registro viejo no vacia la cola por error");
 const enCola = JSON.parse(storageStub.getItem("pso_ranking_outbox"));
 asertar(enCola.display_name === "Nuevo", "race: la cola conserva el registro MAS nuevo");
+
+// 17) LA BASE TODAVIA NO TIENE EL 005 (404 PGRST202): el cliente cae solo al
+//     upsert directo sobre la fila propia y publica igual (sync no rota).
+vm.runInContext("RANKING_RPC_DISPONIBLE = null;", sandbox);
+storageStub.setItem("pso_ranking_outbox", JSON.stringify({
+  _id: "cola-1", user_id: "otro-usuario", display_name: "TestBot", posicion: "DEL",
+  club: "River Plate", media: 88, titulos: 3, anio: 2026, ts: "2026-09-22T10:00:00Z"
+}));
+respuestaPorUrl = (u) => (/\/rest\/v1\/rpc\/copero_publicar_ranking$/.test(u)
+  ? RPC_NO_INSTALADO
+  : { ok: true, status: 201, statusText: "Created", body: [] });
+peticiones.length = 0;
+asertar(await vm.runInContext("vaciarOutbox();", sandbox) === true, "RPC no instalado: la carrera se publica igual");
+await new Promise(r => setTimeout(r, 50));
+asertar(peticiones.length === 2, "RPC no instalado: 1 intento al RPC + 1 upsert directo");
+asertar(/\/rest\/v1\/copero_ranking\?on_conflict=user_id$/.test(peticiones[1].url), "el respaldo usa on_conflict=user_id (PK real de la tabla)");
+asertar(peticiones[1].opts.headers.Prefer === "resolution=merge-duplicates", "el respaldo usa Prefer: merge-duplicates");
+asertar(peticiones[1].opts.headers.Authorization === "Bearer token-de-prueba", "el respaldo va con el token de la sesion");
+const cuerpoTabla = JSON.parse(peticiones[1].opts.body);
+asertar(cuerpoTabla.user_id === "user-1111", "SEGURIDAD: el payload de la cola no puede elegir otro user_id");
+asertar(cuerpoTabla.display_name === "TestBot" && cuerpoTabla.media === 88, "el respaldo manda los datos de la carrera");
+asertar(cuerpoTabla._id === undefined && cuerpoTabla.nonce === undefined, "el respaldo no manda campos que la tabla no tiene");
+asertar(cuerpoTabla.ts === "2026-09-22T10:00:00Z", "el respaldo conserva la fecha de la carrera");
+asertar(!storageStub.getItem("pso_ranking_outbox"), "RPC no instalado: la cola queda vacia (solo con 2xx)");
+
+// 18) Detectado que el 005 no esta, no se repite el 404 en cada envio
+vm.runInContext("intentarEnviarRankingOnline();", sandbox);
+await new Promise(r => setTimeout(r, 50));
+await vm.runInContext("vaciarOutbox();", sandbox);
+await new Promise(r => setTimeout(r, 50));
+asertar(peticiones.length === 3, "sin el 005: el RPC no se vuelve a intentar (1 peticion por envio)");
+asertar(/\/rest\/v1\/copero_ranking\?on_conflict=user_id$/.test(peticiones[2].url), "los envios siguientes van directo al upsert");
+
+// 19) El error REAL de Supabase no queda oculto: un 400 de CHECK mantiene la
+//     cola y el log trae code, mensaje, url y user_id (nunca el token).
+const erroresConsola = [];
+const consoleErrorOriginal = console.error;
+console.error = function() { erroresConsola.push(Array.prototype.slice.call(arguments).join(" ")); };
+respuestaPorUrl = () => ({
+  ok: false, status: 400, statusText: "Bad Request",
+  body: { code: "23514", message: 'new row for relation "copero_ranking" violates check constraint "copero_ranking_media_check"' }
+});
+storageStub.setItem("pso_ranking_outbox", JSON.stringify({
+  _id: "cola-2", display_name: "TestBot", posicion: "DEL", club: "River Plate",
+  media: 88, titulos: 3, anio: 2026, ts: "2026-09-22T11:00:00Z"
+}));
+peticiones.length = 0;
+asertar(await vm.runInContext("vaciarOutbox();", sandbox) === false, "400 de la base: no se publica y NO se borra la cola");
+console.error = consoleErrorOriginal;
+const log = erroresConsola.join("\n");
+asertar(!!storageStub.getItem("pso_ranking_outbox"), "400: la carrera sigue en la cola (no se pierde)");
+asertar(log.indexOf("23514") !== -1, "400: el log muestra el code real de Supabase");
+asertar(log.indexOf("check constraint") !== -1, "400: el log muestra el mensaje real de Supabase");
+asertar(log.indexOf("copero_ranking") !== -1, "400: el log muestra la url del intento");
+asertar(log.indexOf("user-1111") !== -1, "400: el log muestra el user_id autenticado");
+asertar(log.indexOf("token-de-prueba") === -1, "400: el log NUNCA expone el token de sesion");
 
 console.log(fallos === 0 ? "TODO OK" : ("CON " + fallos + " FALLOS"));
 process.exit(fallos === 0 ? 0 : 1);

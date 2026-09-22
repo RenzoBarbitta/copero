@@ -432,7 +432,38 @@ function cerrarSesionPerfil() {
 function syncIdiomaInicio() {
   const selInicio = document.getElementById("select-idioma");
   if (selInicio) selInicio.value = prefs.idioma || "es";
+  pintarBanderasIdioma();
 }
+
+// ------------------------------------------------------------
+//  SELECTOR DE IDIOMA CON BANDERAS
+//  Las banderas son SVG propios del juego (sin CDN y sin depender del
+//  emoji de bandera, que en Windows no se dibuja). El <select> se mantiene
+//  oculto para no romper el código que ya lo usa.
+// ------------------------------------------------------------
+function pintarBanderasIdioma() {
+  const cont = document.getElementById("selector-idioma");
+  if (!cont) return;
+  const actual = (typeof prefs !== "undefined" && prefs.idioma) || "es";
+  Array.prototype.forEach.call(cont.querySelectorAll("[data-idioma]"), function(btn) {
+    const activo = btn.getAttribute("data-idioma") === actual;
+    btn.classList.toggle("activo", activo);
+    btn.setAttribute("aria-pressed", activo ? "true" : "false");
+  });
+}
+
+// Click en una bandera: mismo cambio de idioma de siempre + repintado.
+function elegirIdioma(codigo) {
+  if (typeof cambiarIdioma === "function") cambiarIdioma(codigo);
+  syncIdiomaInicio();
+}
+
+// Al traducir la interfaz (cambio de idioma, carga inicial) se repintan.
+const _traducirInterfazBaseUi = traducirInterfaz;
+traducirInterfaz = function() {
+  _traducirInterfazBaseUi();
+  try { pintarBanderasIdioma(); } catch (e) { /* ignorar */ }
+};
 
 function abrirConfiguracion() {
   const sel = document.getElementById("select-idioma-perfil");

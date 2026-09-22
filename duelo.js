@@ -182,6 +182,12 @@
   // mismo valor, asi eligen el MISMO minijuego de temporada sin depender
   // del anfitrion.
   function semillaDeterministaDuelo(topic, temporada) {
+    // Si el servidor registró la sala (006), la semilla la elige el SERVIDOR:
+    // así el navegador no puede cambiarla para elegir un minijuego cómodo.
+    // Sin registro (RPC no instalado) se conserva la fórmula de siempre.
+    const servidor = (typeof dSesion !== "undefined" && dSesion && dSesion.semillaServidor)
+      ? dSesion.semillaServidor : null;
+    if (servidor) return hashSemilla(servidor + "|" + topic + "-minijuego-" + temporada);
     return hashSemilla((topic || "sala") + "-minijuego-" + temporada);
   }
 
@@ -1110,6 +1116,9 @@
           dSesion.conectado = true;
           dSesion.canal = canal;
           canal.track({ id: miId, apodo: miApodoDuelo });
+          // Registro de la sala en el servidor (participantes reales + semilla
+          // del servidor). Si el RPC no está instalado, no hace nada.
+          registrarSalaSeguraDuelo(topic);
           if (opts.modoAuto) {
             estadoLobbyDuelo('<div class="alert alert-success p-2 mb-0">🟢 ¡Rival localizado! Preparando el duelo...</div>');
             // Si el otro jugador no llegó a tiempo a la sala, se reintenta solo.
@@ -1165,6 +1174,100 @@
     if (!band) return;
     band.classList.remove("hidden");
     band.innerHTML = "🔌 <strong>" + escaparDuelo(d.rival.apodo) + "</strong> se desconectó. Si vuelve, seguimos en la misma temporada. Si no regresa, podés esperar o abandonar el duelo.";
+  }
+
+  // ------------------------------------------------------------
+  //  SEGURIDAD SERVER-SIDE (RPC de Supabase)
+  //  Todo es best-effort: si el RPC no está instalado, no hay sesión o no hay
+  //  internet, el duelo sigue funcionando exactamente como antes.
+  //  Nunca se loguea el token: solo status y respuesta del servidor.
+  // ------------------------------------------------------------
+  function duelRpcSeguro(nombre, cuerpo) {
+    try {
+      if (typeof fetch !== "function" || typeof COPERO_SUPABASE === "undefined") return Promise.resolve(null);
+      const cuenta = window.CoperoCuenta;
+      if (!cuenta || typeof cuenta.token !== "function") return Promise.resolve(null);
+      return cuenta.token().then(function(token) {
+        return fetch(COPERO_SUPABASE.url + "/rest/v1/rpc/" + nombre, {
+          method: "POST",
+          headers: {
+            apikey: COPERO_SUPABASE.publishableKey,
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token
+          },
+          body: JSON.stringify(cuerpo || {})
+        }).then(function(res) {
+          return res.text().then(function(texto) {
+            let datos = null;
+            try { datos = JSON.parse(texto); } catch (e) { datos = null; }
+            if (!res.ok) {
+              try {
+                console.warn("[duelo] RPC " + nombre + " rechazado", JSON.stringify({
+                  status: res.status, statusText: res.statusText,
+                  respuesta: String(texto).slice(0, 400)
+                }));
+              } catch (e) { /* sin consola */ }
+              return { error: true, status: res.status, cuerpo: String(texto), datos: datos };
+            }
+            return datos;
+          });
+        });
+      }).catch(function() { return null; });
+    } catch (e) { return Promise.resolve(null); }
+  }
+
+  // Registra la sala en el servidor: participantes reales + semilla del
+  // servidor. Si la sala ya tiene sus dos jugadores, un tercero es rechazado.
+  // Sin RPC instalado (005/006 sin ejecutar) no cambia absolutamente nada.
+  function registrarSalaSeguraDuelo(topic) {
+    duelRpcSeguro("copero_duelo_sala_unirse", { p_room_id: topic }).then(function(res) {
+      if (!res) return;                       // sin RPC / sin sesión / sin red
+      if (res.error) {
+        if (String(res.cuerpo || "").indexOf("sala_llena") !== -1) {
+          estadoLobbyDuelo('<div class="alert alert-danger p-2 mb-0">Esta sala ya tiene dos jugadores. Probá con otra sala o usá BUSCAR PARTIDO.</div>');
+          cerrarSesionDuelo();
+        }
+        return;
+      }
+      if (dSesion && dSesion.topic === topic) {
+        dSesion.semillaServidor = res.semilla || null;
+        dSesion.rolServidor = res.rol || null;
+        dSesion.verificado = !!res.semilla;
+      }
+    });
+  }
+
+  // Confirmación del resultado propio. La PK (duel_id, user_id) del lado del
+  // servidor hace el envío idempotente: repetirlo no duplica ni reescribe.
+  // Después se lee el veredicto del servidor (compara las dos confirmaciones)
+  // y, si no coincide con el local, queda registrado en consola.
+  function confirmarResultadoSeguroDuelo() {
+    if (!d || !dSesion || !dSesion.topic || dSesion.confirmado) return;
+    dSesion.confirmado = true;
+    const topic = dSesion.topic;
+    let resumen = null;
+    try { resumen = miResumenDuelo(); } catch (e) { return; }
+    duelRpcSeguro("copero_duelo_confirmar", {
+      p_duel_id: topic,
+      p_rol: dSesion.miRol || "A",
+      p_puntaje: calcularPuntajeDuelo(resumen),
+      p_temporadas: d.temporada || 0,
+      p_resumen: resumen
+    }).then(function(res) {
+      if (!res || res.error) return null;
+      return duelRpcSeguro("copero_duelo_resultado", { p_duel_id: topic });
+    }).then(function(res) {
+      if (!res || res.error || !res.completo) return;
+      const cuenta = window.CoperoCuenta;
+      const miUid = (cuenta && typeof cuenta.idUsuario === "function") ? cuenta.idUsuario() : null;
+      const veredicto = (res.ganador == null) ? "empate"
+        : (String(res.ganador) === String(miUid) ? "vos" : "rival");
+      try {
+        console.info("[duelo] Resultado verificado por el servidor", JSON.stringify({
+          mia: res.mia, rival: res.rival, ganador: veredicto
+        }));
+      } catch (e) { /* sin consola */ }
+    }).catch(function() { /* el duelo nunca se rompe por esto */ });
   }
 
   function enviarDuelo(payload) {
@@ -2094,6 +2197,8 @@
     enviarStatsDuelo("Retirado. Calculando...");
     enviarDuelo({ t: "fin", resumen: miResumenDuelo() });
     d.resumenLocal = miResumenDuelo();
+    // Confirmación server-side (idempotente). No bloquea ni cambia la pantalla.
+    confirmarResultadoSeguroDuelo();
     if (d.resumenRival) mostrarFinalDuelo();
   }
 

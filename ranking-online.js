@@ -18,6 +18,13 @@
 //     UPSERT (una sola entrada por cuenta; la nueva reemplaza a
 //     la anterior). Sin sesion queda en cola y se envia sola
 //     cuando el jugador inicie sesion o vuelva internet.
+//   - La publicacion usa el RPC validado del 005 si la base lo tiene
+//     instalado; si todavia no esta (HTTP 404 PGRST202) cae sola al
+//     UPSERT directo sobre la fila propia (002/004). Los dos caminos
+//     quedan bajo RLS: el cliente nunca elige el user_id.
+//   - Los fallos se registran en consola con el detalle REAL de
+//     Supabase (status, statusText, cuerpo, url, payload y user_id)
+//     para que ningun error quede oculto.
 //   - GLOBAL es la fuente real (Supabase). "Este dispositivo" es
 //     solo la carrera guardada (localStorage) y NO se mezcla con
 //     el ranking: la cola (outbox) es un canal de sincronizacion.
@@ -120,24 +127,44 @@ async function fetchConTimeout(url, opciones) {
   }
 }
 
-// Registra en consola el estado y el cuerpo real de un fallo de Supabase
-// (ej. 401, 403 RLS, 404 tabla, 429) para poder diagnosticarlo.
-function registrarFalloRanking(op, res) {
-  try {
-    console.error("[ranking-online] " + op, JSON.stringify({
+// Lee el cuerpo de una respuesta de error UNA sola vez y lo devuelve como
+// texto recortado. Nunca toca tokens: solo lo que responde Supabase.
+function leerCuerpoRanking(res) {
+  if (!res || typeof res.text !== "function") return Promise.resolve("");
+  return Promise.resolve()
+    .then(function() { return res.text(); })
+    .then(function(texto) { return String(texto == null ? "" : texto).slice(0, 2000); })
+    .catch(function() { return ""; });
+}
+
+// Registra en consola el detalle REAL de un fallo de Supabase (HTTP status,
+// statusText, cuerpo con code/message/details/hint, url, usuario autenticado y
+// payload enviado) y devuelve ese detalle para poder propagarlo.
+// Sin esto el error quedaba oculto ("HTTP 400" a secas, sin motivo).
+function registrarFalloRanking(op, res, contexto) {
+  return leerCuerpoRanking(res).then(function(cuerpo) {
+    const ctx = contexto || {};
+    const detalle = {
       operacion: op,
-      status: res && res.status,
-      estadoOk: !!(res && res.ok),
-      cuerpo: res ? "(leyendo cuerpo)" : null
-    }, null, 2));
-    if (!res) return;
-    (async function() {
-      try {
-        const texto = await res.text();
-        console.error("[ranking-online] " + op + " cuerpo", texto.slice(0, 2000));
-      } catch (e) { /* cuerpo no legible */ }
-    })();
-  } catch (e) { /* sin consola */ }
+      url: ctx.url || null,
+      status: res ? res.status : null,
+      statusText: res ? res.statusText : null,
+      autenticado: !!ctx.user_id,
+      user_id: ctx.user_id || null,
+      payload: ctx.payload || null,
+      respuesta: cuerpo || "(sin cuerpo)"
+    };
+    try { console.error("[ranking-online] " + op, JSON.stringify(detalle, null, 2)); } catch (e) { /* sin consola */ }
+    return detalle;
+  }).catch(function() {
+    return { operacion: op, status: res ? res.status : null, respuesta: "" };
+  });
+}
+
+// El RPC del 005 todavia no esta instalado en la base (PostgREST PGRST202).
+function esRpcNoInstalado(cuerpo) {
+  const texto = String(cuerpo || "");
+  return texto.indexOf("PGRST202") !== -1 || /could not find the function/i.test(texto);
 }
 
 // ------------------- SUPABASE (CAPA SEGURA) -------------------
@@ -229,8 +256,41 @@ async function leerRankingNube() {
   return normalizarFilas(await res.json());
 }
 
-// UPSERT de la fila propia (una entrada por cuenta). Sin sesion la base
-// rechaza la escritura: el registro queda en la cola local.
+// ------------------- PUBLICACION (RPC validado + respaldo seguro) -------------------
+//
+// Dos caminos, los dos con RLS activo y SIEMPRE sobre la fila propia:
+//  A) RPC public.copero_publicar_ranking(...)  -> 005-seguridad-ranking.sql
+//     (SECURITY DEFINER: el servidor pone user_id = auth.uid(), ts y anio, y
+//      valida posicion/club/rangos; el cliente no manda user_id).
+//  B) UPSERT directo a copero_ranking  -> 002-ranking.sql / 004-fixes.sql
+//     (la politica RLS exige user_id = auth.uid(): solo puede tocar su fila).
+// El camino A se usa apenas la base lo tenga instalado; si todavia no esta
+// (404 PGRST202) se cae a B automaticamente, para que la sincronizacion no
+// dependa de que el SQL 005 ya se haya ejecutado. Se decide una vez por sesion.
+let RANKING_RPC_DISPONIBLE = null;
+
+// Datos del upsert directo, acotados a los CHECK de la tabla (media 0..99,
+// titulos 0..1000, apodo 2..30, posicion <= 5, club <= 40): asi un valor raro
+// no deja un registro imposible de publicar atascado para siempre en la cola.
+function payloadDirectoRanking(registro, usuarioId) {
+  const nombre = String(registro.display_name || "").trim().slice(0, 30);
+  return {
+    // La fila es SIEMPRE la del usuario en sesion: el payload de la cola no
+    // puede elegir otro user_id (la RLS lo rechazaria igual).
+    user_id: usuarioId,
+    display_name: nombre.length >= 2 ? nombre : "Jugador",
+    posicion: String(registro.posicion || "").trim().slice(0, 5),
+    club: String(registro.club || "").trim().slice(0, 40),
+    media: Math.max(0, Math.min(99, Math.round(Number(registro.media) || 0))),
+    titulos: Math.max(0, Math.min(1000, Math.round(Number(registro.titulos) || 0))),
+    anio: Number(registro.anio) || new Date().getFullYear(),
+    ts: registro.ts || new Date().toISOString()
+  };
+}
+
+// Publica la carrera. Devuelve true SOLO con HTTP 2xx (eso es lo que permite
+// borrar la cola). 401/403 => false (queda en cola y se reintenta solo).
+// Cualquier otro fallo se loguea con el detalle real de Supabase y se propaga.
 async function publicarEnNube(registro) {
   const sesion = sesionRanking();
   if (!sesion) return false;
@@ -242,36 +302,76 @@ async function publicarEnNube(registro) {
     try { console.error("[ranking-online] publicarEnNube sin token", e && e.message); } catch (e2) { /* silencio */ }
     return false;
   }
-  // La fila SIEMPRE es la del usuario en sesion, y el cuerpo va EXACTO a las
-  // columnas de la tabla (nada de campos extra que PostgREST rechace).
-  const cuerpo = {
-    user_id: sesion.userId,
-    display_name: registro.display_name,
-    posicion: registro.posicion || "",
-    club: registro.club || "",
-    media: registro.media,
-    titulos: registro.titulos,
-    anio: registro.anio,
-    ts: registro.ts
-  };
-  const res = await fetchConTimeout(urlRanking(), {
+  const cfg = supabaseConfig();
+  const usuarioId = sesion.userId;
+
+  // Camino A: RPC validado (005). El nonce es el _id de la cola.
+  if (RANKING_RPC_DISPONIBLE !== false) {
+    const urlRpc = cfg.url + "/rest/v1/rpc/copero_publicar_ranking";
+    const cuerpoRpc = {
+      display_name: String(registro.display_name || ""),
+      posicion: String(registro.posicion || ""),
+      club: String(registro.club || ""),
+      media: Number(registro.media) || 0,
+      titulos: Number(registro.titulos) || 0,
+      evento: "carrera",
+      nonce: String(registro._id ||
+        ("r" + Date.now().toString(36) + Math.random().toString(36).slice(2, 10)))
+    };
+    const resRpc = await fetchConTimeout(urlRpc, {
+      method: "POST",
+      headers: headersRanking(token),
+      body: JSON.stringify(cuerpoRpc)
+    });
+    if (resRpc.ok) {
+      RANKING_RPC_DISPONIBLE = true;
+      return true;
+    }
+    const ctxRpc = { url: urlRpc, user_id: usuarioId, payload: cuerpoRpc };
+    if (resRpc.status === 404) {
+      const detalle = await registrarFalloRanking("publicarEnNube RPC no instalado", resRpc, ctxRpc);
+      if (!esRpcNoInstalado(detalle.respuesta)) {
+        throw new Error("Ranking HTTP 404 - " + (detalle.respuesta || "RPC no disponible"));
+      }
+      // La base todavia no tiene el 005: se sigue con el upsert directo.
+      RANKING_RPC_DISPONIBLE = false;
+    } else if (resRpc.status === 401 || resRpc.status === 403) {
+      // Token vencido/revocado o rechazo de RLS: el registro queda EN COLA.
+      await registrarFalloRanking("publicarEnNube rechazado", resRpc, ctxRpc);
+      return false;
+    } else {
+      const detalle = await registrarFalloRanking("publicarEnNube", resRpc, ctxRpc);
+      throw new Error("Ranking HTTP " + resRpc.status +
+        (detalle.respuesta ? " - " + detalle.respuesta : ""));
+    }
+  }
+
+  // Camino B: upsert directo a la fila propia (base actual, 002/004).
+  // on_conflict=user_id es correcto: user_id es PRIMARY KEY de copero_ranking.
+  const urlTabla = cfg.url + "/rest/v1/copero_ranking?on_conflict=user_id";
+  const cuerpoTabla = payloadDirectoRanking(registro, usuarioId);
+  const res = await fetchConTimeout(urlTabla, {
     method: "POST",
     headers: Object.assign(headersRanking(token), { Prefer: "resolution=merge-duplicates" }),
-    body: JSON.stringify(cuerpo)
+    body: JSON.stringify(cuerpoTabla)
   });
-  // 401/403 (token vencido/revocado): el registro queda EN COLA para reintentar,
-  // NUNCA se da de baja la sesion (puede ser un rechazo transitorio o de otra
-  // pestaña). Cuando la sesion recupere validez se reenvia solo.
+  // 401/403 (token vencido/revocado o RLS): el registro queda EN COLA para
+  // reintentar, NUNCA se da de baja la sesion (puede ser un rechazo transitorio
+  // o de otra pestaña). Cuando la sesion recupere validez se reenvia solo.
   if (res.status === 401 || res.status === 403) {
-    registrarFalloRanking("publicarEnNube rechazado", res);
+    await registrarFalloRanking("publicarEnNube rechazado", res,
+      { url: urlTabla, user_id: usuarioId, payload: cuerpoTabla });
     return false;
   }
   if (!res.ok) {
-    registrarFalloRanking("publicarEnNube", res);
-    throw new Error("HTTP " + res.status);
+    const detalle = await registrarFalloRanking("publicarEnNube", res,
+      { url: urlTabla, user_id: usuarioId, payload: cuerpoTabla });
+    throw new Error("Ranking HTTP " + res.status +
+      (detalle.respuesta ? " - " + detalle.respuesta : ""));
   }
   return true;
 }
+
 
 // ------------------- COLA OFFLINE / SINCRONIZACION -------------------
 

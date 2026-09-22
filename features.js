@@ -229,6 +229,10 @@ function cargarSlotDesdePanel(n) {
 //  (ranking-online.js). No hay ranking local.
 // ------------------------------------------------------------
 function guardarEnRanking() {
+  // El Modo Leal es una carrera "de un solo club" que NO cuenta para el
+  // ranking global: jamás se publica online (el club es fijo, no refleja
+  // el progreso general y no debe contaminar la tabla).
+  if (jugador && jugador.modoDesafio) return;
   if (typeof intentarEnviarRankingOnline === "function") {
     intentarEnviarRankingOnline();
   }
@@ -562,7 +566,8 @@ function mostrarFinal() {
 }
 
 // ------------------------------------------------------------
-//  MODO DESAFÍO: un solo club para siempre, ganarle 5 títulos
+//  MODO LEAL: modo independiente (botón propio bajo "Iniciar Carrera").
+//  Un solo club para siempre; ganarle 10 títulos. No cuenta para el ranking.
 // ------------------------------------------------------------
 function elegirClubDesafio() {
   // Solo clubs con reputación menor a 8 (no aparecen 8/10 para arriba).
@@ -588,7 +593,8 @@ function activarModoDesafio() {
     "🛡️ ¡Modo Leal Iniciado!",
     "Te tocó <strong style='color:#ffd43b;'>" + club.nombre + "</strong> (reputación " + club.reputacion + "/10).<br><br>" +
     "Estás <strong>fichado ahí para siempre</strong>: no hay mercado de fichajes, solo simulás temporadas.<br><br>" +
-    "<strong>🎯 Objetivo: ganarle 5 títulos al club.</strong>"
+    "Esta carrera <strong>no cuenta para el ranking online</strong>.<br><br>" +
+    "<strong>🎯 Objetivo: ganarle 10 títulos al club.</strong>"
   );
 }
 
@@ -600,14 +606,14 @@ function titulosTotalesDesafio() {
 
 function chequearModoDesafio() {
   if (!jugador.modoDesafio || jugador.desafioCompletado) return;
-  if (titulosTotalesDesafio() >= 5) {
+  if (titulosTotalesDesafio() >= 10) {
     jugador.desafioCompletado = true;
     jugador.modoLeal = true;
     guardarPartida();
     lanzarConfeti(120);
     mostrarNotificacion(
       "🏆 ¡OBJETIVO CUMPLIDO!",
-      "Le ganaste <strong>5 títulos</strong> a " + (jugador.clubActual ? jugador.clubActual.nombre : "tu club") +
+      "Le ganaste <strong>10 títulos</strong> a " + (jugador.clubActual ? jugador.clubActual.nombre : "tu club") +
       ".<br><br>Sos una leyenda del club. 🎉"
     );
     setTimeout(() => {
@@ -894,7 +900,9 @@ const _iniciarCarreraBase = iniciarCarrera;
 iniciarCarrera = function() {
   limpiarEstadosMinijuegos();
   if (!modoDesafioPendiente) { _iniciarCarreraBase(); return; }
-  // Modo Desafío: reemplaza la asignación de club aleatoria por el sorteo ponderado
+  // Modo Leal: arranque directo (botón independiente bajo "Iniciar Carrera").
+  // Reemplaza la asignación de club aleatoria por el sorteo ponderado y fija
+  // el club de por vida (sin mercado, así funciona la carrera 100%).
   const nombreInput = document.getElementById("input-nombre").value.trim();
   if (!nombreInput) {
     mostrarNotificacion("Atención", "Por favor, ingresa el nombre de tu jugador.");
@@ -909,14 +917,22 @@ iniciarCarrera = function() {
   activarModoDesafio();
   prepararSiguienteEvento();
   actualizarInterfaz();
-  // Resetear el botón del modo desafío
+  // El modo ya arrancó: no hay toggle pendiente que resetear.
   modoDesafioPendiente = false;
-  const btnSeed = document.getElementById("btn-modo-desafio");
-  if (btnSeed) {
-    btnSeed.classList.remove("btn-warning");
-    btnSeed.classList.add("btn-outline-secondary");
-    btnSeed.innerText = uiT("modoDesafio", "🛡️ Modo Leal");
+};
+
+// MODO LEAL independiente: arranque directo, sin toggle previo.
+function iniciarCarreraLeal() {
+  const nombreInput = document.getElementById("input-nombre").value.trim();
+  if (!nombreInput) {
+    mostrarNotificacion(
+      uiT("modoDesafio", "🛡️ Modo Leal"),
+      "Ingresá el nombre de tu jugador para iniciar el Modo Leal."
+    );
+    return;
   }
+  modoDesafioPendiente = true;
+  iniciarCarrera();
 };
 
 // FIX V2: también limpiar estados al continuar una partida guardada.
@@ -1024,26 +1040,6 @@ mostrarModalRol = function(rol) {
 document.addEventListener("DOMContentLoaded", function() {
   aplicarModoOscuro();
   traducirInterfaz();
-
-  const btnSeed = document.getElementById("btn-modo-desafio");
-  if (btnSeed) {
-    btnSeed.addEventListener("click", function() {
-      modoDesafioPendiente = !modoDesafioPendiente;
-      btnSeed.classList.toggle("btn-warning", modoDesafioPendiente);
-      btnSeed.classList.toggle("btn-outline-secondary", !modoDesafioPendiente);
-      btnSeed.innerText = modoDesafioPendiente
-        ? uiT("modoDesafio", "🛡️ Modo Leal") + ": ACTIVADO"
-        : uiT("modoDesafio", "🛡️ Modo Leal");
-      if (modoDesafioPendiente) {
-        mostrarNotificacion(
-          uiT("modoDesafio", "🛡️ Modo Leal"),
-          "Al iniciar la carrera te va a tocar un club de <strong>reputación baja (menos de 8/10)</strong>, con más chances para los más chicos.<br><br>" +
-          "Vas a estar <strong>fichado ahí para siempre</strong>: sin mercado de fichajes, solo simulando temporadas.<br><br>" +
-          "<strong>Objetivo: ganarle 5 títulos a ese club.</strong>"
-        );
-      }
-    });
-  }
 
   const btnDark = document.getElementById("btn-modo-oscuro");
   if (btnDark) btnDark.addEventListener("click", toggleModoOscuro);

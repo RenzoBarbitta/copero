@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test Minijuegos</title>
+<style>
+  * { box-sizing: border-box; }
+  body { background: #0d0d0d; color: #fff; padding: 16px; font-family: system-ui, sans-serif; max-width: 580px; margin: 0 auto; }
+  h1 { font-size: 17px; margin: 0 0 4px; }
+  p.sub { color: #888; font-size: 12px; margin: 0 0 14px; }
+  .btns { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .btns button { padding: 10px 16px; font-size: 13px; font-weight: 800; border-radius: 8px; border: none; cursor: pointer; color: #fff; }
+  .b1 { background: #c33318; } .b2 { background: #1760a0; } .b3 { background: #2a7a3a; }
+  .b4 { background: #a06020; } .b5 { background: #444; }
+  #resultado { margin-top: 12px; padding: 12px; background: #1a1a1a; border-radius: 8px; border: 1px solid #2a2a2a; display: none; text-align: center; font-size: 14px; line-height: 1.6; }
+
+  /* BASE */
+  .mg-wrap { position: relative; width: 100%; user-select: none; }
+  .mg-scene { position: relative; width: 100%; height: 500px; border-radius: 12px; overflow: hidden; touch-action: none; }
+  .mg-wrap[data-variant="tunnel"] .mg-scene { background: linear-gradient(180deg, #2a0a10 0%, #12040a 60%, #080204 100%); }
+  .mg-wrap[data-variant="rain"] .mg-scene { background: linear-gradient(180deg, #0a1e34 0%, #05101c 60%, #02060a 100%); }
+
+  .mg-hud { position: absolute; top: 10px; left: 10px; right: 10px; z-index: 20; display: flex; justify-content: space-between; gap: 6px; pointer-events: none; font-family: monospace; flex-wrap: wrap; }
+  .mg-chip { display: inline-flex; align-items: baseline; gap: 6px; padding: 5px 10px; border-radius: 8px; font-size: 13px; color: #fff; background: rgba(0,0,0,.6); }
+  .mg-chip .lbl { font-size: 10px; font-weight: 700; opacity: .6; letter-spacing: .1em; }
+  .mg-chip .val { font-size: 16px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .mg-chip.timer .val { color: #7ef0c4; }
+  .mg-wrap[data-variant="tunnel"] .mg-chip.timer .val { color: #ffcd8a; }
+  .mg-chip.hits .val { color: #ff8a7a; }
+
+  .mg-lives { position: absolute; top: 44px; left: 50%; transform: translateX(-50%); z-index: 20; display: flex; gap: 5px; pointer-events: none; }
+  .mg-life { width: 9px; height: 9px; border-radius: 50%; background: #ff4a4a; box-shadow: 0 0 8px rgba(255,80,80,.8); }
+  .mg-life.off { background: #2a2a2a; box-shadow: none; }
+
+  .mg-obs { position: absolute; top: 0; left: 0; display: flex; align-items: center; justify-content: center; font-size: 22px; will-change: transform; z-index: 5; pointer-events: none; box-shadow: inset 0 -4px 8px rgba(0,0,0,.35); border-radius: 50%; }
+  .mg-obs.person { background: radial-gradient(circle at 35% 30%, #ffa06a, #c93418); }
+  .mg-obs.cam { background: radial-gradient(circle at 35% 30%, #7ecfff, #1663a0); }
+  .mg-obs.mic { background: radial-gradient(circle at 35% 30%, #c58bff, #6a2ba8); }
+  .mg-obs.car { background: radial-gradient(circle at 35% 30%, #ff7a7a, #a81414); }
+  .mg-obs.pedestrian { background: radial-gradient(circle at 35% 30%, #ffdc8a, #b08018); }
+  .mg-obs.puddle { background: radial-gradient(circle at 35% 30%, #9fe8ff, #167fa8); }
+  .mg-obs.puddle.wide { border-radius: 50%; }
+
+  .mg-raindrop { position: absolute; width: 2px; height: 18px; background: linear-gradient(180deg, transparent, rgba(180,220,255,.7)); border-radius: 2px; pointer-events: none; z-index: 3; }
+
+  .mg-player { position: absolute; bottom: 24px; width: 62px; height: 62px; display: flex; align-items: center; justify-content: center; font-size: 46px; line-height: 1; transition: left .08s cubic-bezier(.4, 0, .2, 1); z-index: 10; text-shadow: 0 0 20px rgba(120,255,180,.9); }
+  .mg-wrap[data-variant="tunnel"] .mg-player { text-shadow: 0 0 20px rgba(255,220,120,.95); }
+  .mg-player.hit { animation: shake .35s ease-out; }
+  @keyframes shake { 0%,100% { transform: translateX(0) scale(1); } 25% { transform: translateX(-6px) rotate(-8deg) scale(1.1); } 50% { transform: translateX(6px) rotate(8deg) scale(1.1); } 75% { transform: translateX(-4px); } }
+
+  .mg-flash { position: absolute; inset: 0; z-index: 15; pointer-events: none; opacity: 0; transition: opacity .15s; background: radial-gradient(60% 60% at 50% 80%, rgba(255,80,60,.55), transparent 80%); }
+
+  .mg-controls { position: absolute; left: 0; right: 0; bottom: 0; z-index: 22; display: flex; justify-content: space-between; padding: 0 10px 12px; pointer-events: none; }
+  .mg-btn { pointer-events: auto; width: 64px; height: 64px; border-radius: 50%; border: none; background: rgba(255,255,255,.12); color: #fff; font-size: 26px; font-weight: 900; display: flex; align-items: center; justify-content: center; cursor: pointer; touch-action: manipulation; }
+  .mg-btn:active { transform: scale(.9); background: rgba(255,255,255,.28); }
+
+  .mg-intro, .mg-end { position: absolute; inset: 0; z-index: 25; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.72); opacity: 1; transition: opacity .4s; padding: 20px; pointer-events: none; }
+  .mg-intro.hide { opacity: 0; }
+  .mg-end { z-index: 30; background: rgba(0,0,0,.88); opacity: 0; visibility: hidden; text-align: center; transition: opacity .4s, visibility .4s; }
+  .mg-end.show { opacity: 1; visibility: visible; }
+  .mg-intro-card, .mg-end > div { text-align: center; color: #fff; max-width: 380px; }
+  .mg-intro-emoji, .mg-end-emoji { font-size: 48px; display: block; margin-bottom: 8px; }
+  .mg-intro-title, .mg-end-title { font-size: 20px; font-weight: 900; letter-spacing: .04em; margin-bottom: 8px; }
+  .mg-intro-text, .mg-end-sub { font-size: 13px; color: #c0d0e0; margin-bottom: 10px; line-height: 1.5; }
+  .mg-intro-keys { display: flex; align-items: center; justify-content: center; gap: 8px; color: #8899aa; font-size: 12px; }
+  .mg-intro-keys kbd { background: #1a2230; border-bottom: 3px solid #2a3a4e; border-radius: 6px; padding: 4px 10px; font-family: monospace; font-size: 15px; font-weight: 900; color: #fff; min-width: 34px; text-align: center; }
+
+  /* ===== REGATE (2 carriles) ===== */
+  .rg-scene { position: relative; width: 100%; height: 500px; border-radius: 12px; overflow: hidden; touch-action: none; background: #062a10; }
+  .rg-field { position: absolute; inset: 0; background: repeating-linear-gradient(0deg, #0a4a1e 0 40px, #093f1a 40px 80px); }
+  .rg-arco { position: absolute; top: 40px; left: 50%; transform: translateX(-50%); width: 200px; height: 90px; border: 5px solid #fff; border-bottom: none; border-radius: 4px 4px 0 0; z-index: 2; }
+  .rg-arco::after { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 3px; background: rgba(255,255,255,.35); transform: translateX(-50%); }
+  .rg-defensor { position: absolute; font-size: 58px; z-index: 8; transform: translateX(-50%); text-shadow: 0 4px 12px rgba(0,0,0,.55); transition: top .6s cubic-bezier(.3,0,.7,1), opacity .3s, transform .3s; }
+  .rg-arquero { position: absolute; font-size: 58px; z-index: 9; transform: translateX(-50%); transition: top .3s, left .35s ease, transform .35s, opacity .3s; text-shadow: 0 4px 12px rgba(0,0,0,.55); }
+  .rg-jugador { position: absolute; font-size: 58px; z-index: 10; transform: translateX(-50%); transition: left .12s ease, top .35s ease; text-shadow: 0 4px 12px rgba(0,0,0,.6); }
+  .rg-pelota { position: absolute; font-size: 40px; z-index: 11; transform: translate(-50%, -50%); transition: left .6s cubic-bezier(.4,0,.7,1), top .6s cubic-bezier(.4,0,.7,1); pointer-events: none; filter: drop-shadow(0 4px 8px rgba(0,0,0,.6)); }
+  .rg-msg { position: absolute; top: 42%; left: 50%; transform: translate(-50%, -50%); z-index: 20; font-size: 22px; font-weight: 900; color: #fff; text-shadow: 0 0 12px #000, 0 0 24px #000; padding: 12px 22px; background: rgba(0,0,0,.75); border-radius: 10px; display: none; text-align: center; white-space: nowrap; }
+  .rg-msg.on { display: block; }
+  .rg-lane-indicator { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 15; }
+  .rg-lane-dot { width: 14px; height: 14px; border-radius: 50%; background: rgba(255,255,255,.25); transition: background .15s, box-shadow .15s; }
+  .rg-lane-dot.on { background: #7ef0c4; box-shadow: 0 0 10px #7ef0c4; }
+  .rg-fase-hud { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 20; font-family: monospace; font-weight: 900; font-size: 15px; color: #fff; background: rgba(0,0,0,.6); padding: 6px 14px; border-radius: 8px; letter-spacing: .1em; }
+  .rg-bigbtn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 26; padding: 18px 44px; font-size: 20px; font-weight: 900; background: #2a7a3a; color: #fff; border: none; border-radius: 14px; cursor: pointer; box-shadow: 0 6px 0 #164a1e, 0 10px 30px rgba(0,0,0,.6); letter-spacing: .05em; }
+  .rg-bigbtn:active { transform: translate(-50%, -50%) translateY(3px); box-shadow: 0 3px 0 #164a1e; }
+  .rg-bigbtn.hide { display: none; }
+  .rg-patear { position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 24; padding: 14px 40px; font-size: 18px; font-weight: 900; background: #c33318; color: #fff; border: none; border-radius: 12px; cursor: pointer; box-shadow: 0 5px 0 #7a1a0a; }
+  .rg-patear:active { transform: translateX(-50%) translateY(2px); box-shadow: 0 2px 0 #7a1a0a; }
+  .rg-patear.hide { display: none; }
+
+  /* ===== DARDOS ===== */
+  .dd-wrap { position: relative; width: 100%; height: 500px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 20px; background: linear-gradient(180deg, #1a1010 0%, #0a0505 100%); border-radius: 12px; overflow: hidden; }
+  .dd-board { position: relative; width: 260px; height: 260px; border-radius: 50%; background: radial-gradient(circle, #e63946 0 15%, #f1c40f 15% 30%, #e63946 30% 45%, #f1c40f 45% 60%, #e63946 60% 75%, #f1c40f 75% 90%, #e63946 90% 100%); box-shadow: 0 0 30px rgba(0,0,0,.6), inset 0 0 20px rgba(0,0,0,.3); border: 5px solid #1a0a0a; margin-top: 10px; }
+  .dd-board::after { content: "50"; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 16px; font-weight: 900; color: #fff; text-shadow: 0 0 4px #000; pointer-events: none; }
+  .dd-hole { position: absolute; width: 12px; height: 12px; background: #111; border: 2px solid #ffd24a; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 6px #ffd24a; }
+  .dd-indicator { position: absolute; width: 14px; height: 14px; background: #ffd24a; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 12px #ffd24a, 0 0 24px #ffd24a; }
+  .dd-btn { margin-top: 24px; padding: 14px 40px; font-size: 18px; font-weight: 900; background: #c33318; color: #fff; border: none; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 0 #7a1a0a; }
+  .dd-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #7a1a0a; }
+  .dd-btn:disabled { opacity: .4; cursor: not-allowed; box-shadow: 0 4px 0 #333; }
+  .dd-score { margin-top: 16px; font-family: monospace; font-size: 16px; color: #ffd24a; font-weight: 900; }
+  .dd-msg { margin-top: 12px; font-size: 18px; font-weight: 900; color: #fff; min-height: 24px; }
+</style>
+</head>
+<body>
+
+<h1>🎮 Test Minijuegos</h1>
+<p class="sub">← → o A/D para moverte. Cada juego tiene su propia lógica.</p>
+
+<div class="btns">
+  <button class="b1" onclick="lanzar('tunnel')">🏟️ Túnel</button>
+  <button class="b2" onclick="lanzar('rain')">🌧️ Lluvia</button>
+  <button class="b3" onclick="lanzar('regate')">⚽ Regate y Gol</button>
+  <button class="b4" onclick="lanzar('dardos')">🎯 Dardos</button>
+  <button class="b5" onclick="detener()">⏹ Detener</button>
+</div>
+
+<div id="escenario"></div>
+<div id="resultado"></div>
+
+<script>
+(function (global) {
+  "use strict";
+  function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+  function now() { return (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now(); }
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function randInt(n) { return Math.floor(Math.random() * n); }
+
+  /* ============================================================
+     ESQUIVE (túnel / lluvia)
+     ============================================================ */
+  function createDodge(container, config) {
+    var cfg = Object.assign({ duration: 20000, lanes: 3, variant: "tunnel", fallDuration: 800, onFinish: null }, config || {});
+    var isRain = cfg.variant === "rain";
+    var playerLane = 1, items = [], hits = 0, score = 0;
+    var startTime = 0, lastLoopTime = 0, nextSpawnAt = 0;
+    var destroyed = false, finished = false, ending = false, rafId = null;
+    var touchStart = null, W = 1, H = 1, laneWidth = 1;
+    var shakeUntil = 0, introTimer = null, raindrops = [];
+
+    var wrap = el("div", "mg-wrap"); wrap.setAttribute("data-variant", cfg.variant);
+    var scene = el("div", "mg-scene"); wrap.appendChild(scene);
+
+    if (isRain) {
+      for (var r = 0; r < 40; r++) {
+        var drop = el("div", "mg-raindrop");
+        drop.style.left = Math.random() * 100 + "%";
+        drop.style.top = (Math.random() * -100) + "%";
+        drop.style.opacity = (0.3 + Math.random() * 0.5).toFixed(2);
+        scene.appendChild(drop);
+        raindrops.push({ node: drop, y: parseFloat(drop.style.top) / 100, speed: 1.5 + Math.random() * 1.5, len: 12 + Math.random() * 16 });
+      }
+    }
+
+    var hud = el("div", "mg-hud");
+    hud.appendChild(el("div", "mg-chip timer", '<span class="lbl">T</span><span class="val" id="mg-timer">20.0</span>'));
+    hud.appendChild(el("div", "mg-chip", '<span class="lbl">ESQUIVES</span><span class="val" id="mg-score">0</span>'));
+    hud.appendChild(el("div", "mg-chip hits", '<span class="lbl">GOLPES</span><span class="val" id="mg-hits">0</span>'));
+    scene.appendChild(hud);
+
+    var lives = el("div", "mg-lives");
+    var lifeEls = [];
+    for (var i = 0; i < 3; i++) { var li = el("div", "mg-life"); lives.appendChild(li); lifeEls.push(li); }
+    scene.appendChild(lives);
+
+    var flash = el("div", "mg-flash"); scene.appendChild(flash);
+    var player = el("div", "mg-player", "👕"); scene.appendChild(player);
+
+    var controls = el("div", "mg-controls");
+    function makeBtn(dir) {
+      var b = el("button", "mg-btn", dir > 0 ? "▶" : "◀");
+      b.type = "button";
+      b.addEventListener("click", function () { movePlayer(playerLane + dir); });
+      return b;
+    }
+    controls.appendChild(makeBtn(-1)); controls.appendChild(makeBtn(1)); scene.appendChild(controls);
+
+    var intro = el("div", "mg-intro",
+      '<div class="mg-intro-card">' +
+      '<span class="mg-intro-emoji">' + (isRain ? "🌧️" : "🏟️") + "</span>" +
+      '<div class="mg-intro-title">' + (isRain ? "CARRERA BAJO LLUVIA" : "SALIDA DEL TÚNEL") + "</div>" +
+      '<div class="mg-intro-text">' + (isRain ? "Caen <strong>en diagonal</strong>." : "Caen <strong>rectos</strong>.") + "</div>" +
+      '<div class="mg-intro-keys"><kbd>←</kbd><span>o</span><kbd>→</kbd></div>' +
+      "</div>");
+    scene.appendChild(intro);
+
+    var endOverlay = el("div", "mg-end",
+      '<div>' +
+      '<span class="mg-end-emoji" id="mg-end-emoji"></span>' +
+      '<div class="mg-end-title" id="mg-end-title"></div>' +
+      '<div class="mg-end-sub" id="mg-end-sub"></div>' +
+      "</div>");
+    scene.appendChild(endOverlay);
+
+    function hideIntro() { intro.classList.add("hide"); }
+    function introOnKey(e) {
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "a" || e.key === "A" || e.key === "d" || e.key === "D") hideIntro();
+    }
+    function resize() {
+      var r = scene.getBoundingClientRect();
+      if (r.width <= 0 || r.height <= 0) return;
+      W = Math.round(r.width); H = Math.round(r.height);
+      laneWidth = W / cfg.lanes;
+      updatePlayerX();
+      var size = laneWidth * 0.42;
+      for (var j = 0; j < items.length; j++) {
+        var o = items[j];
+        if (o.kind === "obstacle") {
+          o.node.style.width = size + "px";
+          o.node.style.height = (o.wide ? size * 0.5 : size) + "px";
+          o.node.style.left = (laneWidth * o.lane + (laneWidth - size) / 2) + "px";
+        }
+      }
+    }
+    function updatePlayerX() {
+      var pw = player.offsetWidth || 62;
+      player.style.left = (laneWidth * (playerLane + 0.5) - pw / 2) + "px";
+    }
+    function movePlayer(idx) {
+      idx = clamp(idx, 0, cfg.lanes - 1);
+      if (idx === playerLane) return;
+      playerLane = idx;
+      updatePlayerX();
+    }
+    function onKeyDown(e) {
+      if (destroyed || finished) return;
+      if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") { e.preventDefault(); movePlayer(playerLane - 1); }
+      else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") { e.preventDefault(); movePlayer(playerLane + 1); }
+    }
+    function onTouchStart(e) { var t = e.touches && e.touches[0]; if (t) touchStart = { x: t.clientX }; }
+    function onTouchEnd(e) {
+      if (!touchStart) return;
+      var t = e.changedTouches && e.changedTouches[0];
+      if (t) { var dx = t.clientX - touchStart.x; if (Math.abs(dx) > 30) movePlayer(playerLane + (dx > 0 ? 1 : -1)); }
+      touchStart = null;
+    }
+    scene.addEventListener("touchstart", onTouchStart, { passive: true });
+    scene.addEventListener("touchend", onTouchEnd, { passive: true });
+    scene.addEventListener("touchstart", hideIntro, { once: true, passive: true });
+    global.addEventListener("keydown", onKeyDown);
+    global.addEventListener("keydown", introOnKey);
+
+    function pickShape() {
+      var pool = isRain
+        ? [{ type: "car", emoji: "🚗" }, { type: "pedestrian", emoji: "🚶" }, { type: "puddle", emoji: "💧", wide: true }]
+        : [{ type: "person", emoji: "🧑" }, { type: "cam", emoji: "📷" }, { type: "mic", emoji: "🎤" }];
+      return pool[randInt(pool.length)];
+    }
+
+    function spawn() {
+      var lane = randInt(cfg.lanes);
+      var size = laneWidth * 0.42;
+      var pick = pickShape();
+      var wide = !!pick.wide;
+      var node = el("div", "mg-obs " + pick.type + (wide ? " wide" : ""), pick.emoji);
+      node.style.width = size + "px";
+      node.style.height = (wide ? size * 0.5 : size) + "px";
+      node.style.left = (laneWidth * lane + (laneWidth - size) / 2) + "px";
+      node.style.top = (-size) + "px";
+      scene.appendChild(node);
+      items.push({
+        kind: "obstacle", lane: lane, node: node, age: 0,
+        wide: wide, hit: false, passed: false,
+        drift: isRain ? (Math.random() * 2 - 1) * 0.35 : 0
+      });
+      var elapsedSec = (now() - startTime) / 1000;
+      var base = isRain ? 500 : 420;
+      var min = isRain ? 240 : 200;
+      nextSpawnAt = now() + Math.max(min, base - elapsedSec * 12);
+    }
+
+    function updateItems(dt) {
+      var zone = H - 90;
+      for (var i = items.length - 1; i >= 0; i--) {
+        var o = items[i];
+        o.age += dt;
+        var p = clamp(o.age / cfg.fallDuration, 0, 1);
+        var y = p * (H - 40);
+        var dx = (isRain && o.kind === "obstacle") ? o.drift * p * laneWidth * 0.8 : 0;
+        o.node.style.transform = "translate(" + dx + "px," + y + "px)";
+        if (!o.hit && !o.passed && y > zone) {
+          if (o.lane === playerLane) {
+            hits++;
+            shakeUntil = now() + 350;
+            flash.style.opacity = "0.75";
+            player.classList.remove("hit"); void player.offsetWidth; player.classList.add("hit");
+            setTimeout(function () { flash.style.opacity = "0"; }, 150);
+            o.hit = true;
+            if (o.node.parentNode) o.node.parentNode.removeChild(o.node);
+            items.splice(i, 1);
+            updateHud();
+            if (hits >= 3) { startEnding(); return; }
+            continue;
+          } else if (!o.passed) {
+            o.passed = true; score++; updateHud();
+          }
+        }
+        if (p >= 1 || y > H + 40) {
+          if (o.node.parentNode) o.node.parentNode.removeChild(o.node);
+          items.splice(i, 1);
+        }
+      }
+    }
+
+    function updateRain(dt) {
+      for (var i = 0; i < raindrops.length; i++) {
+        var d = raindrops[i];
+        d.y += (d.speed * dt) / 1000;
+        if (d.y > 1.1) { d.y = -0.1; d.node.style.left = Math.random() * 100 + "%"; }
+        d.node.style.top = (d.y * 100) + "%";
+        d.node.style.height = d.len + "px";
+      }
+    }
+
+    function updateHud() {
+      for (var i = 0; i < lifeEls.length; i++) lifeEls[i].classList.toggle("off", i < hits);
+      var e1 = document.getElementById("mg-hits"); if (e1) e1.textContent = hits;
+      var e2 = document.getElementById("mg-score"); if (e2) e2.textContent = score;
+    }
+
+    function applyShake() {
+      var t = now();
+      if (t < shakeUntil) {
+        var k = (shakeUntil - t) / 350 * 5;
+        scene.style.transform = "translate(" + ((Math.random() * 2 - 1) * k) + "px," + ((Math.random() * 2 - 1) * k) + "px)";
+      } else if (scene.style.transform) scene.style.transform = "";
+    }
+
+    function startEnding() {
+      if (ending || destroyed || finished) return;
+      ending = true;
+      var endEmoji = document.getElementById("mg-end-emoji");
+      var endTitle = document.getElementById("mg-end-title");
+      var endSub = document.getElementById("mg-end-sub");
+      if (hits === 0) { endEmoji.textContent = "🏆"; endTitle.textContent = isRain ? "¡LLEGASTE SECO!" : "¡PASASTE LIMPIO!"; }
+      else if (hits < 3) { endEmoji.textContent = "🏁"; endTitle.textContent = isRain ? "LLEGASTE MOJADO" : "LLEGASTE CON ROZONES"; }
+      else { endEmoji.textContent = "💥"; endTitle.textContent = isRain ? "NO LLEGASTE" : "TE AGARRARON"; }
+      endSub.innerHTML = "Esquives: <strong style='color:#7ef0c4'>" + score + "</strong> · Golpes: <strong style='color:#ff8a7a'>" + hits + "</strong>";
+      endOverlay.classList.add("show");
+      setTimeout(finishGame, 1100);
+    }
+
+    function finishGame() {
+      if (finished || destroyed) return;
+      finished = true; ending = false;
+      if (rafId != null) { global.cancelAnimationFrame(rafId); rafId = null; }
+      if (typeof cfg.onFinish === "function") { try { cfg.onFinish({ hits: hits, score: score }); } catch (e) {} }
+    }
+
+    function loop() {
+      if (destroyed) { rafId = null; return; }
+      rafId = global.requestAnimationFrame(loop);
+      var t = now();
+      var dt = Math.min(50, t - lastLoopTime);
+      lastLoopTime = t;
+      var elapsed = t - startTime;
+      if (ending) { applyShake(); return; }
+      if (elapsed < cfg.duration && t >= nextSpawnAt) spawn();
+      updateItems(dt);
+      if (isRain) updateRain(dt);
+      applyShake();
+      var left = Math.max(0, cfg.duration - elapsed);
+      var timerEl = document.getElementById("mg-timer");
+      if (timerEl) timerEl.textContent = (left / 1000).toFixed(1);
+      if (elapsed >= cfg.duration && !ending) startEnding();
+    }
+
+    function destroy() {
+      if (destroyed) return;
+      destroyed = true; finished = true;
+      if (rafId != null) { global.cancelAnimationFrame(rafId); rafId = null; }
+      if (introTimer) { clearTimeout(introTimer); introTimer = null; }
+      global.removeEventListener("keydown", onKeyDown);
+      global.removeEventListener("keydown", introOnKey);
+      scene.removeEventListener("touchstart", onTouchStart);
+      scene.removeEventListener("touchend", onTouchEnd);
+      scene.removeEventListener("touchstart", hideIntro);
+      if (wrap && wrap.parentNode) wrap.parentNode.removeChild(wrap);
+    }
+
+    container.appendChild(wrap);
+    resize();
+    var obs = (typeof ResizeObserver !== "undefined") ? new ResizeObserver(resize) : null;
+    if (obs) obs.observe(scene); else global.addEventListener("resize", resize);
+    startTime = now(); lastLoopTime = startTime;
+    nextSpawnAt = startTime + 300;
+    introTimer = setTimeout(hideIntro, 2400);
+    updateHud();
+    rafId = global.requestAnimationFrame(loop);
+    return { destroy: destroy, getScore: function () { return score; }, isRunning: function () { return !finished && !destroyed; } };
+  }
+
+  /* ============================================================
+     REGATE Y GOL (2 carriles, 4 defensas)
+     ============================================================ */
+  function createRegate(container, config) {
+    var cfg = Object.assign({ onFinish: null }, config || {});
+    var destroyed = false, finished = false;
+    var estado = "idle";          // idle | regate | tiro | end
+    var lane = 0;                 // 0 = izq, 1 = der
+    var defensorIdx = 0, totalDefensores = 4;
+    var goles = 0, fallos = 0;
+    var locked = false;
+    var gkLane = -1;
+    var defensorEl = null, defensorLane = -1, arqueroEl = null, pelotaEl = null;
+    var timer = null;
+    var moveLimit = 1100;         // 1.1s, MUCHO más rápido
+
+    var wrap = el("div", "mg-wrap");
+    var scene = el("div", "rg-scene");
+    wrap.appendChild(scene);
+
+    scene.appendChild(el("div", "rg-field"));
+    scene.appendChild(el("div", "rg-arco"));
+
+    var hud = el("div", "mg-hud");
+    hud.appendChild(el("div", "mg-chip", '<span class="lbl">GOLES</span><span class="val" id="rg-goles">0</span>'));
+    hud.appendChild(el("div", "mg-chip hits", '<span class="lbl">FALLOS</span><span class="val" id="rg-fallos">0</span>'));
+    scene.appendChild(hud);
+
+    var faseEl = el("div", "rg-fase-hud", "LISTO");
+    scene.appendChild(faseEl);
+
+    var laneInd = el("div", "rg-lane-indicator");
+    var laneDots = [];
+    for (var i = 0; i < 2; i++) { var d = el("div", "rg-lane-dot"); laneInd.appendChild(d); laneDots.push(d); }
+    scene.appendChild(laneInd);
+
+    // Pelota chica pegada al jugador
+    var jugador = el("div", "rg-jugador", "👕");
+    jugador.style.opacity = "0";
+    scene.appendChild(jugador);
+    pelotaEl = el("div", "rg-pelota", "⚽");
+    pelotaEl.style.opacity = "0";
+    scene.appendChild(pelotaEl);
+
+    var controls = el("div", "mg-controls");
+    function makeBtn(dir) {
+      var b = el("button", "mg-btn", dir > 0 ? "▶" : "◀");
+      b.type = "button";
+      b.addEventListener("click", function () { moverJugador(lane + dir); });
+      return b;
+    }
+    controls.appendChild(makeBtn(-1)); controls.appendChild(makeBtn(1)); scene.appendChild(controls);
+
+    var msgEl = el("div", "rg-msg");
+    scene.appendChild(msgEl);
+
+    var btnComenzar = el("button", "rg-bigbtn", "▶ COMENZAR");
+    btnComenzar.addEventListener("click", comenzarPartida);
+    scene.appendChild(btnComenzar);
+
+    var btnPatear = el("button", "rg-patear hide", "🎯 PATEAR");
+    btnPatear.addEventListener("click", function () { resolverTiro(); });
+    scene.appendChild(btnPatear);
+
+    var intro = el("div", "mg-intro",
+      '<div class="mg-intro-card">' +
+      '<span class="mg-intro-emoji">⚽</span>' +
+      '<div class="mg-intro-title">REGATE Y GOL</div>' +
+      '<div class="mg-intro-text">Tocá <strong>COMENZAR</strong>.<br>Esquivá <strong>4 defensores</strong> rápidos.<br>Después definí contra el arquero.</div>' +
+      '<div class="mg-intro-keys"><kbd>←</kbd><span>o</span><kbd>→</kbd></div>' +
+      "</div>");
+    scene.appendChild(intro);
+
+    var endOverlay = el("div", "mg-end",
+      '<div>' +
+      '<span class="mg-end-emoji" id="rg-end-emoji"></span>' +
+      '<div class="mg-end-title" id="rg-end-title"></div>' +
+      '<div class="mg-end-sub" id="rg-end-sub"></div>' +
+      "</div>");
+    scene.appendChild(endOverlay);
+
+    function hideIntro() { intro.classList.add("hide"); }
+    function introOnKey(e) {
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "a" || e.key === "A" || e.key === "d" || e.key === "D") hideIntro();
+    }
+    global.addEventListener("keydown", introOnKey);
+    scene.addEventListener("touchstart", hideIntro, { once: true, passive: true });
+    setTimeout(hideIntro, 2000);
+
+    function W() { return scene.clientWidth || 500; }
+    function H() { return scene.clientHeight || 500; }
+    function laneX(l) { return W() * (0.28 + l * 0.44); }
+
+    function updatePlayer() {
+      jugador.style.left = laneX(lane) + "px";
+      jugador.style.top = (H() - 130) + "px";
+      pelotaEl.style.left = laneX(lane) + "px";
+      pelotaEl.style.top = (H() - 85) + "px";
+      for (var i = 0; i < 2; i++) laneDots[i].classList.toggle("on", i === lane);
+    }
+
+    function updateHud() {
+      var g = document.getElementById("rg-goles"); if (g) g.textContent = goles;
+      var f = document.getElementById("rg-fallos"); if (f) f.textContent = fallos;
+    }
+
+    function moverJugador(idx) {
+      if (destroyed || finished || locked) return;
+      if (estado !== "regate" && estado !== "tiro") return;
+      idx = clamp(idx, 0, 1);
+      if (idx === lane) return;
+      lane = idx;
+      updatePlayer();
+    }
+
+    function onKeyDown(e) {
+      if (destroyed || finished) return;
+      if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") { e.preventDefault(); moverJugador(lane - 1); }
+      else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") { e.preventDefault(); moverJugador(lane + 1); }
+    }
+    global.addEventListener("keydown", onKeyDown);
+
+    function comenzarPartida() {
+      if (estado !== "idle" || destroyed) return;
+      hideIntro();
+      btnComenzar.classList.add("hide");
+      jugador.style.opacity = "1";
+      pelotaEl.style.opacity = "1";
+      estado = "regate";
+      defensorIdx = 0; fallos = 0; goles = 0;
+      updatePlayer();
+      updateHud();
+      setTimeout(spawnDefensor, 300);
+    }
+
+    function spawnDefensor() {
+      if (destroyed || finished) return;
+      if (defensorIdx >= totalDefensores) { irATiro(); return; }
+
+      defensorLane = 1 - lane;   // siempre en el carril OPUESTO
+      defensorEl = el("div", "rg-defensor", "🧍");
+      defensorEl.style.left = laneX(defensorLane) + "px";
+      defensorEl.style.top = (100) + "px";
+      defensorEl.style.opacity = "1";
+      scene.appendChild(defensorEl);
+
+      faseEl.textContent = "REGATE " + (defensorIdx + 1) + "/" + totalDefensores;
+      msgEl.textContent = "¡Viene!";
+      msgEl.classList.add("on");
+
+      locked = false;
+      // Baja en 0.8s
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          if (defensorEl) defensorEl.style.top = (H() - 200) + "px";
+        });
+      });
+
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(resolverRegate, moveLimit);
+    }
+
+    function resolverRegate() {
+      if (estado !== "regate" || destroyed || finished) return;
+      if (locked) return;
+      locked = true;
+      if (timer) { clearTimeout(timer); timer = null; }
+
+      var paso = (lane !== defensorLane);
+      if (paso) {
+        msgEl.textContent = "✅ ¡Pasaste!";
+        if (defensorEl) {
+          defensorEl.style.transform = "translateX(-50%) rotate(90deg) scale(0.5)";
+          defensorEl.style.opacity = "0";
+        }
+      } else {
+        fallos++;
+        updateHud();
+        msgEl.textContent = "❌ ¡Choque!";
+        if (defensorEl) defensorEl.style.transform = "translateX(-50%) scale(1.4)";
+      }
+
+      var def = defensorEl;
+      defensorEl = null;
+      setTimeout(function () {
+        if (def && def.parentNode) def.parentNode.removeChild(def);
+        msgEl.classList.remove("on");
+        if (fallos >= 3) { terminar(); return; }
+        defensorIdx++;
+        if (defensorIdx >= totalDefensores) { irATiro(); return; }
+        spawnDefensor();
+      }, 700);
+    }
+
+    // ---------- FASE TIRO ----------
+    function irATiro() {
+      estado = "tiro";
+      locked = false;
+      faseEl.textContent = "TIRO AL ARCO";
+
+      gkLane = randInt(2);
+      // Arquero DENTRO del arco, alineado
+      arqueroEl = el("div", "rg-arquero", "🧤");
+      arqueroEl.style.left = laneX(gkLane) + "px";
+      arqueroEl.style.top = (55) + "px";   // dentro del arco (arco va de 40 a 130)
+      scene.appendChild(arqueroEl);
+
+      // El jugador se acerca al arco
+      jugador.style.top = (H() - 190) + "px";
+      pelotaEl.style.top = (H() - 145) + "px";
+
+      msgEl.innerHTML = "🎯 ELEGÍ A QUÉ PALO PATEAR";
+      msgEl.classList.add("on");
+      btnPatear.classList.remove("hide");
+
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(function () {
+        if (estado === "tiro" && !destroyed && !finished) resolverTiro();
+      }, 3000);
+    }
+
+    function resolverTiro() {
+      if (estado !== "tiro" || destroyed || finished || locked) return;
+      locked = true;
+      if (timer) { clearTimeout(timer); timer = null; }
+      btnPatear.classList.add("hide");
+
+      // 1) La pelota vuela hacia el arco, al carril elegido por el jugador
+      var targetY = 110;   // altura del arco (dentro)
+      pelotaEl.style.transition = "left .55s cubic-bezier(.3,0,.7,1), top .55s cubic-bezier(.3,0,.7,1)";
+      pelotaEl.style.left = laneX(lane) + "px";
+      pelotaEl.style.top = targetY + "px";
+
+      // 2) El arquero se mueve siguiendo la trayectoria de la pelota
+      //    pero con una pequeña demora, para que se vea que reacciona
+      //    (si el arquero estaba en el carril correcto, se queda ahí y la ataja;
+      //     si estaba en el carril opuesto, se tira hacia la pelota pero llega tarde)
+      var arqueroCubre = (lane === gkLane);
+      var destLane = lane;   // hacia donde vuela la pelota
+      if (arqueroCubre) {
+        // Se queda en el carril y levanta los brazos
+        arqueroEl.style.transform = "translateX(-50%) scale(1.15)";
+      } else {
+        // Se tira al carril de la pelota pero no llega (queda a mitad de camino)
+        var xArr = laneX(gkLane);
+        var xDest = laneX(destLane);
+        var xMedio = (xArr + xDest) / 2;
+        arqueroEl.style.left = xMedio + "px";
+        arqueroEl.style.transform = "translateX(-50%) rotate(" + (destLane > gkLane ? 30 : -30) + "deg)";
+      }
+
+      // 3) Resolver el resultado
+      var gano = !arqueroCubre;
+      setTimeout(function () {
+        if (gano) {
+          goles = 1;
+          updateHud();
+          msgEl.textContent = "⚽ ¡GOOOOOL!";
+          msgEl.style.color = "#7ef0c4";
+          // La pelota entra
+          pelotaEl.style.transform = "translate(-50%, -50%) scale(0.9)";
+        } else {
+          msgEl.textContent = "🧤 ¡ATAJÓ EL ARQUERO!";
+          msgEl.style.color = "#ff7a5c";
+          // La pelota rebota
+          pelotaEl.style.transition = "left .3s, top .3s";
+          pelotaEl.style.top = (targetY + 40) + "px";
+          pelotaEl.style.left = (laneX(destLane) + (destLane === 0 ? -30 : 30)) + "px";
+        }
+        setTimeout(terminar, 1200);
+      }, 600);
+    }
+
+    function terminar() {
+      if (finished || destroyed) return;
+      finished = true;
+      locked = true;
+      estado = "end";
+      if (timer) { clearTimeout(timer); timer = null; }
+
+      var e = document.getElementById("rg-end-emoji");
+      var t = document.getElementById("rg-end-title");
+      var s = document.getElementById("rg-end-sub");
+
+      if (goles > 0) {
+        e.textContent = "⚽"; t.textContent = "¡GOL!";
+        s.innerHTML = "Defensores pasados: <strong>" + (totalDefensores - fallos) + "/" + totalDefensores + "</strong><br>Gol: <strong style='color:#7ef0c4'>SÍ</strong>";
+      } else if (fallos < 3) {
+        e.textContent = "🧤"; t.textContent = "ATAJÓ EL ARQUERO";
+        s.innerHTML = "Defensores pasados: <strong>" + (totalDefensores - fallos) + "/" + totalDefensores + "</strong><br>Gol: <strong style='color:#ff7a5c'>NO</strong>";
+      } else {
+        e.textContent = "❌"; t.textContent = "NO PASaste";
+        s.innerHTML = "Te robaron <strong>" + fallos + "</strong> veces.";
+      }
+      endOverlay.classList.add("show");
+
+      setTimeout(function () {
+        if (typeof cfg.onFinish === "function") {
+          try { cfg.onFinish({ goles: goles, fallos: fallos }); } catch (err) {}
+        }
+      }, 1100);
+    }
+
+    function destroy() {
+      if (destroyed) return;
+      destroyed = true; finished = true;
+      if (timer) { clearTimeout(timer); timer = null; }
+      global.removeEventListener("keydown", onKeyDown);
+      global.removeEventListener("keydown", introOnKey);
+      scene.removeEventListener("touchstart", hideIntro);
+      if (wrap && wrap.parentNode) wrap.parentNode.removeChild(wrap);
+    }
+
+    container.appendChild(wrap);
+    updatePlayer();
+    updateHud();
+
+    return { destroy: destroy, getScore: function () { return goles; }, isRunning: function () { return !finished && !destroyed; } };
+  }
+
+  /* ============================================================
+     DARDOS (mira girando más rápido)
+     ============================================================ */
+  function createDardos(container, config) {
+    var cfg = Object.assign({ onFinish: null }, config || {});
+    var destroyed = false, finished = false;
+    var tirosTotal = 3, tirosHechos = 0, score = 0;
+    var oscilando = false;
+    var pos = 0, dir = 1;
+    var angulo = 0;
+    var rafId = null, lastT = 0;
+    var velocidadRadial = 1.3;              // más rápido que antes (era 0.9)
+    var velocidadAngular = 0.006;           // gira mucho más rápido (era 0.0025)
+
+    var wrap = el("div", "dd-wrap");
+    container.appendChild(wrap);
+    wrap.appendChild(el("div", "", '<strong style="font-size:18px">🎯 DARDOS</strong>'));
+
+    var board = el("div", "dd-board");
+    wrap.appendChild(board);
+
+    var indicator = el("div", "dd-indicator");
+    board.appendChild(indicator);
+
+    var btn = el("button", "dd-btn", "🎯 TIRAR");
+    btn.addEventListener("click", tirar);
+    wrap.appendChild(btn);
+
+    var scoreEl = el("div", "dd-score", "Puntos: 0 · Tiros: 0/3");
+    wrap.appendChild(scoreEl);
+
+    var msgEl = el("div", "dd-msg", "");
+    wrap.appendChild(msgEl);
+
+    var intro = el("div", "mg-intro",
+      '<div class="mg-intro-card">' +
+      '<span class="mg-intro-emoji">🎯</span>' +
+      '<div class="mg-intro-title">DARDOS</div>' +
+      '<div class="mg-intro-text">Tirá cuando el punto esté en el <strong>centro</strong>.<br>50 = centro · 5 = borde.</div>' +
+      '<div class="mg-intro-keys"><kbd>CLICK</kbd><span>o</span><kbd>ESPACIO</kbd></div>' +
+      "</div>");
+    wrap.appendChild(intro);
+
+    function hideIntro() { intro.classList.add("hide"); }
+    function introOnKey(e) { if (e.code === "Space") hideIntro(); }
+    global.addEventListener("keydown", introOnKey);
+    setTimeout(hideIntro, 2400);
+
+    function setIndicator() {
+      var r = 130 * (1 - pos);
+      var x = Math.cos(angulo) * r;
+      var y = Math.sin(angulo) * r;
+      indicator.style.left = (130 + x) + "px";
+      indicator.style.top = (130 + y) + "px";
+    }
+
+    function loop() {
+      if (destroyed || finished) { rafId = null; return; }
+      rafId = global.requestAnimationFrame(loop);
+      var t = now();
+      var dt = Math.min(50, t - lastT);
+      lastT = t;
+      if (oscilando) {
+        angulo += velocidadAngular * dt;
+        pos += dir * velocidadRadial * dt / 1000;
+        if (pos >= 1) { pos = 1; dir = -1; }
+        if (pos <= 0) { pos = 0; dir = 1; }
+        setIndicator();
+      }
+    }
+
+    function tirar() {
+      if (!oscilando || tirosHechos >= tirosTotal || finished) return;
+      oscilando = false;
+      var pts = 5, label = "borde";
+      if (pos >= 0.92) { pts = 50; label = "¡DIANA!"; }
+      else if (pos >= 0.78) { pts = 25; label = "anillo"; }
+      else if (pos >= 0.55) { pts = 10; label = "buen tiro"; }
+      score += pts;
+      tirosHechos++;
+
+      var hole = el("div", "dd-hole");
+      hole.style.left = indicator.style.left;
+      hole.style.top = indicator.style.top;
+      board.appendChild(hole);
+
+      msgEl.textContent = "+" + pts + " (" + label + ")";
+      scoreEl.textContent = "Puntos: " + score + " · Tiros: " + tirosHechos + "/" + tirosTotal;
+
+      if (tirosHechos >= tirosTotal) {
+        setTimeout(finish, 900);
+      } else {
+        velocidadRadial += 0.4;
+        velocidadAngular += 0.002;
+        setTimeout(function () {
+          pos = 0; dir = 1; oscilando = true;
+          msgEl.textContent = "";
+        }, 700);
+      }
+    }
+
+    function onSpace(e) {
+      if (e.code === "Space") {
+        e.preventDefault();
+        if (!intro.classList.contains("hide")) { hideIntro(); return; }
+        tirar();
+      }
+    }
+    global.addEventListener("keydown", onSpace);
+
+    function finish() {
+      if (finished) return;
+      finished = true;
+      var endOv = el("div", "mg-end",
+        '<div>' +
+        '<span class="mg-end-emoji" id="dd-end-emoji"></span>' +
+        '<div class="mg-end-title" id="dd-end-title"></div>' +
+        '<div class="mg-end-sub" id="dd-end-sub"></div>' +
+        "</div>");
+      wrap.appendChild(endOv);
+      var em = endOv.querySelector("#dd-end-emoji");
+      var ti = endOv.querySelector("#dd-end-title");
+      var su = endOv.querySelector("#dd-end-sub");
+      if (score >= 100) { em.textContent = "🏆"; ti.textContent = "¡MAESTRO!"; }
+      else if (score >= 60) { em.textContent = "🎯"; ti.textContent = "¡BUEN TIRO!"; }
+      else if (score >= 30) { em.textContent = "👍"; ti.textContent = "ZAFABLE"; }
+      else { em.textContent = "😅"; ti.textContent = "FLOJO"; }
+      su.innerHTML = "Puntos: <strong style='color:#ffd24a'>" + score + "</strong>";
+      endOv.classList.add("show");
+      if (typeof cfg.onFinish === "function") { try { cfg.onFinish({ score: score }); } catch (err) {} }
+    }
+
+    function destroy() {
+      if (destroyed) return;
+      destroyed = true; finished = true;
+      if (rafId != null) { global.cancelAnimationFrame(rafId); rafId = null; }
+      global.removeEventListener("keydown", onSpace);
+      global.removeEventListener("keydown", introOnKey);
+      if (wrap && wrap.parentNode) wrap.parentNode.removeChild(wrap);
+    }
+
+    lastT = now();
+    setIndicator();
+    setTimeout(function () { oscilando = true; pos = 0; dir = 1; angulo = 0; }, 2500);
+    rafId = global.requestAnimationFrame(loop);
+
+    return { destroy: destroy, getScore: function () { return score; }, isRunning: function () { return !finished && !destroyed; } };
+  }
+
+  /* ============================================================
+     CONTROLADOR
+     ============================================================ */
+  var inst = null;
+  global.lanzar = function (kind) {
+    global.detener();
+    var cont = document.getElementById("escenario");
+    cont.innerHTML = "";
+    document.getElementById("resultado").style.display = "none";
+
+    if (kind === "tunnel") inst = createDodge(cont, { variant: "tunnel", duration: 20000, onFinish: reportar });
+    else if (kind === "rain") inst = createDodge(cont, { variant: "rain", duration: 20000, onFinish: reportar });
+    else if (kind === "regate") inst = createRegate(cont, { onFinish: function (r) {
+      reportar({ hits: r.fallos, score: r.goles, extra: (r.goles > 0 ? "¡GOL!" : "Sin gol") });
+    }});
+    else if (kind === "dardos") inst = createDardos(cont, { onFinish: function (r) {
+      reportar({ hits: 0, score: r.score, extra: "Puntos de dardos" });
+    }});
+  };
+
+  function reportar(r) {
+    var res = document.getElementById("resultado");
+    res.style.display = "block";
+    res.innerHTML = "🏁 Puntos: <strong>" + (r.score || 0) + "</strong>" +
+      (r.extra ? " · " + r.extra : "") +
+      (r.hits ? " · Fallos: <strong>" + r.hits + "</strong>" : "");
+  }
+
+  global.detener = function () { if (inst) { inst.destroy(); inst = null; } };
+  global.addEventListener("beforeunload", global.detener);
+})(window);
+</script>
+
+</body>
+</html>

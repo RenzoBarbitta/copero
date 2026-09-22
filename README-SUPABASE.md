@@ -19,6 +19,17 @@ escritura solo autenticada y solo sobre la fila propia, sin DELETE por API.
 Se verificó con la API real que un POST anónimo es rechazado (HTTP 401).
 El cliente (`ranking-online.js`) ya no usa textdb.dev.
 
+Etapa 5 (endurecimiento, `supabase/005-seguridad-ranking.sql`): **todavía NO está
+ejecutado** en el proyecto real. Verificado el 2026-09-22 con la API real: el RPC
+`copero_publicar_ranking` responde 404 `PGRST202` (no está en el schema cache),
+`copero_clubes` responde 404 `PGRST205` y `copero_ranking` no tiene la columna
+`carrera_nonce` (sí tiene `updated_at`, o sea 002/004 sí están aplicados).
+Mientras el 005 no se ejecute, `ranking-online.js` publica con el upsert directo
+de 002/004 (solo la fila propia); cuando se ejecute, el cliente detecta el RPC y
+pasa a usarlo solo, sin cambios de código. Orden correcto del release: ejecutar
+primero el 005 y recién después publicar el cliente, porque el 005 quita la
+escritura directa de la tabla (un cliente viejo dejaría de sincronizar).
+
 ## Configurar el proyecto
 
 1. Abrir https://supabase.com/dashboard y seleccionar el proyecto

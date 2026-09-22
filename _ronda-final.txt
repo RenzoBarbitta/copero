@@ -1,0 +1,35 @@
+== SYNTAX CHECK (16 archivos) ==
+OK   app.js
+OK   camiseta.js
+OK   cuenta-api.js
+OK   cuenta-ui.js
+OK   data.js
+OK   duelo.js
+OK   event-outcomes.js
+OK   features.js
+OK   minigame-camiseta.js
+OK   progression.js
+OK   pwa.js
+OK   ranking-online.js
+OK   supabase-config.js
+OK   sw.js
+OK   touch-controls.js
+OK   ui.js
+
+== TESTS (12) ==
+PASS test-camiseta.mjs (0.1s)
+PASS test-declive-veterano.mjs (0.1s)
+PASS test-duelo.mjs (0.1s)
+PASS test-logros.mjs (0.1s)
+PASS test-ofertas.mjs (0.1s)
+PASS test-partidos-random.mjs (0.1s)
+PASS test-privacidad.mjs (0.1s)
+PASS test-progresion.mjs (0.1s)
+PASS test-ranking-dinamico.mjs (0.1s)
+FAIL test-ranking-online.mjs ::   "cuerpo": "(leyendo cuerpo)" | } | [ranking-online] publicarEnNube rechazado cuerpo {"message":"new row violates row-level security policy"} | [ranking-online] vaciarOutbox Sin conexion | [ranking-online] vaciarOutbox Sin conexion | FALLO: actualizar la misma cuenta reusa user_id (sin duplicados)
+PASS test-redes-sociales.mjs (0.1s)
+FAIL test-traduccion-pt.mjs ::   actual: undefined, |   expected: true, |   operator: '==', |   diff: 'simple' | } | Node.js v24.21.0
+
+== RESUMEN == 10 PASS / 2 FAIL
+
+== sw.js == ?  | //   - Bootstrap (CDN, version fija): CACHE-FIRST.
