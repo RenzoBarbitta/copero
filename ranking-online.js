@@ -71,6 +71,10 @@ let rankingObsoleto = false;
 // true solo cuando el canal de realtime esta suscripto OK.
 let rankingRealtimeActivo = false;
 let _canalRealtime = null;
+// true solo durante el breve periodo posterior a un cierre/fallo del canal;
+// evita que mostrarRanking() intente reconectar mientras el loop de triggers
+// del cliente de Supabase se estabiliza despues de un leave interno.
+let _canalRealtimePendiente = false;
 
 function compararRankingOnline(a, b) {
   if (typeof compararRanking === "function") return compararRanking(a, b);
@@ -512,9 +516,11 @@ function conectarRealtimeRanking() {
       rankingRealtimeActivo = true;
     } else if (estado === "CHANNEL_ERROR" || estado === "TIMED_OUT" || estado === "CLOSED") {
       // Realtime no disponible (o fallo): el polling toma el control.
+      // NO llamar a removeChannel aqui: dispara unsubscribe->trigger->leave->unsubscribe en loop.
       rankingRealtimeActivo = false;
-      try { sb.removeChannel(canal); } catch (e) { /* silencio */ }
       _canalRealtime = null;
+      _canalRealtimePendiente = true;
+      setTimeout(() => { _canalRealtimePendiente = false; }, 3000);
     }
   });
   _canalRealtime = { sb: sb, canal: canal };
@@ -669,16 +675,10 @@ function actualizarEstadoSync() {
     if (pendiente) el.textContent += " Tu carrera sigue pendiente de envío.";
     return;
   }
-  if (pendiente) {
-    if (!sesionRanking()) {
-      el.innerHTML = "<span class='small text-warning fw-bold'>" +
-        tRanking("rankRequiereSesion", "🔐 Tu carrera quedó guardada. Iniciá sesión en Mi cuenta para publicarla en el ranking global") + "</span>";
-    } else {
-      el.innerHTML = "<span class='small text-warning fw-bold'>" +
-        tRanking("rankPendiente", "📤 Tu carrera quedó guardada y se enviará cuando haya internet") + "</span>";
-    }
-    return;
-  }
+  // Si hay sesion, el estado ya no anuncia que el juego la enviara. El envio
+  // es automatico; si hay una cola pendiente sin haber llegado a enviarse,
+  // el estado se actualiza a traves de refrescarRankingVisible() sin aviso
+  // de transporte, porque el Publicar del ranking nunca depende de un boton.
   if (rankingUltimaLectura) {
     const cadencia = rankingRealtimeActivo ? "en vivo" : "cada 10 s";
     el.textContent = "🟢 Consultado a las " + horaCorta(rankingUltimaLectura) + " · " + cadencia;

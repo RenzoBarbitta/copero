@@ -38,15 +38,45 @@ const RPC_NO_INSTALADO = {
   body: { code: "PGRST202", message: "Could not find the function public.copero_publicar_ranking(p_club, p_display_name, p_evento, p_media, p_nonce, p_posicion, p_titulos) in the schema cache" }
 };
 
+const sandboxTimers = {
+  timeouts: new Map(),
+  intervals: new Map(),
+  setTimeout(fn, delay = 0, ...args) {
+    const id = setTimeout(() => { sandboxTimers.timeouts.delete(id); fn(...args); }, delay);
+    sandboxTimers.timeouts.set(id, { fn, delay });
+    return id;
+  },
+  clearTimeout(id) {
+    if (sandboxTimers.timeouts.has(id)) { clearTimeout(id); sandboxTimers.timeouts.delete(id); }
+  },
+  setInterval(fn, delay = 0, ...args) {
+    const id = setInterval(() => { fn(...args); }, delay);
+    sandboxTimers.intervals.set(id, { fn, delay });
+    return id;
+  },
+  clearInterval(id) {
+    if (sandboxTimers.intervals.has(id)) { clearInterval(id); sandboxTimers.intervals.delete(id); }
+  },
+  limpiarTodos() {
+    for (const id of sandboxTimers.timeouts.keys()) clearTimeout(id);
+    for (const id of sandboxTimers.intervals.keys()) clearInterval(id);
+    sandboxTimers.timeouts.clear();
+    sandboxTimers.intervals.clear();
+  }
+};
+
 const sandbox = {
-  console, Date, JSON, Math, Promise, setTimeout, clearTimeout, AbortController,
+  _sandboxTimers: sandboxTimers,
+  console, Date, JSON, Math, Promise, AbortController,
+  setTimeout: sandboxTimers.setTimeout.bind(sandboxTimers),
+  clearTimeout: sandboxTimers.clearTimeout.bind(sandboxTimers),
+  setInterval: sandboxTimers.setInterval.bind(sandboxTimers),
+  clearInterval: sandboxTimers.clearInterval.bind(sandboxTimers),
   localStorage: storageStub,
   document: { addEventListener() {}, getElementById: () => null, visibilityState: "visible" },
   window: { addEventListener() {}, dispatchEvent() {} },
   navigator: { onLine: true },
   location: { protocol: "https:", hostname: "test" },
-  setInterval: () => 0,
-  clearInterval() {},
   fetch: async (url, opts) => {
     const u = String(url);
     peticiones.push({ url: u, opts: opts || {} });
