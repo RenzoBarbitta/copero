@@ -802,16 +802,32 @@ hr { border-color: var(--borde-suave); opacity: 1; }
 #selector-idioma .btn-idioma {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   font-weight: 700;
-  font-size: 0.78rem;
-  padding: 0.25rem 0.5rem;
+  font-size: 0.95rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
 }
-#selector-idioma .bandera { width: 18px; height: 12px; border-radius: 2px; display: block; }
+#selector-idioma .bandera { width: 24px; height: 16px; border-radius: 3px; display: block; }
 #selector-idioma .btn-idioma.activo {
   background: var(--azul);
   border-color: var(--azul);
   color: #fff;
+}
+
+/* ---------- FILA DE UTILIDADES DEL INICIO (Ranking / Slots / idioma) ---------- */
+/* Más aire y controles más grandes, sin cambiar el orden ni el diseño. */
+#fila-utilidades { gap: 0.85rem; }
+#fila-utilidades .btn-util {
+  font-size: 0.98rem;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+}
+@media (max-width: 575.98px) {
+  #fila-utilidades { gap: 0.6rem; }
+  #fila-utilidades .btn-util { font-size: 0.9rem; padding: 0.45rem 0.8rem; }
+  #selector-idioma .btn-idioma { font-size: 0.88rem; padding: 0.42rem 0.6rem; }
+  #selector-idioma .bandera { width: 20px; height: 14px; }
 }
 @media (max-width: 575.98px) {
   h1 { font-size: 1.7rem; }
