@@ -86,6 +86,55 @@
     return fallo;
   }
 
+  // ¿El error indica que el RPC del servidor todavía no está desplegado?
+  // El cliente cae al camino directo heredado hasta que se ejecute el 007.
+  function esRPCFaltante(error) {
+    if (!error) return false;
+    const codigo = String(error.code || "").toUpperCase();
+    const mensaje = String(error.message || "").toLowerCase();
+    return codigo === "PGRST202" || codigo === "42883" ||
+      mensaje.indexOf("does not exist") !== -1;
+  }
+
+  // Camino directo heredado (SELECT sobre la tabla) mientras el RPC del 007
+  // no exista en la base. Corrije solo apodos propios gracias al RLS.
+  async function leerPerfilDirecto() {
+    if (!sesion || !sesion.user) throw new Error(textoConta("cuentaErrorIniciar", "Iniciá sesión para usar tu perfil."));
+    let resp;
+    try {
+      resp = await obtenerCliente().from("copero_profiles")
+        .select("display_name")
+        .eq("user_id", sesion.user)
+        .maybeSingle();
+    } catch (e) {
+      logDetalle("perfil (red directa)", e);
+      throw new Error(textoConta("cuentaErrorConexion", "No se pudo conectar con las cuentas. Revisá internet e intentá otra vez."));
+    }
+    if (resp.error) {
+      logDetalle("perfil (directa)", resp.error);
+      throw errorDeSupabase(resp.error, "perfil");
+    }
+    return resp.data ? resp.data.display_name : null;
+  }
+
+  // Camino directo heredado (upsert sobre la tabla) si el RPC no existe.
+  async function guardarPerfilDirecto(nombre) {
+    if (!sesion || !sesion.user) throw new Error(textoConta("cuentaErrorIniciar", "Iniciá sesión para usar tu perfil."));
+    let resp;
+    try {
+      resp = await obtenerCliente().from("copero_profiles")
+        .upsert({ user_id: sesion.user, display_name: nombre }, { onConflict: "user_id" });
+    } catch (e) {
+      logDetalle("guardarPerfil (red directa)", e);
+      throw new Error(textoConta("cuentaErrorConexion", "No se pudo conectar con las cuentas. Revisá internet e intentá otra vez."));
+    }
+    if (resp.error) {
+      logDetalle("guardarPerfil (directa)", resp.error);
+      throw errorDeSupabase(resp.error, "perfil");
+    }
+    return nombre;
+  }
+
   // Avisa al resto de la app (ranking, UI) cuando cambia la sesión.
   function avisarCambioSesion() {
     try {
@@ -226,53 +275,45 @@
       }
     },
     // Lee el apodo del perfil del usuario en sesión (null si no hay perfil).
+    // Usa el RPC SECURITY DEFINER (007); si el RPC no está desplegado aún,
+    // cae a la lectura directa heredada.
     async perfil() {
-      let user = sesion && sesion.user ? sesion.user : null;
-      if (!user) {
-        await restaurarSesion();
-        user = sesion && sesion.user ? sesion.user : null;
-      }
-      if (!user) throw new Error(textoConta("cuentaErrorIniciar", "Iniciá sesión para usar tu perfil."));
+      await tokenActual();
       let resp;
       try {
-        resp = await obtenerCliente().from("copero_profiles")
-          .select("display_name")
-          .eq("user_id", user)
-          .maybeSingle();
+        resp = await obtenerCliente().rpc("copero_leer_perfil");
       } catch (e) {
         logDetalle("perfil (red)", e);
         throw new Error(textoConta("cuentaErrorConexion", "No se pudo conectar con las cuentas. Revisá internet e intentá otra vez."));
       }
       if (resp.error) {
         logDetalle("perfil", resp.error);
+        if (esRPCFaltante(resp.error)) return leerPerfilDirecto();
         throw errorDeSupabase(resp.error, "perfil");
       }
-      return resp.data ? resp.data.display_name : null;
+      return resp.data;
     },
     async guardarPerfil(nombre) {
       nombre = String(nombre || "").trim();
       if (Array.from(nombre).length < 2 || Array.from(nombre).length > 30) {
         throw new Error("El apodo debe tener entre 2 y 30 caracteres.");
       }
-      let user = sesion && sesion.user ? sesion.user : null;
-      if (!user) {
-        await restaurarSesion();
-        user = sesion && sesion.user ? sesion.user : null;
-      }
-      if (!user) throw new Error(textoConta("cuentaErrorIniciar", "Iniciá sesión para usar tu perfil."));
+      // Asegura sesión vigente y renueva el token si está por vencer, para
+      // que el guardado no falle por un token caduco (40101/42501).
+      await tokenActual();
       let resp;
       try {
-        resp = await obtenerCliente().from("copero_profiles")
-          .upsert({ user_id: user, display_name: nombre }, { onConflict: "user_id" });
+        resp = await obtenerCliente().rpc("copero_guardar_perfil", { p_display_name: nombre });
       } catch (e) {
         logDetalle("guardarPerfil (red)", e);
         throw new Error(textoConta("cuentaErrorConexion", "No se pudo conectar con las cuentas. Revisá internet e intentá otra vez."));
       }
       if (resp.error) {
         logDetalle("guardarPerfil", resp.error);
+        if (esRPCFaltante(resp.error)) return guardarPerfilDirecto(nombre);
         throw errorDeSupabase(resp.error, "perfil");
       }
-      return nombre;
+      return resp.data || nombre;
     }
   };
   window.CoperoCuenta = cuenta;

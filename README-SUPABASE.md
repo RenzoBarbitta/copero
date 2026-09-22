@@ -50,6 +50,13 @@ escritura directa de la tabla (un cliente viejo dejaría de sincronizar).
    y ejecutar Run. Es idempotente (se puede correr antes o después de
    001/002/003): agrega `updated_at` a `copero_profiles`, garantiza ranking y
    crea `copero_support` (porque 003 no se ejecutó en la base real).
+7. SQL Editor → New query: pegar TODO el contenido de
+   `supabase/007-perfiles-rpc.sql` y ejecutar Run. Repara grants/políticas de
+   `copero_profiles` y crea los RPC `copero_leer_perfil` /
+   `copero_guardar_perfil` (SECURITY DEFINER), que son la autoridad única para
+   leer/guardar el apodo. Sin este paso, «Mi cuenta» solo puede leer el apodo,
+   no guardarlo (error 42501). El cliente usa el RPC y cae a la escritura
+   directa solo si el RPC falta en la base.
 7. Debe aparecer “Success. No rows returned”. No crear políticas de acceso
    público de ESCRITURA: la defensa del ranking depende de que solo existan
    las tres políticas de 002-ranking.sql (read/insert/update con auth.uid()).
