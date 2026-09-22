@@ -125,7 +125,9 @@ create or replace function public.copero_publicar_ranking(
   p_media integer,
   p_titulos integer,
   p_evento text,
-  p_nonce text
+  p_nonce text,
+  p_durante text default 'M',
+  p_a_longitud integer default 0
 )
 returns jsonb
 language plpgsql
@@ -231,7 +233,7 @@ end;
 $$;
 
 -- Solo cuentas autenticadas pueden invocar el RPC. anon jamás.
-revoke all on function public.copero_publicar_ranking(text, text, text, integer, integer, text, text) from anon, authenticated;
-grant execute on function public.copero_publicar_ranking(text, text, text, integer, integer, text, text) to authenticated;
+revoke all on function public.copero_publicar_ranking(text, text, text, integer, integer, text, text, text, integer) from anon, authenticated;
+grant execute on function public.copero_publicar_ranking(text, text, text, integer, integer, text, text, text, integer) to authenticated;
 
 commit;

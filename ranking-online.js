@@ -308,15 +308,27 @@ async function publicarEnNube(registro) {
   // Camino A: RPC validado (005). El nonce es el _id de la cola.
   if (RANKING_RPC_DISPONIBLE !== false) {
     const urlRpc = cfg.url + "/rest/v1/rpc/copero_publicar_ranking";
+    // El servidor actual reconoce la firma:
+    //   p_club, p_display_name, p_evento, p_media, p_nonce, p_posicion, p_titulos,
+    //   p_durante, p_a_longitud
+    // El cliente manda esos mismos nombres-clave; STATUS es POST/json, los parámetros
+    // se resuelven por clave, pero el orden coincide con la sugerencia del servidor para
+    // evitar el error 404 PGRST202 ("no matches were found in the schema cache").
+    const registro_nonce =
+      registro._id ||
+      ("r" + Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
     const cuerpoRpc = {
-      display_name: String(registro.display_name || ""),
-      posicion: String(registro.posicion || ""),
-      club: String(registro.club || ""),
-      media: Number(registro.media) || 0,
-      titulos: Number(registro.titulos) || 0,
-      evento: "carrera",
-      nonce: String(registro._id ||
-        ("r" + Date.now().toString(36) + Math.random().toString(36).slice(2, 10)))
+      p_club: String(registro.club || ""),
+      p_display_name: String(registro.display_name || ""),
+      p_evento: "carrera",
+      p_media: Math.max(0, Math.min(99, Math.round(Number(registro.media) || 0))),
+      p_nonce: String(registro_nonce),
+      p_posicion: String(registro.posicion || ""),
+      p_titulos: Math.max(0, Math.min(1000, Math.round(Number(registro.titulos) || 0))),
+      // Parámetros extra que el servidor resuelve si los espera; si la firma actual no
+      // los tiene, el 404 ya estaba manejado al ritmo del usuario y queda en cola.
+      p_durante: "M",
+      p_a_longitud: 0
     };
     const resRpc = await fetchConTimeout(urlRpc, {
       method: "POST",

@@ -101,10 +101,14 @@ asertar(envio.opts.headers.apikey === "clave-publica-test", "envia la clave publ
 asertar(envio.opts.headers.Authorization === "Bearer token-de-prueba", "envia el token de sesion");
 const cuerpo = JSON.parse(envio.opts.body);
 asertar(cuerpo.user_id === undefined, "el RPC no manda user_id: lo pone el servidor con auth.uid()");
-asertar(cuerpo.evento === "carrera", "declara el evento carrera");
-asertar(typeof cuerpo.nonce === "string" && cuerpo.nonce.length > 0, "manda un nonce (idempotencia anti-replay)");
-asertar(cuerpo.display_name === "TestBot", "display_name correcto");
-asertar(cuerpo.media === 88 && cuerpo.titulos === 3, "media 88 y titulos 3 (2 liga + 1 copa)");
+asertar(cuerpo.p_evento === "carrera", "declara el evento carrera");
+asertar(typeof cuerpo.p_nonce === "string" && cuerpo.p_nonce.length > 0, "manda un nonce (idempotencia anti-replay)");
+asertar(cuerpo.p_display_name === "TestBot", "display_name correcto");
+asertar(cuerpo.p_media === 88 && cuerpo.p_titulos === 3, "media 88 y titulos 3 (2 liga + 1 copa)");
+asertar(cuerpo.p_club === "River Plate", "p_club correcto");
+asertar(cuerpo.p_posicion === "DEL", "p_posicion correcto");
+asertar(cuerpo.p_durante === "M", "p_durante tiene valor por defecto (Opción A sin tocar 005)");
+asertar(cuerpo.p_a_longitud === 0, "p_a_longitud tiene valor por defecto");
 asertar(!storageStub.getItem("pso_ranking_outbox"), "enviado: la cola queda vacia");
 
 // 3) Defensa anti-media-trampa: el cliente acota la media a 0..99
@@ -114,7 +118,7 @@ await new Promise(r => setTimeout(r, 50)); // el envio fire-and-forget termina
 await vm.runInContext("vaciarOutbox();", sandbox);
 await new Promise(r => setTimeout(r, 50));
 const cuerpo2 = JSON.parse(peticiones[peticiones.length - 1].opts.body);
-asertar(cuerpo2.media === 99, "media 999 se acota a 99 en el cliente (y la base lo rechazaria igual)");
+asertar(cuerpo2.p_media === 99, "media 999 se acota a 99 en el cliente (y la base lo rechazaria igual)");
 
 // 4) Sesion vencida (401): el registro NO se borra, queda para reintentar
 respuesta = { ok: false, status: 401, body: { message: "JWT expired" } };
@@ -177,7 +181,7 @@ await vm.runInContext("vaciarOutbox();", sandbox);
 await new Promise(r => setTimeout(r, 50));
 const cuerpo3 = JSON.parse(peticiones[peticiones.length - 1].opts.body);
 asertar(cuerpo3.user_id === undefined, "reintento: la fila propia la fija auth.uid() en el servidor");
-asertar(typeof cuerpo3.nonce === "string" && cuerpo3.nonce.length > 0, "reintento: manda nonce para no duplicar");
+asertar(typeof cuerpo3.p_nonce === "string" && cuerpo3.p_nonce.length > 0, "reintento: manda nonce para no duplicar");
 
 // 12) Ranking vacio devuelve una lista vacia (no rompe la UI)
 respuesta = { ok: true, status: 200, body: [] };
