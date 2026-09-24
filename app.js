@@ -1444,6 +1444,12 @@ function mostrarNotificacion(titulo, texto, callbackCierre = null) {
   document.getElementById('infoModalTitulo').innerText = titulo;
   document.getElementById('infoModalCuerpo').innerHTML = texto;
 
+  // Limpieza defensiva: si por cualquier otra ruta quedó un .modal-backdrop
+  // huérfano (cierre y reapertura de modales en la misma pila), removerlo.
+  // Un backdrop huérfano es "el cuadro" que tapa la pantalla y bloquea todo.
+  const sobras = document.querySelectorAll(".modal-backdrop");
+  for (let i = 0; i < sobras.length; i++) sobras[i].remove();
+
   const elModal = document.getElementById('infoModal');
   const handler = function() {
     elModal.removeEventListener('hidden.bs.modal', handler);
@@ -1452,6 +1458,36 @@ function mostrarNotificacion(titulo, texto, callbackCierre = null) {
   elModal.addEventListener('hidden.bs.modal', handler);
 
   modalInfo.show();
+}
+
+// Cierra infoModal (si está abierto) y ejecuta la acción recién cuando el
+// cierre terminó (hidden.bs.modal). Llamar hide() y después abrir otro modal
+// en la misma línea descuadra el contador de backdrops de Bootstrap y deja un
+// overlay invisible tapando la pantalla. Con un timeout de respaldo de 700ms
+// (mayor al fade de 300ms) por si el evento no se dispara.
+function ejecutarTrasCerrarInfo(fn) {
+  const elModal = document.getElementById("infoModal");
+  let hecho = false;
+  const correr = function () {
+    if (hecho) return;
+    hecho = true;
+    if (elModal) {
+      elModal.removeEventListener("hidden.bs.modal", correr);
+      elModal.removeEventListener("shown.bs.modal", correr);
+    }
+    if (typeof fn === "function") fn();
+  };
+  if (elModal && modalInfo) {
+    if (elModal.classList.contains("show")) {
+      elModal.addEventListener("hidden.bs.modal", correr);
+      setTimeout(correr, 700);
+      try { modalInfo.hide(); } catch (e) { correr(); }
+    } else {
+      correr();
+    }
+  } else {
+    correr();
+  }
 }
 
 // ============================================================
@@ -1822,8 +1858,8 @@ function mostrarTrasPartidoTorneo(jugado) {
       "</div>" +
       "<p class='text-center mb-1'><strong>" + jugadorNombre + " vs " + (rival ? rival.nombre : sig.b) + "</strong></p>" +
       "<div class='d-grid gap-2 mt-2'>" +
-      "<button class='btn btn-success fw-bold' onclick='modalInfo.hide(); jugarPartidoTorneoInteractivo();'>" + t("torneoJugar") + "</button>" +
-      "<button class='btn btn-secondary fw-bold' onclick='modalInfo.hide(); simularPartidoTorneo();'>" + t("torneoSimular") + "</button>" +
+      "<button class='btn btn-success fw-bold' onclick='ejecutarTrasCerrarInfo(jugarPartidoTorneoInteractivo);'>" + t("torneoJugar") + "</button>" +
+      "<button class='btn btn-secondary fw-bold' onclick='ejecutarTrasCerrarInfo(simularPartidoTorneo);'>" + t("torneoSimular") + "</button>" +
       "</div>";
   }
   cerrarTorneoSeleccion();
@@ -2033,8 +2069,8 @@ function jugarTorneoSeleccion() {
     "</div>" +
     "<p class='text-center mb-1'><strong>" + seleccionPorCodigo(jugador.nacionalidad).nombre + " vs " + rivalNombre + "</strong></p>" +
     "<div class='d-grid gap-2 mt-2'>" +
-    "<button class='btn btn-success fw-bold' onclick='modalInfo.hide(); jugarPartidoTorneoInteractivo();'>" + t("torneoJugar") + "</button>" +
-    "<button class='btn btn-secondary fw-bold' onclick='modalInfo.hide(); simularPartidoTorneo();'>" + t("torneoSimular") + "</button>" +
+    "<button class='btn btn-success fw-bold' onclick='ejecutarTrasCerrarInfo(jugarPartidoTorneoInteractivo);'>" + t("torneoJugar") + "</button>" +
+    "<button class='btn btn-secondary fw-bold' onclick='ejecutarTrasCerrarInfo(simularPartidoTorneo);'>" + t("torneoSimular") + "</button>" +
     "</div>");
 }
 

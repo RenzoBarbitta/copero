@@ -45,16 +45,16 @@
   function InicioEncabezado() {
     return html`
       <div className="logos-principales">
-        <a href="https://discord.gg/jdFB6EHrjQ" target="_blank" rel="noopener" aria-label="Discord PSO Argentina"><img src="imagenes/logopsoarg.png" alt="PSO Argentina Logo" className="logo-principal"/></a>
-        <a href="https://discord.com/invite/NPuKuhVfHv" target="_blank" rel="noopener" aria-label="Discord PSO Brasil"><img src="imagenes/logopsobr.png" alt="PSO Brasil Logo" className="logo-principal"/></a>
-        <a href="https://discord.gg/J3Geb4EjDa" target="_blank" rel="noopener" aria-label="Discord PSO Uruguay"><img src="imagenes/logo.png" alt="PSO Uruguay Logo" className="logo-principal"/></a>
+        <a href="https://discord.gg/jdFB6EHrjQ" target="_blank" rel="noopener" aria-label="Discord PSO Argentina"><img src="imagenes/logopsoarg-web.png" alt="PSO Argentina Logo" className="logo-principal" loading="lazy"/></a>
+        <a href="https://discord.com/invite/NPuKuhVfHv" target="_blank" rel="noopener" aria-label="Discord PSO Brasil"><img src="imagenes/logopsobr-web.png" alt="PSO Brasil Logo" className="logo-principal" loading="lazy"/></a>
+        <a href="https://discord.gg/J3Geb4EjDa" target="_blank" rel="noopener" aria-label="Discord PSO Uruguay"><img src="imagenes/logo-web.png" alt="PSO Uruguay Logo" className="logo-principal" loading="lazy"/></a>
       </div>
       <h1 className="mb-4 text-primary fw-bold" data-i18n="titulo">CARRERA PSO</h1>
       <div className="intro-banner" aria-hidden="true">
-        <img src="imagenes/banner%20copero.png" alt="" className="intro-banner-img" loading="lazy"/>
+        <img src="imagenes/banner-web.png" alt="" className="intro-banner-img" loading="lazy"/>
         <span className="intro-banner-velo"></span>
         <span className="intro-banner-brillo"></span>
-        <img src="imagenes/CoperoPsoSa.png" alt="" className="intro-banner-logo" loading="lazy"/>
+        <img src="imagenes/icon-512.png" alt="" className="intro-banner-logo" loading="lazy"/>
       </div>
       <div className="mb-3 text-start">
         <label className="form-label fw-bold" htmlFor="input-nombre" data-i18n="nombreJugador">Nombre del Jugador:</label>

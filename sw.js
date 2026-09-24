@@ -19,7 +19,7 @@
 //  cache de golpe, pero no es necesario para ver las novedades.
 // ============================================================
 
-const CACHE_NOMBRE = "pso-carrera-v48";
+const CACHE_NOMBRE = "pso-carrera-v49";
 
 const ARCHIVOS_BASE = [
   "./",
@@ -71,15 +71,14 @@ const ARCHIVOS_BASE = [
   "./react/modales-7.js",
   "./react/montar.js",
   "./manifest.webmanifest",
-  "./imagenes/logo.png",
-  "./imagenes/logopsoarg.png",
-  "./imagenes/logopsobr.png",
+  "./imagenes/logo-web.png",
+  "./imagenes/logopsoarg-web.png",
+  "./imagenes/logopsobr-web.png",
   "./imagenes/icon-192.png",
   "./imagenes/icon-512.png",
   "./imagenes/icon-512-maskable.png",
   "./imagenes/icon-180.png",
-  "./imagenes/banner%20copero.png",
-  "./imagenes/CoperoPsoSa.png"
+  "./imagenes/banner-web.png"
 ];
 
 self.addEventListener("install", (evento) => {

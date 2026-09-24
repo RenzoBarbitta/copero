@@ -269,7 +269,7 @@ function abrirSelectorMinijuegos() {
   ];
   let html = "<p class='small text-secondary'>Elegí un minijuego extra. Máximo <strong>1 minijuego por temporada</strong> (además del entrenamiento tradicional).</p><div class='d-grid gap-2'>";
   botones.forEach(function(b) {
-    html += "<button class='btn btn-outline-warning fw-bold' onclick='modalInfo.hide(); " + b.fn + "'>" + b.emoji + " " + b.nombre + "</button>";
+    html += "<button class='btn btn-outline-warning fw-bold' onclick='ejecutarTrasCerrarInfo(function(){ " + b.fn + " });'>" + b.emoji + " " + b.nombre + "</button>";
   });
   html += "</div>";
   mostrarNotificacion("🎮 Minijuegos", html);
