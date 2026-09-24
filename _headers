@@ -29,3 +29,8 @@
 
 /imagenes/*
   Cache-Control: public, max-age=604800, immutable
+
+# React/htm (vendor/): archivos que no cambian entre deploys. Solo se
+# actualizan con un bump de CACHE_NOMBRE del Service Worker.
+/vendor/*
+  Cache-Control: public, max-age=31536000, immutable

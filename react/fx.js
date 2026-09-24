@@ -100,7 +100,7 @@
         <span className="cine-anillo"></span>
         <div className="cine-centro">
           <div className="cine-fx">
-            <img className="cine-logo" src="imagenes/icon-512.png" alt=""/>
+            <img className="cine-logo" src="imagenes/icon-512.png" alt="" decoding="async"/>
             <span className="cine-brillo"></span>
           </div>
           <div className="cine-titulo" aria-hidden="true">${letras}</div>

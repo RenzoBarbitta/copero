@@ -9,17 +9,19 @@
 //     Siempre se pide la version nueva al servidor (que revalida
 //     con ETag, sin costo). La cache solo se usa offline. Asi un
 //     deploy jamas deja a un usuario con la version vieja.
-//   - Archivos del mismo origen (JS, CSS, imagenes): NETWORK-FIRST
-//     con respaldo en cache para offline. Como no llevan hash, la
-//     unica forma correcta es revalidar contra la red en cada
-//     visita; la cache se refresca sola.
+//   - Archivos del mismo origen (JS, CSS): NETWORK-FIRST con
+//     respaldo en cache para offline. Como no llevan hash, la unica
+//     forma correcta es revalidar contra la red en cada visita.
+//   - Imagenes de mismo origen (banderas, logos, escudos): CACHE-FIRST.
+//     Son estaticas y casi nunca cambian; la purga la hace el bump de
+//     CACHE_NOMBRE. Cero rondas de red en las visitas repetidas.
 //  - Bootstrap y Bootstrap Icons (CDN, version fija): CACHE-FIRST.
 //
 //  CACHE_NOMBRE es solo por higiene: al cambiarlo se purga toda la
 //  cache de golpe, pero no es necesario para ver las novedades.
 // ============================================================
 
-const CACHE_NOMBRE = "pso-carrera-v49";
+const CACHE_NOMBRE = "pso-carrera-v50";
 
 const ARCHIVOS_BASE = [
   "./",
@@ -144,6 +146,26 @@ self.addEventListener("fetch", (evento) => {
   // Se guarda la respuesta con una Request normal (evita problemas
   // al almacenar requests de tipo navigate en Cache Storage).
   const claveCache = new Request(url.href);
+
+  // Imagenes de mismo origen (banderas, logos, escudos): son estaticas y casi
+  // nunca cambian entre deploys, asi que cache-first. En las visitas repetidas
+  // no se revalidan: cero rondas de red. Si alguna vez cambian, el bump de
+  // CACHE_NOMBRE purga la cache vieja y se actualizan solas.
+  if (/\.(png|jpe?g|gif|svg|webp|ico)(\?.*)?$/i.test(url.pathname)) {
+    evento.respondWith(
+      caches.match(claveCache).then(function (cacheado) {
+        if (cacheado) return cacheado;
+        return fetch(req).then(function (res) {
+          if (res && res.ok) {
+            const copia = res.clone();
+            caches.open(CACHE_NOMBRE).then(function (cache) { cache.put(claveCache, copia); });
+          }
+          return res;
+        });
+      })
+    );
+    return;
+  }
 
   evento.respondWith(
     fetch(req).then((res) => {

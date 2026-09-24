@@ -148,7 +148,7 @@ function banderaImg(codigo, clase) {
   const s = seleccionPorCodigo(codigo);
   return "<img src=\"" + ruta + "\" alt=\"" + (s ? s.codigo : codigo) + "\"" +
     (s ? " title=\"" + s.nombre + "\"" : "") +
-    (clase ? " class=\"" + clase + "\"" : "") + " loading=\"lazy\">";
+    (clase ? " class=\"" + clase + "\"" : "") + " loading=\"lazy\" decoding=\"async\">";
 }
 
 const SELECCIONES = [
