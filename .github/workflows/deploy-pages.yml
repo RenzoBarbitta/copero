@@ -21,13 +21,16 @@ jobs:
       - name: Preparar carpeta de publicacion
         run: |
           mkdir -p dist
-          cp index.html privacidad.html styles.css theme.css app.js data.js features.js \
-             duelo.js camiseta.js touch-controls.js ranking-online.js \
+          cp index.html privacidad.html styles.css theme.css fx.css fx-detalle.css \
+             app.js data.js features.js \
+             duelo.js coop.js camiseta.js touch-controls.js ranking-online.js \
              supabase-config.js cuenta-api.js cuenta-ui.js ui.js pwa.js sw.js \
              progression.js event-outcomes.js minigame-camiseta.js \
              minigame-camiseta.css \
              manifest.webmanifest google7cb43165a7bd622a.html _headers dist/
           cp -r imagenes dist/
+          cp -r vendor dist/
+          cp -r react dist/
 
       - name: Deploy a Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
