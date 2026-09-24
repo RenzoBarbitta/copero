@@ -1,0 +1,453 @@
+/* ============================================================
+   COPERO — fx-detalle.css (v4 · reescrito limpio, sin duplicados)
+   Segunda parte de fx.css: botones, glow del OVR, toasts,
+   tablas, foco, scrollbar, redes sociales, minijuegos y casaca.
+   Siempre después de theme.css y fx.css; solo agrega, nunca
+   pisa la base.
+   ============================================================ */
+
+/* ---------- BOTONES ----------
+   Bisel estático por defecto. Al hover: glow expansivo sutil
+   + micro-escala; al pulsar, pequeño "press". */
+.btn-pso {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    0 4px 16px -6px var(--azul-sombra, rgba(22, 119, 255, 0.28));
+  transition: box-shadow 0.25s ease, transform 0.2s ease, filter 0.25s ease;
+}
+.btn-warning, .btn-success, .btn-primary, .btn-danger, .btn-info {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 5px 14px -9px rgba(0, 0, 0, 0.85);
+  transition: box-shadow 0.25s ease, transform 0.2s ease, filter 0.25s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn-pso:hover:not(:disabled) {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.34),
+      0 7px 22px -7px var(--azul-sombra, rgba(22, 119, 255, 0.28)),
+      0 0 22px -8px rgba(22, 119, 255, 0.35);
+    transform: translateY(-1px) scale(1.02);
+    filter: brightness(1.04);
+  }
+  .btn-warning:hover:not(:disabled),
+  .btn-success:hover:not(:disabled),
+  .btn-primary:hover:not(:disabled),
+  .btn-danger:hover:not(:disabled),
+  .btn-info:hover:not(:disabled) {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.32),
+      0 8px 20px -10px rgba(0, 0, 0, 0.9),
+      0 0 18px -9px rgba(255, 255, 255, 0.18);
+    transform: translateY(-1px) scale(1.02);
+    filter: brightness(1.03);
+  }
+}
+.btn-pso:active:not(:disabled),
+.btn-warning:active:not(:disabled),
+.btn-primary:active:not(:disabled) { transform: translateY(0) scale(0.98); }
+
+/* CTA principal: tipografía + pulso suave */
+#btn-jugar-partido {
+  letter-spacing: 0.06em;
+  animation: fx-cta-pulso 2.8s ease-in-out infinite;
+}
+@keyframes fx-cta-pulso {
+  0%, 100% { box-shadow: inset 0 1px 0 rgba(255,255,255,0.24), 0 4px 16px -6px rgba(22,119,255,0.28); }
+  50%      { box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), 0 6px 22px -6px rgba(22,119,255,0.5), 0 0 26px -8px rgba(22,119,255,0.55); }
+}
+/* Acceso directo a entrenar atributos: brillo dorado leve */
+#btn-entrenar-atributos { animation: fx-brillo-periodico 3.4s ease-in-out infinite; }
+@keyframes fx-brillo-periodico {
+  0%, 100% { filter: brightness(1); }
+  50%      { filter: brightness(1.1); }
+}
+
+/* ---------- VS Y OVR ---------- */
+.vs-badge-vs { animation: fx-vs-sway 3.2s ease-in-out infinite; }
+@keyframes fx-vs-sway {
+  0%, 100% { transform: rotate(-3deg) scale(1); }
+  50%      { transform: rotate(3deg) scale(1.07); }
+}
+.vs-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+@media (hover: hover) and (pointer: fine) {
+  .vs-card:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 14px 34px -14px rgba(0,0,0,0.95), 0 0 24px -14px rgba(22,119,255,0.5); }
+}
+.tj-ovr { transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s ease; }
+@media (hover: hover) and (pointer: fine) {
+  .tarjeta-jugador { transition: transform 0.28s ease, box-shadow 0.28s ease; }
+  .tarjeta-jugador:hover { transform: translateY(-3px); box-shadow: 0 10px 32px -12px rgba(0,0,0,0.85), 0 0 20px -12px rgba(22,119,255,0.35); }
+  .tarjeta-jugador:hover .tj-ovr { transform: scale(1.07); filter: drop-shadow(0 0 16px rgba(245, 200, 76, 0.4)); }
+}
+.ovr-up { animation: fx-ovr-sube 0.9s cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes fx-ovr-sube {
+  0%   { transform: scale(1); text-shadow: 0 0 0 rgba(53, 199, 122, 0); }
+  35%  { transform: scale(1.35); text-shadow: 0 0 22px rgba(53, 199, 122, 0.9); }
+  100% { transform: scale(1); text-shadow: 0 0 0 rgba(53, 199, 122, 0); }
+}
+
+/* ---------- TOASTS ---------- */
+.toast-item { animation: fx-toast-entra 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes fx-toast-entra {
+  0%   { opacity: 0; transform: translateY(-18px) scale(0.93); }
+  60%  { transform: translateY(3px) scale(1.02); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.toast-item.saliendo { animation: fx-toast-sale 0.35s ease forwards; }
+@keyframes fx-toast-sale {
+  100% { opacity: 0; transform: translateY(-12px) scale(0.95); }
+}
+@media (hover: hover) and (pointer: fine) {
+  .toast-item:hover { filter: brightness(1.05); box-shadow: 0 8px 28px -12px rgba(0,0,0,0.9), 0 0 20px -12px rgba(22,119,255,0.35); }
+}
+
+/* ---------- CHIPS: micro-bounce al hover ---------- */
+@media (hover: hover) and (pointer: fine) {
+  .chip:hover, .badge:hover, .chip-small:hover, .badge-sm:hover {
+    animation: fx-chip-bounce 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+}
+@keyframes fx-chip-bounce {
+  0%   { transform: translateY(0) scale(1); }
+  40%  { transform: translateY(-3px) scale(1.06); }
+  70%  { transform: translateY(0) scale(0.98); }
+  100% { transform: translateY(-1px) scale(1.02); }
+}
+
+/* ---------- TABLAS ---------- */
+/* Nota: .tabla-historial NO se anima a propósito (decisión de la
+   base: el historial se repinta en cada refresco). */
+tbody tr:not(.tabla-historial tbody tr) {
+  animation: fx-fila-entra 0.35s ease both;
+}
+@keyframes fx-fila-entra {
+  0%   { opacity: 0; transform: translateY(6px) scale(0.99); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+tbody tr {
+  transition: background-color 0.18s ease, filter 0.18s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+tbody tr:hover {
+  filter: brightness(1.12);
+  transform: translateX(2px);
+  box-shadow: inset 0 0 0 1px rgba(61, 139, 255, 0.25);
+}
+.table thead th { transition: background-color 0.2s ease, box-shadow 0.2s ease; }
+@media (hover: hover) and (pointer: fine) {
+  .table thead th:hover { background: rgba(255,255,255,0.09); box-shadow: inset 0 -1px 0 rgba(255,255,255,0.12), 0 8px 20px -12px rgba(0,0,0,0.9); }
+}
+
+/* ---------- DETAILS/MENÚS ---------- */
+details .perfil-menu-content { animation: fx-detalle-abre 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes fx-detalle-abre {
+  0%   { opacity: 0; transform: translateY(-8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+summary { cursor: pointer; }
+
+/* ---------- FOCO ACCESIBLE (refuerzo visual) ---------- */
+:focus-visible {
+  outline: 2px solid var(--azul-2, #3d8bff);
+  outline-offset: 2px;
+  border-radius: 6px;
+  animation: fx-foco-latir 1.6s ease-in-out infinite;
+}
+@keyframes fx-foco-latir {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(61, 139, 255, 0.35); }
+  50%      { box-shadow: 0 0 0 5px rgba(61, 139, 255, 0); }
+}
+
+/* ---------- SCROLLBAR ---------- */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg-alt, #151821); }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--azul, #1677ff), #0e5ed1);
+  border-radius: 8px;
+  border: 2px solid var(--bg-alt, #151821);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--azul-2, #3d8bff);
+  box-shadow: 0 0 12px rgba(22, 119, 255, 0.5);
+}
+
+/* ============================================================
+   REDES SOCIALES — posts del feed (lateral + modal)
+   Markup real: <article class="red-social-post ..."> con
+   <strong>@autor</strong>, .badge de estilo y .small.text-danger
+   para la viralidad. NO existen .autor-badge ni .viralidad-badge.
+   ============================================================ */
+#redes-feed-lateral .red-social-post,
+#redes-feed .red-social-post {
+  position: relative;
+  overflow: hidden;
+  animation: fx-redes-entra 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+#redes-feed-lateral .red-social-post:nth-child(1), #redes-feed .red-social-post:nth-child(1) { animation-delay: 0.04s; }
+#redes-feed-lateral .red-social-post:nth-child(2), #redes-feed .red-social-post:nth-child(2) { animation-delay: 0.08s; }
+#redes-feed-lateral .red-social-post:nth-child(3), #redes-feed .red-social-post:nth-child(3) { animation-delay: 0.12s; }
+#redes-feed-lateral .red-social-post:nth-child(4), #redes-feed .red-social-post:nth-child(4) { animation-delay: 0.16s; }
+#redes-feed-lateral .red-social-post:nth-child(5), #redes-feed .red-social-post:nth-child(5) { animation-delay: 0.2s; }
+#redes-feed-lateral .red-social-post:nth-child(6), #redes-feed .red-social-post:nth-child(6) { animation-delay: 0.24s; }
+@keyframes fx-redes-entra {
+  0%   { opacity: 0; transform: translateY(18px) scale(0.97); }
+  60%  { transform: translateY(-3px) scale(1.01); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+/* Línea superior de color que se enciende al pasar el mouse */
+.red-social-post::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--azul, #1677ff), var(--dorado, #f5c84c));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  #redes-feed-lateral .red-social-post:hover,
+  #redes-feed .red-social-post:hover {
+    transform: translateY(-4px) scale(1.015);
+    box-shadow: 0 12px 32px -14px rgba(0,0,0,0.95), 0 0 26px -12px rgba(22,119,255,0.45);
+    border-color: rgba(22,119,255,0.55) !important;
+  }
+  .red-social-post:hover::before { opacity: 1; animation: fx-top-line-glow 2s ease-in-out infinite; }
+  /* El badge de estilo (picante) hace pop */
+  .red-social-post:hover .badge { transform: scale(1.12) rotate(-3deg); box-shadow: 0 0 14px -4px rgba(245,200,76,0.6); }
+  /* La viralidad (🔥 n viralidad) late */
+  .red-social-post:hover .small.text-danger { animation: fx-viralidad-late 0.9s ease-in-out infinite; }
+}
+@keyframes fx-top-line-glow {
+  0%, 100% { opacity: 0.7; }
+  50%      { opacity: 1; }
+}
+@keyframes fx-viralidad-late {
+  0%, 100% { text-shadow: 0 0 6px rgba(220, 53, 69, 0.4); transform: scale(1); }
+  50%      { text-shadow: 0 0 16px rgba(220, 53, 69, 0.9); transform: scale(1.06); }
+}
+/* El @autor brilla suave de forma continua */
+.red-social-post strong {
+  transition: color 0.2s ease, text-shadow 0.2s ease;
+  animation: fx-autor-breath 5s ease-in-out infinite;
+}
+@keyframes fx-autor-breath {
+  0%, 100% { text-shadow: 0 0 0 rgba(61, 139, 255, 0); }
+  50%      { text-shadow: 0 0 14px rgba(61, 139, 255, 0.35); }
+}
+@media (hover: hover) and (pointer: fine) {
+  .red-social-post:hover strong { color: var(--azul-2, #3d8bff); text-shadow: 0 0 14px rgba(61, 139, 255, 0.55); }
+}
+/* Estado vacío del feed: flota y su ícono reacciona */
+.vacio { animation: fx-vacio-float 6s ease-in-out infinite; }
+@keyframes fx-vacio-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+.vacio-icono { transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+@media (hover: hover) and (pointer: fine) {
+  .vacio:hover .vacio-icono { transform: scale(1.12) rotate(-8deg); }
+}
+
+/* ============================================================
+   MINIJUEGOS — contenedores reales son IDs:
+   #contenedorMinijuegoCamiseta y #contenedorDardos
+   ============================================================ */
+#contenedorMinijuegoCamiseta,
+#contenedorDardos {
+  animation: fx-minijuego-entra 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes fx-minijuego-entra {
+  0%   { opacity: 0; transform: scale(0.9) translateY(20px); }
+  60%  { transform: scale(1.02) translateY(-3px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+/* Chips del HUD: glow azul pulsante (la base no anima su box-shadow) */
+.mg-chip { animation: fx-chip-glow 3s ease-in-out infinite; }
+@keyframes fx-chip-glow {
+  0%, 100% { box-shadow: 0 8px 24px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.12); }
+  50%      { box-shadow: 0 8px 32px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.2), 0 0 18px -8px rgba(22,119,255,0.45); }
+}
+/* Vidas: se suma un glow rojo al pulse de escala de la base.
+   (.mg-wrap .mg-life gana por especificidad sin pisar mg-life-pulse) */
+.mg-wrap .mg-life {
+  animation:
+    mg-life-pulse 2s ease-in-out infinite,
+    fx-life-glow 2s ease-in-out infinite;
+}
+@keyframes fx-life-glow {
+  0%, 100% { box-shadow: 0 0 14px rgba(255,80,80,.75), 0 0 4px rgba(255,80,80,.9), inset 0 -3px 5px rgba(0,0,0,.4), inset 0 2px 3px rgba(255,255,255,.35); }
+  50%      { box-shadow: 0 0 24px rgba(255,80,80,.95), 0 0 8px rgba(255,80,80,1), 0 0 44px -8px rgba(255,80,80,.6), inset 0 -3px 5px rgba(0,0,0,.4), inset 0 2px 3px rgba(255,255,255,.35); }
+}
+/* Controles táctiles: spring al tocar */
+@media (hover: hover) and (pointer: fine) {
+  .mg-controls .mg-btn:hover { transform: scale(1.08); border-color: rgba(255,255,255,.5); box-shadow: 0 12px 32px rgba(0,0,0,.5), inset 0 2px 0 rgba(255,255,255,.3), 0 0 24px -8px rgba(22,119,255,.5); }
+}
+.mg-controls .mg-btn:active { transform: scale(0.9); }
+/* Escena: resplandor interior de fondo según variante */
+.mg-scene { box-shadow: inset 0 0 60px rgba(0,0,0,.45), 0 18px 44px -22px rgba(0,0,0,.9); }
+.mg-wrap[data-variant="rain"] .mg-scene { box-shadow: inset 0 0 60px rgba(0,0,0,.45), 0 18px 44px -22px rgba(30,80,160,.5); }
+
+/* ============================================================
+   CASACA — #camiseta-preview (vista previa) y #camiseta-badge
+   (mini casaca del header). El ajuste del nombre dentro del SVG
+   vive en camiseta.js; aquí el marco, el glow y el contraste.
+   ============================================================ */
+#camiseta-preview {
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 30%, #1d2935 0%, #10161d 70%, #0a0e14 100%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  box-shadow:
+    0 8px 32px -12px rgba(0,0,0,0.8),
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    0 0 40px -20px rgba(22,119,255,0.25);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  #camiseta-preview:hover {
+    box-shadow:
+      0 12px 40px -10px rgba(0,0,0,0.9),
+      inset 0 1px 0 rgba(255,255,255,0.12),
+      0 0 50px -16px rgba(22,119,255,0.45);
+    border-color: rgba(255,255,255,0.22);
+  }
+}
+/* Halo interior que respira detrás de la casaca */
+#camiseta-preview::before {
+  content: "";
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 140%; height: 140%;
+  background: radial-gradient(ellipse at center, rgba(22,119,255,0.12) 0%, transparent 60%);
+  pointer-events: none;
+  animation: fx-camiseta-glow 5s ease-in-out infinite alternate;
+}
+@keyframes fx-camiseta-glow {
+  0%   { opacity: 0.55; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1.12); }
+}
+/* La casaca flota con suave balanceo */
+#camiseta-preview svg {
+  position: relative;
+  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 20px rgba(22,119,255,0.2));
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), filter 0.4s ease;
+  animation: fx-camiseta-float 7s ease-in-out infinite;
+}
+@keyframes fx-camiseta-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%      { transform: translateY(-3px) rotate(1deg); }
+}
+@media (hover: hover) and (pointer: fine) {
+  #camiseta-preview:hover svg {
+    transform: translateY(-5px) scale(1.03);
+    filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.7)) drop-shadow(0 0 30px rgba(22,119,255,0.4));
+  }
+}
+/* El nombre en la casaca: halo claro para que se lea sobre el celeste
+   (paint-order pinta el relleno encima del contorno) */
+#camiseta-preview svg text:first-of-type {
+  paint-order: stroke fill;
+  stroke: rgba(255, 255, 255, 0.45);
+  stroke-width: 0.6;
+  stroke-linejoin: round;
+}
+#camiseta-badge svg text {
+  paint-order: stroke fill;
+  stroke: rgba(0, 0, 0, 0.3);
+  stroke-width: 0.5;
+  stroke-linejoin: round;
+}
+/* Mini casaca del header: respira y responde al hover */
+#camiseta-badge {
+  position: relative;
+  padding: 6px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04));
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 12px;
+  box-shadow:
+    0 4px 16px -8px rgba(0,0,0,0.6),
+    inset 0 1px 0 rgba(255,255,255,0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  animation: fx-badge-breath 6s ease-in-out infinite;
+}
+@keyframes fx-badge-breath {
+  0%, 100% { box-shadow: 0 4px 16px -8px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1); }
+  50%      { box-shadow: 0 4px 20px -6px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.15), 0 0 20px -12px rgba(22,119,255,0.35); }
+}
+@media (hover: hover) and (pointer: fine) {
+  #camiseta-badge:hover {
+    transform: translateY(-2px) scale(1.06);
+    box-shadow:
+      0 8px 28px -10px rgba(0,0,0,0.8),
+      inset 0 1px 0 rgba(255,255,255,0.15),
+      0 0 30px -10px rgba(22,119,255,0.5);
+    border-color: rgba(255,255,255,0.25);
+  }
+}
+#camiseta-badge svg {
+  filter: drop-shadow(0 3px 6px rgba(0,0,0,0.5)) drop-shadow(0 0 10px rgba(22,119,255,0.15));
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), filter 0.3s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  #camiseta-badge:hover svg { transform: translateY(-2px) scale(1.1); }
+}
+/* Inputs de nombre y dorsal: glow al escribir */
+#input-nombre, #input-dorsal { transition: box-shadow 0.25s ease, border-color 0.25s ease; }
+#input-nombre:focus, #input-dorsal:focus {
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.3), 0 0 0 3px rgba(22,119,255,0.22);
+  border-color: var(--azul, #1677ff);
+}
+
+/* ---------- MOVIMIENTO REDUCIDO ---------- */
+@media (prefers-reduced-motion: reduce) {
+  #pantalla-inicio:not(.hidden),
+  #pantalla-juego:not(.hidden),
+  #pantalla-resumen:not(.hidden),
+  .cp-vista:not(.hidden),
+  .cp-vista:not(.hidden) > .row > [class*="col-"],
+  #pantalla-juego:not(.hidden) > .row > [class*="col-"],
+  .toast-item,
+  tbody tr:not(.tabla-historial tbody tr),
+  details .perfil-menu-content,
+  #redes-feed-lateral .red-social-post,
+  #redes-feed .red-social-post,
+  .red-social-post strong,
+  .vacio,
+  #contenedorMinijuegoCamiseta,
+  #contenedorDardos,
+  .mg-chip,
+  .mg-wrap .mg-life,
+  #camiseta-preview,
+  #camiseta-preview::before,
+  #camiseta-preview svg,
+  #camiseta-badge,
+  #btn-jugar-partido,
+  #btn-entrenar-atributos,
+  .vs-badge-vs,
+  .sb-item.activo .sb-ico svg,
+  .nb-item.activo .sb-ico svg,
+  :focus-visible { animation: none !important; }
+  .toast-item.saliendo { animation: none !important; opacity: 1; }
+  tbody tr:hover,
+  .red-social-post:hover,
+  .red-social-post:hover .badge,
+  .red-social-post:hover .small.text-danger,
+  .vs-card:hover,
+  .tarjeta-jugador:hover,
+  .tarjeta-jugador:hover .tj-ovr,
+  #camiseta-preview:hover,
+  #camiseta-preview:hover svg,
+  #camiseta-badge:hover,
+  #camiseta-badge:hover svg,
+  .mg-controls .mg-btn:hover,
+  .mg-controls .mg-btn:active,
+  .btn-pso:hover:not(:disabled),
+  .btn-warning:hover:not(:disabled),
+  .btn-primary:hover:not(:disabled) { transform: none !important; }
+  .btn-pso, .btn-warning, .btn-success, .btn-primary, .btn-danger, .btn-info,
+  tbody tr, .table thead th, .toast-item,
+  #redes-feed-lateral .red-social-post, #redes-feed .red-social-post { transition: none !important; }
+  ::-webkit-scrollbar-thumb { transition: none; box-shadow: none !important; }
+}

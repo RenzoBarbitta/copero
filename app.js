@@ -11,6 +11,7 @@ function crearJugadorInicial() {
   return {
     nombre: "",
     posicion: "DEL",
+    nacionalidad: "URU",
     edad: CONFIG.EDAD_INICIO,
     media: 60,
     atributos: null,
@@ -51,6 +52,10 @@ function crearJugadorInicial() {
     partidosSeleccion: 0,
     golesSeleccion: 0,
     esCapitan: false,
+    fechasSeleccionTemporada: 0,
+    internacional: null,
+    tituloContinental: null,
+    tituloInternacional: null,
     reputacionPersonal: 0,
     logros: [],
     finalCarrera: null,
@@ -70,7 +75,11 @@ function crearJugadorInicial() {
       copaArgentina: 0,
       copaDeCampeones: 0,
       botaDeOro: 0,
-      balonDeOro: 0
+      balonDeOro: 0,
+      mundial: 0,
+      copaAmerica: 0,
+      euro: 0,
+      finalissima: 0
     }
   };
 }
@@ -1464,6 +1473,571 @@ function sincronizarDivision() {
   }
 }
 
+// ============================================================
+//  CONVOCATORIAS INTERNACIONALES
+//  Cada temporada se evalúa la convocatoria a la selección según el
+//  OVR (>= UMBRAL_CONVOCATORIA) y la capitanía (>= UMBRAL_CAPITAN).
+//  Si está convocado, se juega una Fecha FIFA a mitad del calendario
+//  interactivo de la temporada (partidos de club jugados).
+// ============================================================
+function mediaActual() {
+  return typeof mediaActualJugador === "function"
+    ? mediaActualJugador(jugador)
+    : (jugador ? jugador.media : 0);
+}
+
+function iniciarTemporadaInternacional(notificar) {
+  if (!jugador) return null;
+  const prevConvocado = !!jugador.seleccionConvocado;
+  const prevCapitan = !!jugador.esCapitan;
+  jugador.fechasSeleccionTemporada = 0;
+  const res = evaluarConvocatoria(jugador, mediaActual());
+  jugador.seleccionConvocado = !!res.convocado;
+  jugador.esCapitan = !!res.capitan;
+  if (notificar && jugador.seleccionConvocado) {
+    const s = seleccionPorCodigo(jugador.nacionalidad);
+    const selNombre = s ? s.nombre : jugador.nacionalidad;
+    if (res.capitan && !prevCapitan) {
+      if (typeof mostrarNotificacion === "function") {
+        mostrarNotificacion(t("fechaFifaTitulo"), t("convCapitana").replace("{seleccion}", selNombre));
+      }
+    } else if (!prevConvocado) {
+      if (typeof mostrarNotificacion === "function") {
+        mostrarNotificacion(t("fechaFifaTitulo"), t("convConvocado").replace("{seleccion}", selNombre));
+      }
+    }
+  }
+  prepararTorneoSeleccionTemporada();
+  return res;
+}
+
+function evaluarFechaFifa(partidosClubJugados) {
+  if (!jugador || jugador.carreraTerminada || !jugador.seleccionConvocado) return;
+  if (typeof evaluarConvocatoria === "function") {
+    const ok = evaluarConvocatoria(jugador, mediaActual());
+    if (!ok.convocado) return;
+  }
+  // A mitad del calendario interactivo se juega la Fecha FIFA de la temporada.
+  const total = jugador.rivalesTemporada && jugador.rivalesTemporada.length
+    ? jugador.rivalesTemporada.length : 3;
+  const marca = Math.max(1, Math.round(total / 2));
+  if (partidosClubJugados !== marca) return;
+  const res = typeof simularFechaFifa === "function" ? simularFechaFifa(jugador) : null;
+  if (!res) return;
+  jugador.partidosSeleccion = (jugador.partidosSeleccion || 0) + 1;
+  jugador.golesSeleccion = (jugador.golesSeleccion || 0) + (res.goles || 0);
+  jugador.fechasSeleccionTemporada = (jugador.fechasSeleccionTemporada || 0) + 1;
+  jugador.moral = Math.max(CONFIG.MORAL_MIN, Math.min(CONFIG.MORAL_MAX, (jugador.moral || 0) + res.moral));
+  if (typeof guardarPartida === "function") guardarPartida();
+  const texto = t("fechaFifaPartido")
+    .replace("{seleccion}", res.seleccion)
+    .replace("{rival}", res.rival)
+    .replace("{ptsSel}", String(res.marcador.seleccion))
+    .replace("{ptsRival}", String(res.marcador.rival))
+    .replace("{goles}", String(res.goles));
+  mostrarNotificacion(t("fechaFifaTitulo"),
+    "<div class='text-center'>" + banderaImg(res.seleccionCodigo, "ranking-bandera mx-auto") + "</div>" +
+    "<p class='mb-1 mt-2'>" + texto + "</p>" +
+    "<small class='text-secondary'>" + (res.goles > 0 ? "⚽ +" + res.goles + " · " : "· ") +
+    "Moral " + (res.moral >= 0 ? "+" : "") + res.moral + "</small>");
+  if (typeof actualizarInterfaz === "function") actualizarInterfaz();
+}
+
+// ============================================================
+//  CAMPEONATOS INTERNACIONALES (Mundial, Copa América, Euro,
+//  Finalissima). Ciclo de 4 temporadas según la confederación.
+//  El usuario juega o simula cada partido de su selección; el
+//  resto del torneo (grupos y llaves) se simula en el momento.
+// ============================================================
+function nombreTorneo(tipo) {
+  const lim = String(tipo || "").toLowerCase();
+  const claves = { mundial: "torneoMundial", copaAmerica: "torneoCopaAmerica", euro: "torneoEuro", finalissima: "torneoFinalissima" };
+  return typeof t === "function" ? t(claves[lim] || "torneoMundial") : (lim || "");
+}
+
+function nombreFaseTorneo(clave) {
+  const c = String(clave || "torneoFaseGrupos");
+  return typeof t === "function" ? t(c) : c;
+}
+
+function prepararTorneoSeleccionTemporada() {
+  if (!jugador || !jugador.seleccionConvocado || jugador.carreraTerminada) return null;
+  const s = typeof seleccionPorCodigo === "function" ? seleccionPorCodigo(jugador.nacionalidad) : null;
+  if (!s) return null;
+  const info = typeof torneoDeTemporada === "function"
+    ? torneoDeTemporada(jugador.temporadaActual, s.confederacion) : null;
+  if (!info) return null;
+  if (jugador.internacional && !jugador.internacional.terminado) return jugador.internacional;
+  if (info.tipo === "finalissima" && !jugador.tituloContinental) return null;
+  const creado = crearTorneoSeleccion(info.tipo);
+  if (creado) {
+    mostrarNotificacion(t("fechaFifaTitulo"),
+      "<div class='text-center mb-2'>" + banderaImg(jugador.nacionalidad, "ranking-bandera mx-auto") + "</div>" +
+      "<p class='text-center fw-bold mb-1'>" + nombreTorneo(creado.tipo) + "</p>" +
+      "<p class='small text-secondary text-center mb-0'>" +
+      t("torneoIntro").replace("{torneo}", nombreTorneo(creado.tipo)) + "</p>");
+  }
+  if (typeof actualizarInterfaz === "function") actualizarInterfaz();
+  if (typeof guardarPartida === "function") guardarPartida();
+  return creado;
+}
+
+function rivalFinalissima() {
+  const s = seleccionPorCodigo(jugador.nacionalidad);
+  if (!s) return null;
+  const rivalConfed = s.confederacion === "CONMEBOL" ? "UEFA" : "CONMEBOL";
+  const candidatos = (typeof seleccionesPorConfederacion === "function"
+    ? seleccionesPorConfederacion(rivalConfed)
+    : SELECCIONES.filter(function (f) { return f[3] === rivalConfed; }))
+    .filter(function (f) { return f[0] !== jugador.nacionalidad; })
+    .sort(function (a, b) { return b[4] - a[4]; });
+  return candidatos.length ? candidatos[0][0] : null;
+}
+
+function crearTorneoSeleccion(tipo) {
+  const confed = seleccionPorCodigo(jugador.nacionalidad).confederacion;
+  if (tipo === "finalissima") {
+    const rival = rivalFinalissima();
+    if (!rival) return null;
+    const estado = {
+      tipo: "finalissima",
+      confederacion: confed,
+      seleccion: jugador.nacionalidad,
+      grupoJugador: "F",
+      fase: "final",
+      faseNombre: "torneoFaseFinal",
+      pendientes: [{ a: jugador.nacionalidad, b: rival }],
+      resultados: [],
+      ronda: [{ a: jugador.nacionalidad, b: rival, ga: null, gb: null }],
+      vivos: [jugador.nacionalidad, rival],
+      vivo: true,
+      campeon: false,
+      terminado: false,
+      ganados: 0,
+      jugados: 0
+    };
+    jugador.internacional = estado;
+    return estado;
+  }
+  const lista = typeof participantesDeTorneo === "function"
+    ? participantesDeTorneo(tipo, confed, jugador.nacionalidad) : null;
+  if (!lista) return null;
+  const grupos = typeof armarGruposEquipos === "function" ? armarGruposEquipos(lista) : null;
+  if (!grupos) return null;
+  const gJug = grupos.find(function (g) { return g.equipos.indexOf(jugador.nacionalidad) !== -1; });
+  const estado = {
+    tipo: tipo,
+    confederacion: confed,
+    seleccion: jugador.nacionalidad,
+    grupoJugador: gJug ? gJug.letra : "A",
+    fase: "grupos",
+    faseNombre: "torneoFaseGrupos",
+    grupos: grupos,
+    pendientes: [],
+    resultados: [],
+    ronda: [],
+    vivos: [],
+    vivo: true,
+    campeon: false,
+    terminado: false,
+    ganados: 0,
+    jugados: 0
+  };
+  // Grupos: se simula todo salvo los 3 partidos de la selección del jugador.
+  grupos.forEach(function (g) {
+    const eq = g.equipos;
+    const combos = [[0, 1], [2, 3], [0, 2], [1, 3], [0, 3], [1, 2]];
+    combos.forEach(function (par) {
+      let a = eq[par[0]], b = eq[par[1]];
+      const esJugador = a === jugador.nacionalidad || b === jugador.nacionalidad;
+      if (esJugador || (a === jugador.nacionalidad)) {
+        if (a !== jugador.nacionalidad) { const tmp = a; a = b; b = tmp; }
+        estado.resultados.push({ a: a, b: b, ga: null, gb: null });
+        if (esJugador) estado.pendientes.push({ a: a, b: b });
+      } else {
+        const r = simularPartidoSeleccion(a, b, null);
+        estado.resultados.push({ a: a, b: b, ga: r.golesA, gb: r.golesB });
+      }
+    });
+  });
+  jugador.internacional = estado;
+  return estado;
+}
+
+function siguientePendienteTorneo() {
+  const estado = jugador.internacional;
+  if (!estado || !estado.pendientes || !estado.pendientes.length) return null;
+  return estado.pendientes[0];
+}
+
+function tablarClasificadosTorneo() {
+  const estado = jugador.internacional;
+  if (!estado || !estado.grupos) return [];
+  const clasificados = [];
+  estado.grupos.forEach(function (g) {
+    const tabla = typeof tablaGrupo === "function" ? tablaGrupo(g.equipos, estado.resultados) : [];
+    tabla.slice(0, 2).forEach(function (e) { clasificados.push(e.codigo); });
+  });
+  return clasificados;
+}
+
+function registrarResultadoTorneo(ga, gb, golesJugador) {
+  const estado = jugador.internacional;
+  const p = siguientePendienteTorneo();
+  if (!estado || !p) return;
+  estado.resultados.push({ a: p.a, b: p.b, ga: ga, gb: gb });
+  estado.pendientes.shift();
+  estado.jugados++;
+  const ganeYo = p.a === jugador.nacionalidad ? ga > gb : gb > ga;
+  if (ganeYo) estado.ganados++;
+  if (golesJugador > 0) jugador.golesSeleccion = (jugador.golesSeleccion || 0) + golesJugador;
+  jugador.moral = Math.max(CONFIG.MORAL_MIN, Math.min(CONFIG.MORAL_MAX,
+    (jugador.moral || 0) + (ganeYo ? 3 : ga === gb ? 0 : -2)));
+}
+
+function equipoAvanzado(m) {
+  if (m.ga == null || m.gb == null) return null;
+  if (m.ga !== m.gb) return m.ga > m.gb ? m.a : m.b;
+  return Math.random() < 0.5 ? m.a : m.b;
+}
+
+function convertirVivosEnRonda(estado, vivos, nombreRonda) {
+  estado.ronda = [];
+  estado.pendientes = [];
+  estado.fase = nombreRonda;
+  estado.faseNombre = nombreRonda === "octavos" ? "torneoFaseOctavos"
+    : nombreRonda === "cuartos" ? "torneoFaseCuartos"
+      : nombreRonda === "semis" ? "torneoFaseSemis" : "torneoFaseFinal";
+  for (let i = 0; i < vivos.length; i += 2) {
+    let a = vivos[i], b = vivos[i + 1];
+    if (a === jugador.nacionalidad || b === jugador.nacionalidad) {
+      if (a !== jugador.nacionalidad) { const tmp = a; a = b; b = tmp; }
+      estado.pendientes.push({ a: a, b: b });
+      estado.ronda.push({ a: a, b: b, ga: null, gb: null });
+    } else {
+      const r = simularPartidoSeleccion(a, b, null);
+      estado.ronda.push({ a: a, b: b, ga: r.golesA, gb: r.golesB });
+    }
+  }
+}
+
+// Transiciones de fase sin emitir notificaciones: prepara pendientes y
+// resuelve qué sigue después de cada partido del jugador.
+function continuarTorneoSeleccion() {
+  const estado = jugador.internacional;
+  if (!estado || estado.terminado) return;
+  if (estado.fase === "grupos") {
+    if (estado.pendientes.length > 0) return;
+    const clasificados = tablarClasificadosTorneo();
+    const sigoVivo = clasificados.indexOf(jugador.nacionalidad) !== -1;
+    if (!sigoVivo) {
+      estado.vivo = false;
+      estado.terminado = true;
+      return;
+    }
+    estado.vivos = clasificados;
+    const cantGrupos = estado.grupos.length;
+    convertirVivosEnRonda(estado, clasificados, cantGrupos > 4 ? "octavos" : "cuartos");
+    return;
+  }
+  if (estado.pendientes.length > 0) return;
+  const avanzados = (estado.ronda || []).map(equipoAvanzado).filter(Boolean);
+  const sigoVivo = avanzados.indexOf(jugador.nacionalidad) !== -1;
+  if (!sigoVivo) {
+    estado.vivo = false;
+    estado.terminado = true;
+    return;
+  }
+  if (avanzados.length <= 1) {
+    estado.vivo = true;
+    estado.campeon = true;
+    estado.terminado = true;
+    jugador.tituloInternacional = estado.tipo;
+    if (estado.tipo === "copaAmerica" || estado.tipo === "euro") jugador.tituloContinental = estado.tipo;
+    jugador.moral = Math.max(CONFIG.MORAL_MIN, Math.min(CONFIG.MORAL_MAX, (jugador.moral || 0) + 8));
+    return;
+  }
+  const prox = estado.fase === "octavos" ? "cuartos"
+    : estado.fase === "cuartos" ? "semis" : "final";
+  convertirVivosEnRonda(estado, avanzados, prox);
+}
+
+function cerrarTorneoSeleccion() {
+  const estado = jugador.internacional;
+  if (!estado || !estado.terminado) return;
+  if (estado.campeon && jugador.trofeos) {
+    if (estado.tipo === "mundial") jugador.trofeos.mundial++;
+    else if (estado.tipo === "copaAmerica") jugador.trofeos.copaAmerica++;
+    else if (estado.tipo === "euro") jugador.trofeos.euro++;
+    else if (estado.tipo === "finalissima") jugador.trofeos.finalissima++;
+  }
+}
+
+// Muestra en un único modal el resultado recién jugado y, si sigue vivo,
+// el desafío del próximo partido (jugar o simular).
+function mostrarTrasPartidoTorneo(jugado) {
+  const estado = jugador.internacional;
+  const ganeYo = jugado && jugado.a === jugador.nacionalidad
+    ? jugado.ga > jugado.gb : jugado && jugado.gb > jugado.ga;
+  let cuerpo = "";
+  if (estado.terminado && estado.campeon) {
+    cuerpo = "<div class='text-center fs-1 mb-2'>🏆</div>" +
+      "<p class='text-center fw-bold mb-0'>" + t("torneoCampeon").replace("{torneo}", nombreTorneo(estado.tipo)) + "</p>" +
+      "<p class='text-center small text-secondary mb-0'>🏆 Trofeo guardado</p>";
+  } else if (estado.terminado) {
+    cuerpo = "<p class='text-center mb-0'>" + t("torneoEliminado")
+      .replace("{torneo}", nombreTorneo(estado.tipo))
+      .replace("{fase}", nombreFaseTorneo(estado.faseNombre)) + "</p>";
+  } else {
+    const sig = siguientePendienteTorneo();
+    const rival = sig ? seleccionPorCodigo(sig.b) : null;
+    const faseTexto = estado.fase === "grupos"
+      ? t("torneoFaseGrupos") + " · Grupo " + estado.grupoJugador
+      : nombreFaseTorneo(estado.faseNombre);
+    const jugadorNombre = seleccionPorCodigo(jugador.nacionalidad).nombre;
+    const rivalJugado = jugado ? seleccionPorCodigo(jugado.b) : null;
+    const resultScore = jugado ? jugado.ga + " - " + jugado.gb : "";
+    cuerpo =
+      "<div class='d-flex justify-content-center align-items-center text-center mb-2'>" +
+      "<div><div>" + banderaImg(jugador.nacionalidad, "ranking-bandera") + "</div><small>" + jugadorNombre + "</small></div>" +
+      "<span class='mx-3 fs-4 fw-bold'>" + resultScore + "</span>" +
+      "<div><div>" + banderaImg(jugado ? jugado.b : jugador.nacionalidad, "ranking-bandera") + "</div><small>" + (rivalJugado ? rivalJugado.nombre : "") + "</small></div>" +
+      "</div>" +
+      "<div class='text-center mb-2 small'>⚽ " + t("torneoResultado")
+        .replace("{seleccion}", jugadorNombre)
+        .replace("{pa}", String(jugado.ga))
+        .replace("{pb}", String(jugado.gb))
+        .replace("{rival}", rivalJugado ? rivalJugado.nombre : "")
+        .replace("{goles}", String(jugado.golesYo || 0)) + "</div>" +
+      (gapResultado(jugado) > 0
+        ? (ganeYo ? "<p class='text-center small mb-1'>✅ Moral +3</p>" : "<p class='text-center small mb-1'>❌ Moral -2</p>")
+        : "<p class='text-center small mb-1'>➖ Moral 0</p>") +
+      "<hr>" +
+      "<p class='text-center mb-1'><strong>" + nombreTorneo(estado.tipo) + " — " + faseTexto + "</strong></p>" +
+      "<p class='text-center small mb-2'>" + t("torneoComoJugar").replace("{torneo}", nombreTorneo(estado.tipo)) + "</p>" +
+      "<div class='d-flex justify-content-center align-items-center text-center mb-2'>" +
+      banderaImg(jugador.nacionalidad, "ranking-bandera") +
+      "<span class='mx-2 fw-bold'>VS</span>" +
+      banderaImg(sig.b, "ranking-bandera") +
+      "</div>" +
+      "<p class='text-center mb-1'><strong>" + jugadorNombre + " vs " + (rival ? rival.nombre : sig.b) + "</strong></p>" +
+      "<div class='d-grid gap-2 mt-2'>" +
+      "<button class='btn btn-success fw-bold' onclick='modalInfo.hide(); jugarPartidoTorneoInteractivo();'>" + t("torneoJugar") + "</button>" +
+      "<button class='btn btn-secondary fw-bold' onclick='modalInfo.hide(); simularPartidoTorneo();'>" + t("torneoSimular") + "</button>" +
+      "</div>";
+  }
+  cerrarTorneoSeleccion();
+  mostrarNotificacion(nombreTorneo(estado.tipo), cuerpo);
+  if (typeof actualizarInterfaz === "function") actualizarInterfaz();
+  if (typeof guardarPartida === "function") guardarPartida();
+}
+
+function gapResultado(jugado) {
+  if (!jugado || jugado.ga == null || jugado.gb == null) return -1;
+  return Math.abs(jugado.ga - jugado.gb);
+}
+
+function equipoRivalPendiente() {
+  const p = siguientePendienteTorneo();
+  if (!p) return null;
+  return p.b;
+}
+
+function calcularGolesPersonalesTorneo(golesMiSeleccion) {
+  // Cuántos goles anotó el jugador en un partido de selección simulado.
+  const media = mediaActual();
+  let prob = 0.03;
+  if (jugador.posicion === "DEL") prob = 0.60;
+  else if (jugador.posicion === "CM") prob = 0.32;
+  else if (jugador.posicion === "DEF") prob = 0.08;
+  if (prob === 0.03) return 0;
+  let goles = Math.random() < prob ? 1 : 0;
+  if (goles === 1 && jugador.posicion === "DEL" && Math.random() < 0.20 && media >= 78) goles = 2;
+  if (goles > golesMiSeleccion) goles = Math.max(0, golesMiSeleccion);
+  return goles;
+}
+
+function simularPartidoTorneo() {
+  const p = siguientePendienteTorneo();
+  if (!p) return;
+  const r = simularPartidoSeleccion(p.a, p.b, jugador);
+  if (!r) return;
+  const golesYo = calcularGolesPersonalesTorneo(p.a === jugador.nacionalidad ? r.golesA : r.golesB);
+  const jugado = { a: p.a, b: p.b, ga: r.golesA, gb: r.golesB, golesYo: golesYo };
+  registrarResultadoTorneo(r.golesA, r.golesB, golesYo);
+  continuarTorneoSeleccion();
+  mostrarTrasPartidoTorneo(jugado);
+}
+
+// Partido interactivo de selección: mini-juego de 6 jugadas con decisiones
+// Ataque / Medio / Defensa. Al terminar devuelve el marcador final.
+function jugarPartidoTorneoInteractivo() {
+  const p = siguientePendienteTorneo();
+  if (!p) return;
+  const abierto = estadoPartidoEspecial && estadoPartidoEspecial.seleccionTorneo;
+  if (abierto && abierto.pendiente === p) return;
+  const rival = seleccionPorCodigo(p.b);
+  const rivalNombre = rival ? rival.nombre : p.b;
+  estadoPartidoEspecial = {
+    seleccionTorneo: true,
+    pendiente: p,
+    fase: "grupos",
+    jugada: 0,
+    maxJugadas: 6,
+    miPuntos: 0,
+    rivalPuntos: 0,
+    miGoles: 0,
+    rivalGoles: 0,
+    historial: []
+  };
+  const cuerpo = "<div id='torneoMiniCuerpo'></div>";
+  mostrarNotificacion(nombreTorneo(jugador.internacional.tipo),
+    "<p class='text-center mb-1'><strong>" +
+    seleccionPorCodigo(p.a).nombre + " vs " + rivalNombre + "</strong></p>" +
+    "<p class='text-center small text-secondary mb-2'>" +
+    (jugador.internacional.fase === "grupos" ? t("torneoFaseGrupos") + " · Grupo " + jugador.internacional.grupoJugador : nombreFaseTorneo(jugador.internacional.faseNombre)) +
+    "</p>" + cuerpo);
+  pintarJugadaTorneo();
+}
+
+function pintarJugadaTorneo() {
+  const est = estadoPartidoEspecial;
+  const cont = document.getElementById("torneoMiniCuerpo");
+  if (!cont) return;
+  const del = Math.round(est.jugada / est.maxJugadas * 100);
+  cont.innerHTML =
+    "<div class='progress mb-2' style='height:8px'><div class='progress-bar' style='width:" + del + "%'></div></div>" +
+    "<div class='d-flex justify-content-around text-center mb-2'>" +
+    "<div><small class='d-block text-secondary'>" + seleccionPorCodigo(jugador.nacionalidad).nombre + "</small><span class='fs-4 fw-bold'>" + est.miGoles + "</span></div>" +
+    "<div><small class='d-block text-secondary'>" + seleccionPorCodigo(equipoRivalPendiente()).nombre + "</small><span class='fs-4 fw-bold'>" + est.rivalGoles + "</span></div>" +
+    "</div>" +
+    "<p class='text-center small mb-1'>Jugada " + (est.jugada + 1) + " de " + est.maxJugadas + "</p>" +
+    "<div class='d-grid gap-2'>" +
+    "<button class='btn btn-outline-primary' onclick='decisionTorneo(\"ataque\")'>⚔️ Ataque</button>" +
+    "<button class='btn btn-outline-secondary' onclick='decisionTorneo(\"medio\")'>⚖️ Medio</button>" +
+    "<button class='btn btn-outline-dark' onclick='decisionTorneo(\"defensa\")'>🛡️ Defensa</button>" +
+    "</div>";
+}
+
+function decisionTorneo(eleccion) {
+  const est = estadoPartidoEspecial;
+  if (!est) return;
+  const rivalEleccion = ["ataque", "medio", "defensa"][Math.floor(Math.random() * 3)];
+  // Piedra-papel-tijera: ataque vence a defensa, defensa a medio, medio a ataque.
+  let gana;
+  if (eleccion === rivalEleccion) gana = 0;
+  else if ((eleccion === "ataque" && rivalEleccion === "defensa") ||
+           (eleccion === "defensa" && rivalEleccion === "medio") ||
+           (eleccion === "medio" && rivalEleccion === "ataque")) gana = 1;
+  else gana = -1;
+  let resumen = "Empate / sin ventaja";
+  if (gana > 0) {
+    est.miPuntos++;
+    resumen = "¡Ganaste la jugada!";
+  } else if (gana < 0) {
+    est.rivalPuntos++;
+    resumen = "El rival se impuso en la jugada.";
+  }
+  est.historial.push({ yo: eleccion, rival: rivalEleccion, resultado: gana });
+  // La conversión depende de las jugadas ganadas y del OVR del jugador:
+  // un jugador fuerte concreta con más frecuencia cada ventaja ganada.
+  const bonusOvr = Math.max(0, (mediaActual() - 70)) / 200;
+  if (gana > 0 && Math.random() < Math.min(0.95, est.miPuntos / est.maxJugadas + bonusOvr)) est.miGoles++;
+  if (gana < 0 && Math.random() < (est.rivalPuntos / est.maxJugadas)) est.rivalGoles++;
+  est.jugada++;
+  if (est.jugada >= est.maxJugadas) {
+    terminarPartidoTorneoInteractivo();
+    return;
+  }
+  pintarJugadaTorneo();
+}
+
+function terminarPartidoTorneoInteractivo() {
+  const est = estadoPartidoEspecial;
+  if (!est) return;
+  const ga = est.miGoles, gb = est.rivalGoles;
+  const jugado = { a: est.pendiente.a, b: est.pendiente.b, ga: ga, gb: gb, golesYo: ga };
+  estadoPartidoEspecial = null;
+  registrarResultadoTorneo(ga, gb, ga); // el jugador anotó los goles del equipo
+  continuarTorneoSeleccion();
+  mostrarTrasPartidoTorneo(jugado);
+}
+
+// Pinta la tarjeta Internacional de la vista Carrera con el estado de la
+// convocatoria: bandera, federación, estado, partidos, goles y capitanía.
+function actualizarInternacional() {
+  if (!jugador) return;
+  const s = typeof seleccionPorCodigo === "function" ? seleccionPorCodigo(jugador.nacionalidad) : null;
+  const elBandera = document.getElementById("seleccion-card-bandera");
+  const elNombre = document.getElementById("seleccion-card-nombre");
+  const elConfed = document.getElementById("seleccion-card-confed");
+  const elEstado = document.getElementById("sel-estado");
+  const elPartidos = document.getElementById("sel-partidos");
+  const elGoles = document.getElementById("sel-goles");
+  const elCapitan = document.getElementById("sel-capitan");
+  if (!s) return;
+  if (elBandera) elBandera.innerHTML = typeof banderaImg === "function" ? banderaImg(s.codigo, "seleccion-card-img") : "";
+  if (elNombre) elNombre.innerText = s.nombre;
+  if (elConfed) elConfed.innerText = t("conf" + s.confederacion);
+  if (elEstado) {
+    elEstado.innerText = jugador.seleccionConvocado ? t("selConvocado") : t("selNoConvocado");
+    elEstado.className = "badge " + (jugador.seleccionConvocado ? "bg-success" : "bg-secondary") + " seleccion-estado-badge";
+  }
+  if (elPartidos) elPartidos.innerText = String(jugador.partidosSeleccion || 0);
+  if (elGoles) elGoles.innerText = String(jugador.golesSeleccion || 0);
+  if (elCapitan) elCapitan.innerText = jugador.esCapitan ? "✓" : "—";
+  const elTorneo = document.getElementById("sel-torneo");
+  const elBtn = document.getElementById("btn-torneo-seleccion");
+  if (elTorneo && elBtn) {
+    const est = jugador.internacional;
+    if (jugador.seleccionConvocado && est && !est.terminado) {
+      const faseTexto = est.fase === "grupos"
+        ? t("torneoFaseGrupos") + " · Grupo " + est.grupoJugador
+        : nombreFaseTorneo(est.faseNombre);
+      elTorneo.innerText = nombreTorneo(est.tipo) + " — " + faseTexto;
+      elTorneo.classList.remove("text-secondary");
+      elBtn.classList.remove("d-none");
+      elBtn.onclick = function () { jugarTorneoSeleccion(); };
+    } else if (jugador.seleccionConvocado && est && est.terminado && est.campeon) {
+      elTorneo.innerText = "🏆 " + nombreTorneo(est.tipo);
+      elTorneo.classList.remove("text-secondary");
+      elBtn.classList.add("d-none");
+    } else {
+      elTorneo.innerText = t("selTorneo") + " —";
+      elTorneo.classList.add("text-secondary");
+      elBtn.classList.add("d-none");
+    }
+  }
+}
+
+function jugarTorneoSeleccion() {
+  const est = jugador.internacional;
+  if (!est || est.terminado) {
+    if (typeof prepararTorneoSeleccionTemporada === "function") prepararTorneoSeleccionTemporada();
+    return;
+  }
+  const p = siguientePendienteTorneo();
+  if (!p) return;
+  const rival = seleccionPorCodigo(p.b);
+  const rivalNombre = rival ? rival.nombre : p.b;
+  const faseTexto = est.fase === "grupos"
+    ? t("torneoFaseGrupos") + " · Grupo " + est.grupoJugador
+    : nombreFaseTorneo(est.faseNombre);
+  mostrarNotificacion(nombreTorneo(est.tipo),
+    "<p class='text-center mb-1'><strong>" + nombreTorneo(est.tipo) + " — " + faseTexto + "</strong></p>" +
+    "<p class='text-center small mb-2'>" + t("torneoComoJugar").replace("{torneo}", nombreTorneo(est.tipo)) + "</p>" +
+    "<div class='d-flex justify-content-center align-items-center text-center mb-2'>" +
+    banderaImg(jugador.nacionalidad, "ranking-bandera") +
+    "<span class='mx-2 fw-bold'>VS</span>" +
+    banderaImg(p.b, "ranking-bandera") +
+    "</div>" +
+    "<p class='text-center mb-1'><strong>" + seleccionPorCodigo(jugador.nacionalidad).nombre + " vs " + rivalNombre + "</strong></p>" +
+    "<div class='d-grid gap-2 mt-2'>" +
+    "<button class='btn btn-success fw-bold' onclick='modalInfo.hide(); jugarPartidoTorneoInteractivo();'>" + t("torneoJugar") + "</button>" +
+    "<button class='btn btn-secondary fw-bold' onclick='modalInfo.hide(); simularPartidoTorneo();'>" + t("torneoSimular") + "</button>" +
+    "</div>");
+}
+
 function iniciarCarrera() {
   const nombreInput = document.getElementById("input-nombre").value.trim();
   const posicionInput = document.getElementById("select-posicion").value;
@@ -1482,6 +2056,9 @@ function iniciarCarrera() {
   jugador = crearJugadorInicial();
   jugador.nombre = nombreInput;
   jugador.posicion = posicionInput;
+  const selNacionalidad = document.getElementById("select-nacionalidad");
+  const codigoNac = selNacionalidad && selNacionalidad.value ? selNacionalidad.value : "URU";
+  jugador.nacionalidad = seleccionPorCodigo(codigoNac) ? codigoNac : "URU";
   const nacePromesa = Math.random() < CONFIG.PROMESA.PROB;
   // Progresión por atributos: genera un perfil coherente y la media
   // (OVR) se deriva de los atributos (65 normal / 75 promesa).
@@ -1514,6 +2091,7 @@ function iniciarCarrera() {
   ocultarPanelCuenta();
 
   prepararSiguienteEvento();
+  iniciarTemporadaInternacional();
   actualizarInterfaz();
   guardarPartida();
 }
@@ -1710,6 +2288,7 @@ function jugarPartidoContraRival() {
     if (typeof guardarPartida === "function") guardarPartida();
     const jugados = idx + 1;
     jugador.partidosJugadosTemporada = jugados;
+    if (typeof evaluarFechaFifa === "function") evaluarFechaFifa(jugados);
     if (jugados >= total) {
       cerrarTemporadaFinalizada();
       return;
@@ -2057,6 +2636,7 @@ function seleccionarOferta(clubElegido) {
   modalFichajes.hide();
   jugador.temporadaActual++;
 
+  iniciarTemporadaInternacional(true);
   verificarCondicionLoro();
   recuperarRangoNittox();
   prepararSiguienteEvento();
@@ -3847,6 +4427,7 @@ function finalizarCarrera() {
     <h4>Palmarés Total</h4>
     <p class="mb-1">🏆 1ª Div: <strong>${jugador.trofeos.primeraDivision}</strong> | 🏆 2ª Div: <strong>${jugador.trofeos.segundaDivision}</strong> | 👑 Cop. Campeones: <strong>${jugador.trofeos.copaDeCampeones}</strong></p>
     <p class="mb-0">🍷 Cop. Apa: <strong>${jugador.trofeos.copaApa}</strong> | 🇦🇷 Cop. Argentina: <strong>${jugador.trofeos.copaArgentina}</strong> | 👟 Botas Oro: <strong>${jugador.trofeos.botaDeOro}</strong> | 🥇 Balones Oro: <strong>${jugador.trofeos.balonDeOro}</strong></p>
+    <p class="mb-0">🌍 Mundial: <strong>${jugador.trofeos.mundial || 0}</strong> | 🇦🇷 Copa América: <strong>${jugador.trofeos.copaAmerica || 0}</strong> | 🇪🇺 Euro: <strong>${jugador.trofeos.euro || 0}</strong> | Finalissima: <strong>${jugador.trofeos.finalissima || 0}</strong></p>
   `;
 
   dibujarGraficoEvolucion();
@@ -3946,6 +4527,25 @@ function actualizarInterfaz() {
     : jugador.media;
   document.getElementById("j-media").innerText = ovrActual;
   document.getElementById("j-club").innerText = jugador.clubActual ? jugador.clubActual.nombre : "Sin Club";
+
+  // Línea de selección nacional (bandera + federación) en los datos del jugador
+  const elSeleccion = document.getElementById("j-seleccion");
+  if (elSeleccion) {
+    const s = typeof seleccionPorCodigo === "function" ? seleccionPorCodigo(jugador.nacionalidad) : null;
+    if (s) {
+      const img = typeof banderaImg === "function" ? banderaImg(s.codigo, "tj-bandera") : "";
+      const confed = typeof t === "function" ? t("conf" + s.confederacion) : "";
+      elSeleccion.innerHTML = "<span class='d-flex align-items-center gap-2 flex-wrap'>" +
+        img +
+        "<span class='chip-small d-inline-flex'>" + (typeof t === "function" ? t("seleccionNacional") : "Selección:") + " " + s.nombre + "</span>" +
+        "<small class='text-3'>" + confed + "</small>" +
+        "</span>";
+    } else {
+      elSeleccion.innerHTML = "";
+    }
+  }
+
+  actualizarInternacional();
 
   // Panel de atributos (progresión por atributos)
   const elAtributos = document.getElementById("j-atributos");

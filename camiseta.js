@@ -53,7 +53,13 @@
     const nombreCorto = textoNombre ? escaparCam(textoNombre.slice(0, 12)) : "···";
     const anchoMax = 42;
     const chars = (textoNombre.slice(0, 12) || "···").length;
-    const fsNombre = Math.min(11, Math.max(8, anchoMax / (chars * 0.68 + 0.5)));
+    // Nombres cortos (<=7): tamaño cómodo con piso 8 (lo fija el test).
+    // Nombres largos (>7): se calcula el tamaño para que el ancho natural
+    // encaje en el torso y spacingAndGlyphs casi no tenga que comprimir
+    // (con el piso 8 los glifos se aplanaban a lo ancho y se veía raro).
+    const fsNombre = chars <= 7
+      ? Math.min(11, Math.max(8, anchoMax / (chars * 0.68 + 0.5)))
+      : Math.min(11, Math.max(5.5, (anchoMax - (chars - 1) * 0.5) / (chars * 0.68)));
     const estimado = chars * fsNombre * 0.68 + (chars - 1) * 0.5;
     const compresion = ' textLength="' + Math.min(anchoMax, estimado).toFixed(1) +
       '" lengthAdjust="spacingAndGlyphs"';

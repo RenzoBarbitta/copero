@@ -19,7 +19,7 @@ El juego es una página web estática, se sube tal cual la carpeta:
   3. **Por consola con wrangler**: desde la carpeta del proyecto, `npx wrangler login` y después `npx wrangler pages deploy`.
 - **GitHub Pages**: subí los archivos a un repositorio y activá Pages.
 
-> ⚠️ No subas la carpeta con archivos de más: los archivos del juego son `index.html`, `styles.css`, `app.js`, `data.js`, `features.js`, `touch-controls.js`, `ranking-online.js`, `pwa.js`, `sw.js`, `manifest.webmanifest` y la carpeta `imagenes/`. El resto (`README-MOVIL.md`, `test-ranking-online.mjs`) no hace falta subirlo.
+> ⚠️ No subas la carpeta con archivos de más: los archivos del juego son `index.html`, `styles.css`, `theme.css`, `fx.css`, `fx-detalle.css`, `app.js`, `data.js`, `features.js`, `touch-controls.js`, `ranking-online.js`, `pwa.js`, `sw.js`, `manifest.webmanifest`, la carpeta `imagenes/`, la carpeta `vendor/` (React) y la carpeta `react/` (capa visual). El resto (`README-MOVIL.md`, tests) no hace falta subirlo. Ver `AGENT.md` para el mapa completo.
 
 ### Instalar como app
 

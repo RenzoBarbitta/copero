@@ -645,7 +645,8 @@ function escRed(texto) {
 function totalTitulosRed() {
   const t = jugador.trofeos || {};
   return (t.primeraDivision || 0) + (t.segundaDivision || 0) +
-    (t.copaDeCampeones || 0) + (t.copaArgentina || 0) + (t.copaApa || 0);
+    (t.copaDeCampeones || 0) + (t.copaArgentina || 0) + (t.copaApa || 0) +
+    (t.mundial || 0) + (t.copaAmerica || 0) + (t.euro || 0) + (t.finalissima || 0);
 }
 
 function rachaRed() {
@@ -1052,4 +1053,121 @@ document.addEventListener("DOMContentLoaded", function() {
 
   const btnRanking = document.getElementById("btn-ranking");
   if (btnRanking) btnRanking.addEventListener("click", mostrarRanking);
+
+  inicializarNacionalidad();
 });
+
+// ------------------------------------------------------------
+//  NACIONALIDAD (selector de selección al crear carrera)
+// ------------------------------------------------------------
+function inicializarNacionalidad() {
+  const sel = document.getElementById("select-nacionalidad");
+  const panel = document.getElementById("nacionalidad-panel");
+  const btn = document.getElementById("btn-nacionalidad");
+  if (!sel || !panel || !btn) return;
+
+  // Select oculto: solo para que app.js pueda leer el valor elegido.
+  CONFEDERACIONES_ORDEN.forEach(function (confed) {
+    const optgroup = document.createElement("optgroup");
+    optgroup.label = t("conf" + confed);
+    seleccionesPorConfederacion(confed).forEach(function (f) {
+      const opt = document.createElement("option");
+      opt.value = f[0];
+      opt.textContent = f[1];
+      optgroup.appendChild(opt);
+    });
+    sel.appendChild(optgroup);
+  });
+
+  // Panel con iconos reales: secciones por confederación + grilla de banderas.
+  CONFEDERACIONES_ORDEN.forEach(function (confed) {
+    const seccion = document.createElement("section");
+    seccion.className = "nacionalidad-seccion";
+    const cab = document.createElement("h5");
+    cab.className = "nacionalidad-seccion-titulo";
+    cab.textContent = t("conf" + confed) + " (" + seleccionesPorConfederacion(confed).length + ")";
+    const grilla = document.createElement("div");
+    grilla.className = "nacionalidad-grilla";
+    seleccionesPorConfederacion(confed).forEach(function (f) {
+      const op = document.createElement("button");
+      op.type = "button";
+      op.className = "nacionalidad-opcion";
+      op.setAttribute("data-codigo", f[0]);
+      op.setAttribute("role", "option");
+      const img = document.createElement("img");
+      img.src = rutaBandera(f[0]);
+      img.alt = f[0];
+      img.loading = "lazy";
+      const lab = document.createElement("span");
+      lab.className = "nacionalidad-opcion-nombre";
+      lab.textContent = f[0];
+      op.appendChild(img);
+      op.appendChild(lab);
+      op.addEventListener("click", function () { elegirNacionalidad(f[0]); });
+      grilla.appendChild(op);
+    });
+    seccion.appendChild(cab);
+    seccion.appendChild(grilla);
+    panel.appendChild(seccion);
+  });
+
+  const nacionalidadGuardada = typeof jugador !== "undefined" && jugador && jugador.nacionalidad
+    ? jugador.nacionalidad
+    : "URU";
+  if (seleccionPorCodigo(nacionalidadGuardada)) sel.value = nacionalidadGuardada;
+
+  btn.addEventListener("click", alternarPanelNacionalidad);
+  document.addEventListener("click", function (e) {
+    const card = document.getElementById("nacionalidad-card");
+    if (!card || !card.contains(e.target)) cerrarPanelNacionalidad();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") cerrarPanelNacionalidad();
+  });
+
+  actualizarNacionalidadPreview(sel.value);
+}
+
+function elegirNacionalidad(codigo) {
+  const sel = document.getElementById("select-nacionalidad");
+  if (sel) sel.value = codigo;
+  actualizarNacionalidadPreview(codigo);
+  cerrarPanelNacionalidad();
+}
+
+function alternarPanelNacionalidad() {
+  const panel = document.getElementById("nacionalidad-panel");
+  const btn = document.getElementById("btn-nacionalidad");
+  if (!panel || !btn) return;
+  const estabaAbierto = !panel.classList.contains("hidden");
+  cerrarPanelNacionalidad();
+  if (!estabaAbierto) {
+    panel.classList.remove("hidden");
+    btn.setAttribute("aria-expanded", "true");
+  }
+}
+
+function cerrarPanelNacionalidad() {
+  const panel = document.getElementById("nacionalidad-panel");
+  const btn = document.getElementById("btn-nacionalidad");
+  if (panel) panel.classList.add("hidden");
+  if (btn) btn.setAttribute("aria-expanded", "false");
+}
+
+function actualizarNacionalidadPreview(codigo) {
+  const bandEl = document.getElementById("nacionalidad-bandera");
+  const nomEl = document.getElementById("nacionalidad-nombre");
+  const confEl = document.getElementById("nacionalidad-confed");
+  if (!bandEl || !nomEl || !confEl) return;
+  const s = seleccionPorCodigo(codigo);
+  if (!s) {
+    bandEl.innerHTML = "";
+    nomEl.textContent = "";
+    confEl.textContent = "";
+    return;
+  }
+  bandEl.innerHTML = banderaImg(s.codigo, "nacionalidad-bandera-img");
+  nomEl.textContent = s.nombre;
+  confEl.textContent = t("conf" + s.confederacion);
+  if (typeof guardarCambiosUI === "function") guardarCambiosUI();
+}

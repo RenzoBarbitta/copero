@@ -1,0 +1,100 @@
+/* Minijuegos - Entrada dramática con overshoot */
+.minijuego-entrada {
+  animation: minijuego-entrar 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  opacity: 0;
+  transform: scale(0.8) translateY(30px);
+}
+@keyframes minijuego-entrar {
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.chip-minijuego {
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 0.75rem 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+.chip-minijuego::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 0; height: 0;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.4), transparent);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.4s ease, height 0.4s ease;
+}
+.chip-minijuego:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+}
+.chip-minijuego:hover::after { width: 200px; height: 200px; }
+.chip-minijuego.selected {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+  box-shadow: 0 0 20px var(--primary-glow);
+}
+
+.vida-indicador {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  background: var(--bg-input);
+  font-weight: 600;
+  animation: vida-pulse 1.5s ease-in-out infinite;
+}
+@keyframes vida-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.nombre-jugador-glow {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+  background: linear-gradient(135deg, var(--primary-light), var(--primary), var(--primary-dark));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: nombre-glow 3s ease-in-out infinite;
+}
+@keyframes nombre-glow {
+  0%, 100% { filter: drop-shadow(0 0 5px rgba(99, 102, 241, 0.3)); }
+  50% { filter: drop-shadow(0 0 15px rgba(99, 102, 241, 0.6)); }
+}
+
+.post-minijuego {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1rem;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+.post-minijuego::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px; height: 100%;
+  background: linear-gradient(180deg, var(--primary), var(--primary-light));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.post-minijuego:hover {
+  transform: translateX(4px);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+.post-minijuego:hover::before { opacity: 1; }
+

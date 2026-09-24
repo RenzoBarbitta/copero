@@ -1,0 +1,55 @@
+/* ============================================================
+   COPERO - Estilos base con Motion
+   Variables y utilidades
+   ============================================================ */
+:root {
+  --primary: #6366f1;
+  --primary-dark: #4f46e5;
+  --primary-light: #818cf8;
+  --primary-glow: rgba(99, 102, 241, 0.4);
+  --bg-dark: #0F1117;
+  --bg-card: #1a1d27;
+  --bg-input: #252836;
+  --bg-elevated: #242736;
+  --text-primary: #ffffff;
+  --text-secondary: #a0a5b5;
+  --text-muted: #6b7280;
+  --border-color: #2d3748;
+  --border-light: #3d4455;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --foxera-gradient: linear-gradient(135deg, #f59e0b, #d97706, #92400e);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  font-family: 'Inter', sans-serif;
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.hidden { display: none !important; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-dark); }
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+  box-shadow: 0 0 12px var(--primary-glow);
+}
+

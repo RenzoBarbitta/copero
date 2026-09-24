@@ -1,0 +1,912 @@
+/* ============================================================
+   COPERO — fx.css (v4 · reescrito limpio, sin duplicados)
+   Capa de animaciones y pulido visual. Se carga DESPUÉS de
+   theme.css y solo SUMA reglas; nunca pisa la base.
+   Ambiente (orbes, partículas, líneas de cancha), entradas
+   escalonadas, tarjetas, navegación y profundidad.
+   Redes, minijuegos, casaca, botones, toasts y tablas viven
+   en fx-detalle.css.
+   ============================================================ */
+
+/* ---------- RAÍZ REACT ---------- */
+#aplicacion { display: contents; }
+
+/* ---------- AMBIENTE (fondo con más resalte) ---------- */
+.fx-ambiente {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 60% at 50% -10%, rgba(22, 119, 255, 0.12), transparent 60%),
+    radial-gradient(100% 55% at 50% 112%, rgba(245, 200, 76, 0.07), transparent 62%);
+}
+.fx-orb {
+  position: absolute;
+  border-radius: 50%;
+  transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+.fx-orb i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.62;
+  animation: fx-orb-flotar 16s ease-in-out infinite alternate, fx-orb-glow 7s ease-in-out infinite;
+}
+.fx-orb-1 { top: -150px; left: -130px; width: 500px; height: 500px; }
+.fx-orb-1 i { background: radial-gradient(circle, rgba(22, 119, 255, 0.4), transparent 68%); animation-duration: 16s, 7s; }
+.fx-orb-2 { bottom: -170px; right: -140px; width: 540px; height: 540px; }
+.fx-orb-2 i { background: radial-gradient(circle, rgba(61, 139, 255, 0.26), transparent 68%); animation-duration: 21s, 8s; animation-delay: -6s, -3s; }
+.fx-orb-3 { top: 42%; left: 58%; width: 380px; height: 380px; }
+.fx-orb-3 i { background: radial-gradient(circle, rgba(245, 200, 76, 0.17), transparent 70%); animation-duration: 25s, 9s; animation-delay: -11s, -4s; }
+.fx-orb-4 { top: 72%; left: 8%; width: 300px; height: 300px; }
+.fx-orb-4 i { background: radial-gradient(circle, rgba(245, 200, 76, 0.13), transparent 70%); animation-duration: 19s, 8s; animation-delay: -3s, -2s; }
+.fx-orb-5 { top: 8%; right: 12%; width: 280px; height: 280px; }
+.fx-orb-5 i { background: radial-gradient(circle, rgba(120, 180, 255, 0.18), transparent 72%); animation-duration: 24s, 10s; animation-delay: -9s, -5s; }
+
+/* Orbes pequeños decorativos (react/fx.js los renderiza) */
+.fx-orbes-peq {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+.fx-orbes-peq i {
+  position: absolute;
+  display: block;
+  border-radius: 50%;
+  filter: blur(34px);
+  opacity: 0.5;
+  animation: fx-orb-flotar 20s ease-in-out infinite alternate, fx-orb-glow 6s ease-in-out infinite;
+}
+.fx-orbes-peq .peq-1 { top: 26%; left: 20%; width: 140px; height: 140px; background: radial-gradient(circle, rgba(120, 180, 255, 0.2), transparent 65%); animation-delay: -4s, -1s; }
+.fx-orbes-peq .peq-2 { top: 64%; left: 74%; width: 120px; height: 120px; background: radial-gradient(circle, rgba(245, 200, 76, 0.15), transparent 65%); animation-delay: -9s, -3s; }
+.fx-orbes-peq .peq-3 { top: 14%; left: 70%; width: 100px; height: 100px; background: radial-gradient(circle, rgba(22, 119, 255, 0.22), transparent 65%); animation-delay: -13s, -5s; }
+.fx-orbes-peq .peq-4 { top: 82%; left: 22%; width: 110px; height: 110px; background: radial-gradient(circle, rgba(245, 200, 76, 0.12), transparent 65%); animation-delay: -7s, -2s; }
+
+/* Partículas en deriva (constelación que se repite por tile) */
+.fx-ambiente::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1.6px 1.6px at 22% 32%, rgba(255, 255, 255, 0.55), transparent 40%),
+    radial-gradient(1.2px 1.2px at 58% 74%, rgba(255, 255, 255, 0.45), transparent 40%),
+    radial-gradient(1.8px 1.8px at 78% 18%, rgba(255, 255, 255, 0.5), transparent 40%),
+    radial-gradient(1.2px 1.2px at 38% 88%, rgba(255, 255, 255, 0.4), transparent 40%),
+    radial-gradient(1.5px 1.5px at 90% 56%, rgba(255, 255, 255, 0.45), transparent 40%),
+    radial-gradient(1.3px 1.3px at 8% 62%, rgba(255, 255, 255, 0.5), transparent 40%);
+  background-size: 260px 260px;
+  background-repeat: repeat;
+  opacity: 0.8;
+  animation: fx-particulas-drift 30s linear infinite;
+  pointer-events: none;
+}
+
+/* Líneas de cancha (deriva en dos ejes) */
+.fx-lineas-cancha {
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.03) 0 2px, transparent 2px 96px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.02) 0 2px, transparent 2px 120px);
+  mask-image: radial-gradient(ellipse at 50% 0%, black 25%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 0%, black 25%, transparent 75%);
+  animation: fx-lineas-drift 30s linear infinite;
+  opacity: 0.95;
+}
+
+/* Viñeta de profundidad con pulso */
+.fx-ambiente::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(130% 100% at 50% 0%, transparent 50%, rgba(4, 6, 11, 0.6) 100%);
+  pointer-events: none;
+  animation: fx-vineta-pulse 9s ease-in-out infinite alternate;
+}
+
+/* Aurora cónica: mancha de luz azul/dorada que gira muy lento
+   detrás de todo el contenido (nueva capa del fondo) */
+.fx-aurora {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 150vmax;
+  height: 150vmax;
+  margin: -75vmax 0 0 -75vmax;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg at 50% 50%,
+    rgba(22, 119, 255, 0.10),
+    rgba(245, 200, 76, 0.06),
+    rgba(61, 139, 255, 0.14),
+    rgba(22, 119, 255, 0.10),
+    rgba(245, 200, 76, 0.06),
+    rgba(61, 139, 255, 0.14),
+    rgba(22, 119, 255, 0.10));
+  filter: blur(80px);
+  opacity: 0.6;
+  pointer-events: none;
+  animation: fx-aurora-gira 45s linear infinite;
+  transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+/* Barrido diagonal de luz que cruza el fondo cada ~12s */
+.fx-reflejos {
+  position: absolute;
+  inset: -50%;
+  background: linear-gradient(115deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.014) 38%,
+    rgba(245, 200, 76, 0.05) 49%,
+    rgba(255, 255, 255, 0) 60%,
+    rgba(255, 255, 255, 0) 100%);
+  opacity: 0.55;
+  pointer-events: none;
+  animation: fx-reflejo-barrido 12s ease-in-out infinite;
+  transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+/* Polvo fino: motas muy suaves que "respiran" y derivan suaves */
+.fx-polvo {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1px 1px at 12% 18%, rgba(255, 255, 255, 0.16), transparent 50%),
+    radial-gradient(1.6px 1.6px at 33% 62%, rgba(255, 255, 255, 0.12), transparent 50%),
+    radial-gradient(1.2px 1.2px at 52% 30%, rgba(255, 255, 255, 0.15), transparent 50%),
+    radial-gradient(2px 2px at 71% 80%, rgba(255, 255, 255, 0.1), transparent 50%),
+    radial-gradient(1.4px 1.4px at 87% 44%, rgba(255, 255, 255, 0.14), transparent 50%),
+    radial-gradient(1.1px 1.1px at 44% 90%, rgba(255, 255, 255, 0.11), transparent 50%);
+  background-size: 340px 340px;
+  opacity: 0.55;
+  pointer-events: none;
+  animation: fx-polvo-drift 40s linear infinite;
+  mix-blend-mode: screen;
+}
+
+@keyframes fx-orb-flotar {
+  0%   { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
+  33%  { transform: translate3d(26px, 20px, 0) scale(1.08) rotate(7deg); }
+  66%  { transform: translate3d(-18px, 32px, 0) scale(0.94) rotate(-6deg); }
+  100% { transform: translate3d(14px, -12px, 0) scale(1.06) rotate(5deg); }
+}
+@keyframes fx-orb-glow {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 0.8; }
+}
+@keyframes fx-particulas-drift {
+  from { background-position: 0 0; }
+  to   { background-position: 260px 260px; }
+}
+@keyframes fx-lineas-drift {
+  from { background-position: 0 0, 0 0; }
+  to   { background-position: 0 96px, 120px 0; }
+}
+@keyframes fx-vineta-pulse {
+  0%   { opacity: 0.85; }
+  100% { opacity: 1; }
+}
+@keyframes fx-aurora-gira {
+  from { transform: rotate(0deg) scale(1); }
+  50%  { transform: rotate(180deg) scale(1.08); }
+  to   { transform: rotate(360deg) scale(1); }
+}
+@keyframes fx-reflejo-barrido {
+  0%   { transform: translateX(-45%) rotate(0deg); opacity: 0.15; }
+  45%  { opacity: 0.7; }
+  55%  { opacity: 0.7; }
+  100% { transform: translateX(45%) rotate(0deg); opacity: 0.15; }
+}
+@keyframes fx-polvo-drift {
+  from { background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0; }
+  to   { background-position: -340px 340px, 340px -170px, 0 340px, -170px -340px, 340px 170px, -340px 0; }
+}
+
+/* ---------- INTRO ANIMADA (banner + logo COPERO) ---------- */
+.intro-banner {
+  position: relative;
+  max-width: 760px;
+  margin: 0 auto 1rem;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 18px 40px -26px rgba(0, 0, 0, 0.95),
+    0 0 44px -18px rgba(22, 119, 255, 0.4);
+  animation: fx-intro-banner 0.9s cubic-bezier(0.22, 1, 0.36, 1) both, fx-intro-banner-latir 6s ease-in-out 1.6s infinite;
+}
+.intro-banner-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2119 / 742;
+  object-fit: cover;
+  transform-origin: center;
+  animation: fx-intro-img 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.intro-banner-velo {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 90% at 50% 108%, rgba(8, 10, 15, 0.55) 0%, transparent 58%),
+    linear-gradient(180deg, transparent 70%, rgba(8, 10, 15, 0.28) 100%);
+  pointer-events: none;
+}
+.intro-banner-brillo {
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(115deg, transparent 42%, rgba(255, 255, 255, 0.16) 50%, transparent 58%);
+  transform: translateX(-130%);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  animation: fx-intro-brillo 4.5s ease-in-out 1.4s infinite;
+}
+.intro-banner-logo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 23%;
+  min-width: 74px;
+  max-width: 150px;
+  aspect-ratio: 1 / 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  object-fit: cover;
+  box-shadow:
+    0 0 0 6px rgba(10, 13, 19, 0.35),
+    0 0 0 7px rgba(245, 200, 76, 0.45),
+    0 10px 26px -8px rgba(0, 0, 0, 0.9),
+    0 0 30px -4px rgba(22, 119, 255, 0.55);
+  animation: fx-intro-logo 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s both, fx-intro-logo-latir 5s ease-in-out 1.6s infinite;
+}
+@keyframes fx-intro-banner {
+  0%   { opacity: 0; transform: translateY(26px) scale(0.96); }
+  60%  { transform: translateY(-4px) scale(1.012); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes fx-intro-img {
+  0%   { transform: scale(1.12) translateY(-6px); }
+  100% { transform: scale(1) translateY(0); }
+}
+@keyframes fx-intro-brillo {
+  0%, 30% { transform: translateX(-130%); }
+  55%, 100% { transform: translateX(130%); }
+}
+@keyframes fx-intro-banner-latir {
+  0%, 100% { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 18px 40px -26px rgba(0, 0, 0, 0.95), 0 0 30px -18px rgba(22, 119, 255, 0.35); }
+  50%      { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 18px 44px -24px rgba(0, 0, 0, 0.95), 0 0 52px -18px rgba(22, 119, 255, 0.6); border-color: rgba(22, 119, 255, 0.4); }
+}
+@keyframes fx-intro-logo {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.3) rotate(-40deg); }
+  70%  { transform: translate(-50%, -50%) scale(1.12) rotate(6deg); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+}
+@keyframes fx-intro-logo-latir {
+  0%, 100% { box-shadow: 0 0 0 6px rgba(10, 13, 19, 0.35), 0 0 0 7px rgba(245, 200, 76, 0.4), 0 10px 26px -8px rgba(0, 0, 0, 0.9), 0 0 26px -4px rgba(22, 119, 255, 0.5); }
+  50%      { box-shadow: 0 0 0 7px rgba(10, 13, 19, 0.4), 0 0 0 9px rgba(245, 200, 76, 0.7), 0 10px 28px -6px rgba(0, 0, 0, 0.9), 0 0 40px -2px rgba(22, 119, 255, 0.75); }
+}
+
+/* ---------- TEXTOS DEL MENÚ & CARDS (apoyo, colaboradores) ---------- */
+/* Títulos de sección: gradiente dorado/azul que se desplaza y
+   un leve brillo; los i18n de la página no se tocan, solo CSS. */
+.support-cards h5,
+.vista-titulo,
+.cp-vista h3,
+.pantalla-titulo {
+  background: linear-gradient(90deg,
+    var(--texto, #e7ecf5) 0%,
+    rgba(245, 200, 76, 0.85) 38%,
+    rgba(255, 255, 255, 1) 62%,
+    var(--texto, #e7ecf5) 100%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: fx-text-shimmer 6s ease-in-out infinite;
+}
+/* Letra suelta de los emojis de precio: flota + rebota lento */
+.support-precio span {
+  display: inline-block;
+  animation: fx-emoji-flotar 3.4s ease-in-out infinite;
+  filter: drop-shadow(0 6px 14px rgba(245, 200, 76, 0.28));
+}
+.support-basico .support-precio span { animation-delay: 0s; }
+.support-premium .support-precio span { animation-delay: 0.4s; filter: drop-shadow(0 6px 14px rgba(255, 212, 59, 0.4)); }
+.support-dev .support-precio span { animation-delay: 0.8s; filter: drop-shadow(0 6px 14px rgba(62, 240, 148, 0.3)); }
+/* Precio en USD: pequeño destello dorado al respirar */
+.support-card .card-body > .fw-bold[style] {
+  animation: fx-precio-respirar 3s ease-in-out infinite;
+}
+/* Badge "Recomendado": late suavemente */
+.support-premium .badge {
+  animation: fx-badge-latir 2.6s ease-in-out infinite;
+  box-shadow: 0 0 0 0 rgba(255, 212, 59, 0.55);
+}
+/* Botón "Apoyar/Abrir ticket": ondas de glow al pasar y pulso */
+.support-card .btn {
+  animation: fx-btn-glow 3.6s ease-in-out infinite;
+}
+/* Entrada escalonada del bloque: primero el título + subtítulo,
+   luego cada card sube de a una con overshoot */
+.support-cards h5,
+.support-cards > p {
+  animation: fx-card-subir 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both;
+}
+.support-cards .col-md-4 {
+  animation: fx-card-subir 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.support-cards .col-md-4:nth-child(1) { animation-delay: 0.18s; }
+.support-cards .col-md-4:nth-child(2) { animation-delay: 0.34s; }
+.support-cards .col-md-4:nth-child(3) { animation-delay: 0.5s; }
+.support-cards .support-nota {
+  animation: fx-card-subir 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.62s both;
+}
+/* Borde luminoso que viaja por el borde de la card al pasar el mouse */
+.support-card {
+  position: relative;
+}
+.support-card::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(120deg,
+    rgba(22, 119, 255, 0) 0%,
+    rgba(245, 200, 76, 0.85) 25%,
+    rgba(22, 119, 255, 0.9) 50%,
+    rgba(245, 200, 76, 0.85) 75%,
+    rgba(22, 119, 255, 0) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  background-size: 260% 100%;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+  animation: fx-borde-viaja 2.4s linear infinite;
+}
+.support-card:hover::before { opacity: 1; }
+@keyframes fx-text-shimmer {
+  0%   { background-position: 0% 0; }
+  50%  { background-position: 100% 0; }
+  100% { background-position: 0% 0; }
+}
+@keyframes fx-emoji-flotar {
+  0%, 100% { transform: translateY(0) rotate(-1.5deg) scale(1); }
+  50%      { transform: translateY(-4px) rotate(2deg) scale(1.04); }
+}
+@keyframes fx-precio-respirar {
+  0%, 100% { text-shadow: 0 0 0 rgba(245, 200, 76, 0); }
+  50%      { text-shadow: 0 0 18px rgba(245, 200, 76, 0.45); }
+}
+@keyframes fx-badge-latir {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 212, 59, 0.55); transform: scale(1); }
+  50%      { box-shadow: 0 0 0 10px rgba(255, 212, 59, 0); transform: scale(1.06); }
+}
+@keyframes fx-btn-glow {
+  0%, 100% { box-shadow: 0 4px 16px -6px rgba(22, 119, 255, 0.28); }
+  50%      { box-shadow: 0 6px 24px -6px rgba(22, 119, 255, 0.5), 0 0 22px -8px rgba(22, 119, 255, 0.4); }
+}
+@keyframes fx-card-subir {
+  0%   { opacity: 0; transform: translateY(26px) scale(0.97); }
+  60%  { transform: translateY(-4px) scale(1.012); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes fx-borde-viaja {
+  0%   { background-position: 0% 0; }
+  100% { background-position: 260% 0; }
+}
+
+/* ---------- CINEMÁTICA DE APERTURA (pantalla completa) ---------- */
+/* Secuencia coreografiada (todos los tiempos en el mismo eje):
+   0.0-0.5  telón + orbes entran (cine-fondo)
+   0.3-0.9  anillo dorado se expande
+   0.4-1.1  logo hace "pop" con overshoot + barrido de brillo
+   0.9-1.7  letras C-O-P-E-R-O suben con stagger
+   1.6-2.2  línea dorada barre el ancho
+   2.5      fase "fuera": escala 1→1.06 y funde (cine-salida)
+   3.35     el contenedor se desmonta (return null en react/fx.js)  */
+.cinematica {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(130% 90% at 50% 18%, rgba(22, 119, 255, 0.16), transparent 58%),
+    radial-gradient(110% 75% at 50% 115%, rgba(245, 200, 76, 0.1), transparent 55%),
+    linear-gradient(180deg, #0a0d15 0%, #0d1018 52%, #080b11 100%);
+  animation: cine-fondo 0.5s ease-out both;
+}
+/* Telón que entra con leve grano de luz */
+.cinematica::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1.4px 1.4px at 24% 30%, rgba(255, 255, 255, 0.5), transparent 42%),
+    radial-gradient(1px 1px at 66% 72%, rgba(255, 255, 255, 0.42), transparent 42%),
+    radial-gradient(1.5px 1.5px at 82% 22%, rgba(255, 255, 255, 0.46), transparent 42%);
+  background-size: 300px 300px;
+  opacity: 0;
+  animation: cine-particulas 1.2s ease-out 0.35s both;
+}
+/* Orbes de luz del fondo (mismo lenguaje que .fx-ambiente) */
+.cine-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(64px);
+  opacity: 0;
+  animation: cine-orb-entra 1.1s cubic-bezier(0.22, 1, 0.36, 1) both,
+    cine-orb-flota 6s ease-in-out infinite alternate;
+}
+.cine-orb-1 {
+  width: 520px; height: 520px;
+  top: -170px; left: -150px;
+  background: radial-gradient(circle, rgba(22, 119, 255, 0.5), transparent 66%);
+  animation-duration: 1.1s, 6.5s;
+}
+.cine-orb-2 {
+  width: 460px; height: 460px;
+  bottom: -160px; right: -140px;
+  background: radial-gradient(circle, rgba(245, 200, 76, 0.34), transparent 66%);
+  animation-delay: 0.12s, -1.4s;
+  animation-duration: 1.1s, 7s;
+}
+.cine-orb-3 {
+  width: 320px; height: 320px;
+  top: 40%; left: 62%;
+  background: radial-gradient(circle, rgba(61, 139, 255, 0.36), transparent 68%);
+  animation-delay: 0.24s, -3s;
+  animation-duration: 1.1s, 5.5s;
+}
+/* Anillo dorado que estalla desde el centro */
+.cine-anillo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 160px;
+  height: 160px;
+  margin: -80px 0 0 -80px;
+  border-radius: 50%;
+  border: 3px solid rgba(245, 200, 76, 0.7);
+  box-shadow: 0 0 30px -6px rgba(245, 200, 76, 0.6), inset 0 0 22px -8px rgba(245, 200, 76, 0.5);
+  pointer-events: none;
+  animation: cine-anillo 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.32s both;
+}
+/* Bloque central: logo + texto */
+.cine-centro {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(10px, 2.4vh, 22px);
+  will-change: transform;
+}
+/* Logo circular con overshoot + latido de borde */
+.cine-fx {
+  position: relative;
+  transition: transform 0.2s ease;
+}
+.cine-logo {
+  display: block;
+  width: clamp(120px, 30vw, 220px);
+  height: clamp(120px, 30vw, 220px);
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(255, 255, 255, 0.92);
+  box-shadow:
+    0 0 0 7px rgba(10, 13, 19, 0.5),
+    0 0 0 8px rgba(245, 200, 76, 0.55),
+    0 16px 44px -10px rgba(0, 0, 0, 0.95),
+    0 0 42px -6px rgba(22, 119, 255, 0.75);
+  opacity: 0;
+  animation: cine-logo-pop 0.85s cubic-bezier(0.34, 1.56, 0.64, 1) 0.42s both,
+    cine-logo-glow 2.8s ease-in-out 1s infinite alternate;
+}
+/* Barrido de brillo que pasa por el logo */
+.cine-brillo {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  animation: cine-shine 1s ease-in-out 0.85s both;
+}
+.cine-brillo::after {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  background: linear-gradient(115deg, transparent 42%, rgba(255, 255, 255, 0.5) 50%, transparent 58%);
+  transform: translateX(-130%);
+  animation: cine-shine-barra 0.9s ease-in-out 1.15s both;
+}
+/* Titulo: letras boca abajo que suben (C-O-P-E-R-O) */
+.cine-titulo {
+  display: flex;
+  gap: 0.06em;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800;
+  font-size: clamp(2.6rem, 11vw, 5rem);
+  letter-spacing: 0.14em;
+  line-height: 1;
+}
+.cine-titulo span {
+  display: inline-block;
+  color: transparent;
+  background: linear-gradient(180deg, #8fd0ff 0%, var(--azul, #1677ff) 42%, var(--dorado, #f5c84c) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  filter: drop-shadow(0 8px 22px rgba(22, 119, 255, 0.4));
+  opacity: 0;
+  transform: translateY(0.9em) rotateX(-70deg);
+  transform-origin: 50% 100%;
+  animation: cine-letra 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.cine-titulo span:nth-child(1) { animation-delay: 0.95s; }
+.cine-titulo span:nth-child(2) { animation-delay: 1.06s; }
+.cine-titulo span:nth-child(3) { animation-delay: 1.17s; }
+.cine-titulo span:nth-child(4) { animation-delay: 1.28s; }
+.cine-titulo span:nth-child(5) { animation-delay: 1.39s; }
+.cine-titulo span:nth-child(6) { animation-delay: 1.5s; }
+/* Línea de carga dorada que barre el ancho */
+.cine-linea {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(14px, 4vh, 40px);
+  width: min(70vw, 340px);
+  height: 3px;
+  border-radius: 3px;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, transparent, var(--azul, #1677ff), var(--dorado, #f5c84c), transparent);
+  box-shadow: 0 0 18px rgba(22, 119, 255, 0.55);
+  transform-origin: center;
+  opacity: 0;
+  animation: cine-linea 0.9s cubic-bezier(0.65, 0, 0.35, 1) 1.7s both;
+}
+/* Fase "fuera": zoom-out + fundido hacia la app de abajo */
+.cinematica.cinematica-fuera {
+  animation: cine-fondo 0s both, cine-salida 0.82s cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+.cinematica.cinematica-fuera .cine-centro { animation: cine-centro-zoom 0.82s cubic-bezier(0.65, 0, 0.35, 1) both; }
+
+@keyframes cine-fondo {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes cine-particulas {
+  from { opacity: 0; }
+  to   { opacity: 0.55; }
+}
+@keyframes cine-orb-entra {
+  from { opacity: 0; transform: scale(0.6); }
+  to   { opacity: 0.7; transform: scale(1); }
+}
+@keyframes cine-orb-flota {
+  0%   { transform: translateY(0) scale(1); }
+  100% { transform: translateY(30px) scale(1.08); }
+}
+@keyframes cine-logo-pop {
+  0%   { opacity: 0; transform: scale(0.2) rotate(-16deg); }
+  55%  { opacity: 1; transform: scale(1.12) rotate(3deg); }
+  75%  { transform: scale(0.97) rotate(-1deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+@keyframes cine-logo-glow {
+  from { box-shadow: 0 0 0 7px rgba(10, 13, 19, 0.5), 0 0 0 8px rgba(245, 200, 76, 0.55), 0 16px 44px -12px rgba(0, 0, 0, 0.95), 0 0 42px -6px rgba(22, 119, 255, 0.7); }
+  to   { box-shadow: 0 0 0 8px rgba(10, 13, 19, 0.55), 0 0 0 12px rgba(245, 200, 76, 0.85), 0 16px 48px -10px rgba(0, 0, 0, 0.95), 0 0 64px -4px rgba(22, 119, 255, 0.95); }
+}
+@keyframes cine-anillo {
+  0%   { transform: scale(0.15); opacity: 1; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+@keyframes cine-shine {
+  from { opacity: 0; transform: scale(1); }
+  20%, 80% { opacity: 1; }
+  to   { opacity: 0; transform: scale(1.04); }
+}
+@keyframes cine-shine-barra {
+  from { transform: translateX(-130%); }
+  to   { transform: translateX(130%); }
+}
+@keyframes cine-letra {
+  from { opacity: 0; transform: translateY(0.9em) rotateX(-70deg); }
+  60%  { opacity: 1; transform: translateY(-0.08em) rotateX(0deg); }
+  to   { opacity: 1; transform: translateY(0) rotateX(0deg); }
+}
+@keyframes cine-linea {
+  from { opacity: 0; transform: translateX(-50%) scaleX(0); }
+  35%  { opacity: 1; }
+  to   { opacity: 0; transform: translateX(50%) scaleX(1); }
+}
+@keyframes cine-salida {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(1.06); }
+}
+@keyframes cine-centro-zoom {
+  from { transform: scale(1); opacity: 1; }
+  to   { transform: scale(1.14); opacity: 0; }
+}
+
+/* ---------- BARRA DE SCROLL (React) ---------- */
+.fx-scroll {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  z-index: 2000;
+  background: transparent;
+  pointer-events: none;
+}
+.fx-scroll span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--azul, #1677ff), var(--dorado, #f5c84c));
+  box-shadow: 0 0 10px rgba(22, 119, 255, 0.6);
+  transition: width 0.12s linear;
+}
+
+/* ---------- ENTRADAS DE SECCIÓN/PANTALLA ---------- */
+/* El .hidden de la base corta el display: al volver a mostrarse,
+   la animación se reinicia sola. Cero cambios en la lógica. */
+#pantalla-inicio:not(.hidden),
+#pantalla-juego:not(.hidden),
+#pantalla-resumen:not(.hidden) {
+  animation: fx-seccion-entra 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes fx-seccion-entra {
+  0%   { opacity: 0; transform: translateY(30px) scale(0.985); }
+  60%  { transform: translateY(-3px) scale(1.004); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.cp-vista:not(.hidden) {
+  animation: fx-vista-entra 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes fx-vista-entra {
+  0%   { opacity: 0; transform: translateY(20px) scale(0.98); }
+  65%  { transform: translateY(-2px) scale(1.003); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Columnas dentro de una vista: stagger sutil */
+.cp-vista:not(.hidden) > .row > [class*="col-"],
+#pantalla-juego:not(.hidden) > .row > [class*="col-"] {
+  animation: fx-tarjeta-entra 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.cp-vista:not(.hidden) > .row > [class*="col-"]:nth-child(1),
+#pantalla-juego:not(.hidden) > .row > [class*="col-"]:nth-child(1) { animation-delay: 0.04s; }
+.cp-vista:not(.hidden) > .row > [class*="col-"]:nth-child(2),
+#pantalla-juego:not(.hidden) > .row > [class*="col-"]:nth-child(2) { animation-delay: 0.09s; }
+.cp-vista:not(.hidden) > .row > [class*="col-"]:nth-child(3),
+#pantalla-juego:not(.hidden) > .row > [class*="col-"]:nth-child(3) { animation-delay: 0.14s; }
+.cp-vista:not(.hidden) > .row > [class*="col-"]:nth-child(4),
+#pantalla-juego:not(.hidden) > .row > [class*="col-"]:nth-child(4) { animation-delay: 0.19s; }
+@keyframes fx-tarjeta-entra {
+  0%   { opacity: 0; transform: translateY(26px) scale(0.97); }
+  60%  { transform: translateY(-2px) scale(1.01); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ---------- TARJETAS (profundidad + hover) ---------- */
+.card-custom {
+  position: relative;
+  overflow: hidden;
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0) 38%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.055),
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 18px 40px -26px rgba(0, 0, 0, 0.95);
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.28s ease, border-color 0.28s ease;
+}
+/* Brillo superior tipo cristal */
+.card-custom::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 10%; right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  pointer-events: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .card-custom:hover {
+    transform: translateY(-5px) scale(1.01);
+    border-color: rgba(61, 139, 255, 0.55);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.09),
+      0 2px 5px rgba(0, 0, 0, 0.45),
+      0 30px 58px -30px rgba(0, 0, 0, 1),
+      0 0 40px -14px rgba(22, 119, 255, 0.55);
+  }
+}
+
+/* ---------- NAVEGACIÓN: pill activo animado ---------- */
+.sb-item, .nb-item { transition: background-color 0.22s ease, color 0.22s ease, transform 0.22s ease; }
+.sb-item .sb-ico svg, .nb-item .sb-ico svg { transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+@media (hover: hover) and (pointer: fine) {
+  .sb-item:hover .sb-ico svg, .nb-item:hover .sb-ico svg { transform: scale(1.18) rotate(-4deg); }
+  .sb-item:hover { transform: translateX(3px); }
+  .nb-item:hover { transform: translateY(-3px); }
+}
+.sb-item.activo, .nb-item.activo { position: relative; }
+.sb-item.activo .sb-ico svg, .nb-item.activo .sb-ico svg {
+  animation: fx-ico-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes fx-ico-pop {
+  0% { transform: scale(0.6); }
+  100% { transform: scale(1); }
+}
+/* Indicador inferior de la nav móvil que crece al activarse */
+.nb-item.activo::after {
+  content: "";
+  position: absolute;
+  bottom: 4px; left: 50%;
+  width: 26px; height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--azul, #1677ff), var(--azul-2, #3d8bff));
+  transform: translateX(-50%);
+  animation: fx-pill-crece 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes fx-pill-crece {
+  from { width: 0; opacity: 0; }
+  to   { width: 26px; opacity: 1; }
+}
+/* Nav inferior: el ícono activo respira */
+#nav-inferior .nb-item.activo .sb-ico svg {
+  animation: fx-nav-pill-active 1.8s ease-in-out infinite;
+}
+@keyframes fx-nav-pill-active {
+  0%, 100% { transform: scale(1); }
+  45%      { transform: scale(1.16); }
+  70%      { transform: scale(0.95); }
+}
+
+/* ---------- MODALES ---------- */
+.modal-content {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0) 30%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 2px 6px rgba(0, 0, 0, 0.5),
+    0 40px 90px -30px rgba(0, 0, 0, 1);
+}
+.modal-content::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 12%; right: 12%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+  pointer-events: none;
+}
+
+/* ---------- NAVEGACIÓN TIPO CRISTAL ---------- */
+#topbar, #nav-inferior, body.app-juego #sidebar {
+  -webkit-backdrop-filter: blur(14px) saturate(1.25);
+  backdrop-filter: blur(14px) saturate(1.25);
+}
+#topbar {
+  background: linear-gradient(90deg, rgba(18, 21, 29, 0.86), rgba(16, 19, 26, 0.92));
+  box-shadow:
+    inset 0 -1px 0 rgba(255, 255, 255, 0.04),
+    0 10px 30px -18px rgba(0, 0, 0, 0.95);
+}
+#nav-inferior {
+  background: rgba(18, 21, 29, 0.9);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 -12px 34px -20px rgba(0, 0, 0, 1);
+}
+body.app-juego #sidebar {
+  background: linear-gradient(180deg, rgba(18, 21, 29, 0.92) 0%, rgba(16, 19, 26, 0.96) 100%);
+  box-shadow:
+    inset -1px 0 0 rgba(255, 255, 255, 0.035),
+    16px 0 40px -30px rgba(0, 0, 0, 1);
+}
+
+/* ---------- TARJETA DEL JUGADOR / VS / OVR ---------- */
+.tarjeta-jugador {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 2px 5px rgba(0, 0, 0, 0.45),
+    0 26px 56px -30px rgba(0, 0, 0, 1),
+    0 0 44px -22px rgba(22, 119, 255, 0.4);
+}
+.tj-ovr {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.5),
+    0 10px 24px -14px rgba(0, 0, 0, 0.95);
+}
+.vs-card {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 2px 5px rgba(0, 0, 0, 0.4),
+    0 22px 48px -28px rgba(0, 0, 0, 1);
+}
+.vs-escudo {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 8px 18px -10px rgba(0, 0, 0, 0.9);
+}
+
+/* ---------- CHIPS / BADGES ---------- */
+.chip, .badge, .chip-small, .badge-sm { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.chip-small {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 6px 14px -10px rgba(0, 0, 0, 0.85);
+}
+@media (hover: hover) and (pointer: fine) {
+  .chip:hover, .badge:hover, .chip-small:hover, .badge-sm:hover {
+    transform: translateY(-1px) scale(1.03);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      0 8px 18px -12px rgba(0, 0, 0, 0.9);
+  }
+}
+
+/* ---------- CONTROLES: FOCO DE PROFUNDIDAD ---------- */
+.form-control, .form-select {
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.35), inset 0 -1px 0 rgba(255, 255, 255, 0.03);
+}
+.form-control:focus, .form-select:focus {
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3), 0 0 0 0.18rem var(--azul-sombra, rgba(22, 119, 255, 0.28));
+}
+
+/* ---------- BARRA DE PROGRESO HUNDIDA ---------- */
+.progress {
+  background-color: #10131a;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.55), inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+}
+.progress-bar { box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.25); }
+
+/* ---------- TABLAS (solo relieve; filas animadas en fx-detalle) ---------- */
+.table thead th {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015));
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.06), 0 6px 14px -10px rgba(0, 0, 0, 0.95);
+}
+.table tbody tr { border-color: var(--borde-suave, #232936); }
+
+/* ---------- MOVIMIENTO REDUCIDO ---------- */
+@media (prefers-reduced-motion: reduce) {
+  #pantalla-inicio:not(.hidden),
+  #pantalla-juego:not(.hidden),
+  #pantalla-resumen:not(.hidden),
+  .cp-vista:not(.hidden),
+  .cp-vista:not(.hidden) > .row > [class*="col-"],
+  #pantalla-juego:not(.hidden) > .row > [class*="col-"] { animation: none !important; }
+  .card-custom, .card-custom:hover { transition: none; transform: none; }
+  .sb-item, .nb-item, .chip, .badge, .chip-small, .badge-sm,
+  .chip:hover, .badge:hover, .chip-small:hover, .badge-sm:hover { transition: none; transform: none; }
+  .sb-item.activo .sb-ico svg, .nb-item.activo .sb-ico svg,
+  #nav-inferior .nb-item.activo .sb-ico svg,
+  .nb-item.activo::after { animation: none !important; }
+  .fx-ambiente, .fx-ambiente::after { animation: none !important; }
+  .fx-ambiente::before, .fx-lineas-cancha { animation: none !important; }
+  .fx-orb i, .fx-orbes-peq i { animation: none !important; opacity: 0.3; }
+  .fx-aurora, .fx-reflejos, .fx-polvo { animation: none !important; opacity: 0.3; }
+  .fx-scroll span { transition: none !important; }
+  .intro-banner, .intro-banner-img, .intro-banner-logo,
+  .intro-banner-brillo { animation: none !important; }
+  .intro-banner { transform: none; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 18px 40px -26px rgba(0, 0, 0, 0.95); }
+  .intro-banner-logo { transform: translate(-50%, -50%); box-shadow: 0 0 0 6px rgba(10, 13, 19, 0.35), 0 0 0 7px rgba(245, 200, 76, 0.4); }
+  /* Textos del menú y cards de apoyo: sin desplazamientos ni latidos */
+  .support-cards h5, .support-cards > p, .support-cards .col-md-4,
+  .support-cards .support-nota,
+  .vista-titulo, .cp-vista h3, .pantalla-titulo { animation: none !important; -webkit-text-fill-color: initial; background: none; }
+  .support-precio span, .support-card .card-body > .fw-bold[style],
+  .support-premium .badge, .support-card .btn, .support-card::before { animation: none !important; transform: none; }
+  /* Cinemática: fuera de pantalla y sin timers visibles (el componente
+     igual se desmonta solo por JS a los 3.35s, inofensivo) */
+  .cinematica { display: none !important; }
+}

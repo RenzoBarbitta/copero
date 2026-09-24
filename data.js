@@ -72,6 +72,315 @@ const CLUBES = [
     { nombre: "Danubio", reputacion: 6, imagen: "imagenes/danubio.png"}
 ];
 
+// ============================================================
+//  SELECCIONES NACIONALES - expansión internacional
+//  211 asociaciones miembro de FIFA, 6 confederaciones.
+//  Formato de cada fila:
+//    [codigoFIFA3, nombre, bandera(emoji), confederacion, fuerza(1-100), rankingFifa]
+//  La fuerza es una aproximación del nivel de la selección (para
+//  simulación internacional). El ranking FIFA se calculó ordenando
+//  globalmente por fuerza (coherente, no oficial al día).
+// ============================================================
+const CONFEDERACIONES = {
+  AFC:      { emoji: "🌏" },
+  CAF:      { emoji: "🌍" },
+  CONCACAF: { emoji: "🌎" },
+  CONMEBOL: { emoji: "🌎" },
+  OFC:      { emoji: "🌊" },
+  UEFA:     { emoji: "🌍" }
+};
+
+// 6 confederaciones en orden visual habitual (de izquierda a derecha).
+const CONFEDERACIONES_ORDEN = ["CONMEBOL", "UEFA", "CAF", "AFC", "CONCACAF", "OFC"];
+
+// Iconos de bandera reales (flag-icons, SVGs en vendor/flags/): clave por
+// código FIFA. Las 4 naciones del Reino Unido usan claves propias
+// (gb-eng/sct/wls/nir); Kosovo usa la clave no oficial "xk".
+const BANDERA_ICONO = {
+  ARG: "ar", BRA: "br", URU: "uy", COL: "co", ECU: "ec", PER: "pe",
+  PAR: "py", CHI: "cl", VEN: "ve", BOL: "bo", FRA: "fr", ESP: "es",
+  ENG: "gb-eng", POR: "pt", NED: "nl", BEL: "be", ITA: "it", GER: "de",
+  CRO: "hr", SUI: "ch", DEN: "dk", AUT: "at", TUR: "tr", NOR: "no",
+  SWE: "se", POL: "pl", SRB: "rs", UKR: "ua", HUN: "hu", SCO: "gb-sct",
+  CZE: "cz", ROU: "ro", GRE: "gr", RUS: "ru", ISL: "is", SVK: "sk",
+  SVN: "si", NIR: "gb-nir", WAL: "gb-wls", IRL: "ie", ALB: "al", BIH: "ba",
+  GEO: "ge", ISR: "il", FIN: "fi", MNE: "me", BUL: "bg", KOS: "xk",
+  ARM: "am", KAZ: "kz", MKD: "mk", CYP: "cy", LVA: "lv", EST: "ee",
+  LTU: "lt", BLR: "by", LUX: "lu", AZE: "az", MDA: "md", FRO: "fo",
+  MLT: "mt", AND: "ad", SMR: "sm", LIE: "li", GIB: "gi", MAR: "ma",
+  SEN: "sn", NGA: "ng", EGY: "eg", CIV: "ci", ALG: "dz", TUN: "tn",
+  GHA: "gh", CMR: "cm", COD: "cd", MLI: "ml", CPV: "cv", BFA: "bf",
+  GUI: "gn", GAB: "ga", EQG: "gq", ANG: "ao", MAD: "mg", CGO: "cg",
+  UGA: "ug", BEN: "bj", ZAM: "zm", KEN: "ke", TAN: "tz", RWA: "rw",
+  NIG: "ne", SUD: "sd", MOZ: "mz", ZIM: "zw", ETH: "et", GAM: "gm",
+  COM: "km", LBR: "lr", NAM: "na", TOG: "tg", MTN: "mr", GNB: "gw",
+  BOT: "bw", SWZ: "sz", LBY: "ly", MWI: "mw", SLE: "sl", RSA: "za",
+  LES: "ls", BDI: "bi", CTA: "cf", CHA: "td", SOM: "so", MRI: "mu",
+  SEY: "sc", ERI: "er", SSD: "ss", DJI: "dj", STP: "st", JPN: "jp",
+  IRN: "ir", KOR: "kr", AUS: "au", QAT: "qa", KSA: "sa", UZB: "uz",
+  IRQ: "iq", UAE: "ae", JOR: "jo", OMA: "om", CHN: "cn", BHR: "bh",
+  SYR: "sy", THA: "th", LBN: "lb", TJN: "tj", VIE: "vn", IND: "in",
+  PSE: "ps", KGZ: "kg", MAS: "my", PHI: "ph", MYA: "mm", IDN: "id",
+  SIN: "sg", TKM: "tm", HKG: "hk", AFG: "af", PAK: "pk", PRK: "kp",
+  TPE: "tw", BAN: "bd", SRI: "lk", NEP: "np", YEM: "ye", LAO: "la",
+  CAM: "kh", MDV: "mv", MNG: "mn", BRU: "bn", GUM: "gu", BHU: "bt",
+  TLS: "tl", MAC: "mo", KUW: "kw", USA: "us", MEX: "mx", CAN: "ca",
+  CRC: "cr", PAN: "pa", JAM: "jm", HON: "hn", HTI: "ht", GUA: "gt",
+  NCA: "ni", SLV: "sv", CUR: "cw", TRI: "tt", SUR: "sr", DOM: "do",
+  CUB: "cu", GUY: "gy", BER: "bm", BLZ: "bz", PUR: "pr", BRB: "bb",
+  LCA: "lc", GRN: "gd", ATG: "ag", VIN: "vc", BAH: "bs", SKN: "kn",
+  ARU: "aw", DMA: "dm", TCA: "tc", VIR: "vi", VGB: "vg", CAY: "ky",
+  MSR: "ms", AIA: "ai", NZL: "nz", TAH: "pf", FIJ: "fj", PNG: "pg",
+  NCL: "nc", SOL: "sb", VAN: "vu", SAM: "ws", TGA: "to", COK: "ck",
+  ASA: "as"
+};
+
+// Ruta al SVG de la bandera (flag-icons) o "" si no existe.
+function rutaBandera(codigo) {
+  const clave = BANDERA_ICONO[codigo];
+  return clave ? "vendor/flags/" + clave + ".svg" : "";
+}
+
+// HTML <img> de la bandera (título = nombre de la selección del catálogo).
+function banderaImg(codigo, clase) {
+  const ruta = rutaBandera(codigo);
+  if (!ruta) return "";
+  const s = seleccionPorCodigo(codigo);
+  return "<img src=\"" + ruta + "\" alt=\"" + (s ? s.codigo : codigo) + "\"" +
+    (s ? " title=\"" + s.nombre + "\"" : "") +
+    (clase ? " class=\"" + clase + "\"" : "") + " loading=\"lazy\">";
+}
+
+const SELECCIONES = [
+  ['ARG', 'Argentina', '🇦🇷', 'CONMEBOL', 99, 1],
+  ['BRA', 'Brasil', '🇧🇷', 'CONMEBOL', 96, 4],
+  ['URU', 'Uruguay', '🇺🇾', 'CONMEBOL', 90, 12],
+  ['COL', 'Colombia', '🇨🇴', 'CONMEBOL', 89, 13],
+  ['ECU', 'Ecuador', '🇪🇨', 'CONMEBOL', 85, 25],
+  ['PER', 'Perú', '🇵🇪', 'CONMEBOL', 82, 32],
+  ['PAR', 'Paraguay', '🇵🇾', 'CONMEBOL', 81, 34],
+  ['CHI', 'Chile', '🇨🇱', 'CONMEBOL', 80, 39],
+  ['VEN', 'Venezuela', '🇻🇪', 'CONMEBOL', 76, 52],
+  ['BOL', 'Bolivia', '🇧🇴', 'CONMEBOL', 50, 157],
+  ['FRA', 'Francia', '🇫🇷', 'UEFA', 98, 2],
+  ['ESP', 'España', '🇪🇸', 'UEFA', 97, 3],
+  ['ENG', 'Inglaterra', '🇬🇧', 'UEFA', 96, 5],
+  ['POR', 'Portugal', '🇵🇹', 'UEFA', 95, 6],
+  ['NED', 'Países Bajos', '🇳🇱', 'UEFA', 94, 7],
+  ['BEL', 'Bélgica', '🇧🇪', 'UEFA', 92, 9],
+  ['ITA', 'Italia', '🇮🇹', 'UEFA', 93, 8],
+  ['GER', 'Alemania', '🇩🇪', 'UEFA', 91, 10],
+  ['CRO', 'Croacia', '🇭🇷', 'UEFA', 89, 14],
+  ['SUI', 'Suiza', '🇨🇭', 'UEFA', 87, 19],
+  ['DEN', 'Dinamarca', '🇩🇰', 'UEFA', 86, 20],
+  ['AUT', 'Austria', '🇦🇹', 'UEFA', 85, 23],
+  ['TUR', 'Turquía', '🇹🇷', 'UEFA', 84, 29],
+  ['NOR', 'Noruega', '🇳🇴', 'UEFA', 84, 28],
+  ['SWE', 'Suecia', '🇸🇪', 'UEFA', 81, 37],
+  ['POL', 'Polonia', '🇵🇱', 'UEFA', 81, 35],
+  ['SRB', 'Serbia', '🇷🇸', 'UEFA', 81, 36],
+  ['UKR', 'Ucrania', '🇺🇦', 'UEFA', 79, 42],
+  ['HUN', 'Hungría', '🇭🇺', 'UEFA', 79, 41],
+  ['SCO', 'Escocia', '🇬🇧', 'UEFA', 78, 44],
+  ['CZE', 'República Checa', '🇨🇿', 'UEFA', 78, 45],
+  ['ROU', 'Rumania', '🇷🇴', 'UEFA', 77, 47],
+  ['GRE', 'Grecia', '🇬🇷', 'UEFA', 76, 50],
+  ['RUS', 'Rusia', '🇷🇺', 'UEFA', 76, 51],
+  ['ISL', 'Islandia', '🇮🇸', 'UEFA', 75, 55],
+  ['SVK', 'Eslovaquia', '🇸🇰', 'UEFA', 75, 53],
+  ['SVN', 'Eslovenia', '🇸🇮', 'UEFA', 75, 54],
+  ['NIR', 'Irlanda del Norte', '🇬🇧', 'UEFA', 74, 60],
+  ['WAL', 'Gales', '🇬🇧', 'UEFA', 74, 59],
+  ['IRL', 'República de Irlanda', '🇮🇪', 'UEFA', 74, 62],
+  ['ALB', 'Albania', '🇦🇱', 'UEFA', 72, 66],
+  ['BIH', 'Bosnia y Herzegovina', '🇧🇦', 'UEFA', 72, 67],
+  ['GEO', 'Georgia', '🇬🇪', 'UEFA', 72, 69],
+  ['ISR', 'Israel', '🇮🇱', 'UEFA', 72, 70],
+  ['FIN', 'Finlandia', '🇫🇮', 'UEFA', 70, 74],
+  ['MNE', 'Montenegro', '🇲🇪', 'UEFA', 69, 77],
+  ['BUL', 'Bulgaria', '🇧🇬', 'UEFA', 68, 79],
+  ['KOS', 'Kosovo', '🇽🇰', 'UEFA', 68, 81],
+  ['ARM', 'Armenia', '🇦🇲', 'UEFA', 67, 84],
+  ['KAZ', 'Kazajistán', '🇰🇿', 'UEFA', 66, 89],
+  ['MKD', 'Macedonia del Norte', '🇲🇰', 'UEFA', 65, 93],
+  ['CYP', 'Chipre', '🇨🇾', 'UEFA', 63, 101],
+  ['LVA', 'Letonia', '🇱🇻', 'UEFA', 62, 108],
+  ['EST', 'Estonia', '🇪🇪', 'UEFA', 62, 106],
+  ['LTU', 'Lituania', '🇱🇹', 'UEFA', 61, 112],
+  ['BLR', 'Bielorrusia', '🇧🇾', 'UEFA', 61, 110],
+  ['LUX', 'Luxemburgo', '🇱🇺', 'UEFA', 60, 116],
+  ['AZE', 'Azerbaiyán', '🇦🇿', 'UEFA', 59, 123],
+  ['MDA', 'Moldavia', '🇲🇩', 'UEFA', 58, 126],
+  ['FRO', 'Islas Feroe', '🇫🇴', 'UEFA', 56, 134],
+  ['MLT', 'Malta', '🇲🇹', 'UEFA', 56, 135],
+  ['AND', 'Andorra', '🇦🇩', 'UEFA', 42, 190],
+  ['SMR', 'San Marino', '🇸🇲', 'UEFA', 41, 203],
+  ['LIE', 'Liechtenstein', '🇱🇮', 'UEFA', 45, 175],
+  ['GIB', 'Gibraltar', '🇬🇮', 'UEFA', 41, 198],
+  ['MAR', 'Marruecos', '🇲🇦', 'CAF', 91, 11],
+  ['SEN', 'Senegal', '🇸🇳', 'CAF', 88, 16],
+  ['NGA', 'Nigeria', '🇳🇬', 'CAF', 85, 26],
+  ['EGY', 'Egipto', '🇪🇬', 'CAF', 84, 27],
+  ['CIV', 'Costa de Marfil', '🇨🇮', 'CAF', 82, 31],
+  ['ALG', 'Argelia', '🇩🇿', 'CAF', 82, 30],
+  ['TUN', 'Túnez', '🇹🇳', 'CAF', 81, 38],
+  ['GHA', 'Ghana', '🇬🇭', 'CAF', 81, 33],
+  ['CMR', 'Camerún', '🇨🇲', 'CAF', 76, 49],
+  ['COD', 'R. D. del Congo', '🇨🇩', 'CAF', 75, 56],
+  ['MLI', 'Mali', '🇲🇱', 'CAF', 74, 61],
+  ['CPV', 'Cabo Verde', '🇨🇻', 'CAF', 73, 63],
+  ['BFA', 'Burkina Faso', '🇧🇫', 'CAF', 72, 68],
+  ['GUI', 'Guinea', '🇬🇳', 'CAF', 70, 75],
+  ['GAB', 'Gabón', '🇬🇦', 'CAF', 68, 80],
+  ['EQG', 'Guinea Ecuatorial', '🇬🇶', 'CAF', 66, 87],
+  ['ANG', 'Angola', '🇦🇴', 'CAF', 65, 90],
+  ['MAD', 'Madagascar', '🇲🇬', 'CAF', 65, 94],
+  ['CGO', 'Congo', '🇨🇬', 'CAF', 65, 91],
+  ['UGA', 'Uganda', '🇺🇬', 'CAF', 63, 104],
+  ['BEN', 'Benín', '🇧🇯', 'CAF', 63, 100],
+  ['ZAM', 'Zambia', '🇿🇲', 'CAF', 63, 105],
+  ['KEN', 'Kenia', '🇰🇪', 'CAF', 62, 107],
+  ['TAN', 'Tanzania', '🇹🇿', 'CAF', 62, 109],
+  ['RWA', 'Ruanda', '🇷🇼', 'CAF', 61, 113],
+  ['NIG', 'Níger', '🇳🇪', 'CAF', 60, 119],
+  ['SUD', 'Sudán', '🇸🇩', 'CAF', 60, 120],
+  ['MOZ', 'Mozambique', '🇲🇿', 'CAF', 60, 118],
+  ['ZIM', 'Zimbabue', '🇿🇼', 'CAF', 60, 122],
+  ['ETH', 'Etiopía', '🇪🇹', 'CAF', 60, 115],
+  ['GAM', 'Gambia', '🇬🇲', 'CAF', 58, 125],
+  ['COM', 'Comoras', '🇰🇲', 'CAF', 57, 127],
+  ['LBR', 'Liberia', '🇱🇷', 'CAF', 57, 129],
+  ['NAM', 'Namibia', '🇳🇦', 'CAF', 57, 131],
+  ['TOG', 'Togo', '🇹🇬', 'CAF', 57, 132],
+  ['MTN', 'Mauritania', '🇲🇷', 'CAF', 56, 136],
+  ['GNB', 'Guinea-Bisáu', '🇬🇼', 'CAF', 56, 133],
+  ['BOT', 'Botsuana', '🇧🇼', 'CAF', 55, 140],
+  ['SWZ', 'Esuatini', '🇸🇿', 'CAF', 53, 146],
+  ['LBY', 'Libia', '🇱🇾', 'CAF', 52, 153],
+  ['MWI', 'Malaui', '🇲🇼', 'CAF', 54, 145],
+  ['SLE', 'Sierra Leona', '🇸🇱', 'CAF', 53, 148],
+  ['RSA', 'Sudáfrica', '🇿🇦', 'CAF', 51, 155],
+  ['LES', 'Lesoto', '🇱🇸', 'CAF', 50, 160],
+  ['BDI', 'Burundi', '🇧🇮', 'CAF', 50, 158],
+  ['CTA', 'República Centroafricana', '🇨🇫', 'CAF', 48, 166],
+  ['CHA', 'Chad', '🇹🇩', 'CAF', 48, 164],
+  ['SOM', 'Somalia', '🇸🇴', 'CAF', 46, 174],
+  ['MRI', 'Mauricio', '🇲🇺', 'CAF', 46, 173],
+  ['SEY', 'Seychelles', '🇸🇨', 'CAF', 43, 188],
+  ['ERI', 'Eritrea', '🇪🇷', 'CAF', 43, 186],
+  ['SSD', 'Sudán del Sur', '🇸🇸', 'CAF', 42, 195],
+  ['DJI', 'Yibuti', '🇩🇯', 'CAF', 41, 205],
+  ['STP', 'Santo Tomé y Príncipe', '🇸🇹', 'CAF', 41, 204],
+  ['JPN', 'Japón', '🇯🇵', 'AFC', 87, 17],
+  ['IRN', 'Irán', '🇮🇷', 'AFC', 86, 21],
+  ['KOR', 'Corea del Sur', '🇰🇷', 'AFC', 85, 24],
+  ['AUS', 'Australia', '🇦🇺', 'AFC', 85, 22],
+  ['QAT', 'Catar', '🇶🇦', 'AFC', 79, 40],
+  ['KSA', 'Arabia Saudita', '🇸🇦', 'AFC', 78, 43],
+  ['UZB', 'Uzbekistán', '🇺🇿', 'AFC', 77, 48],
+  ['IRQ', 'Irak', '🇮🇶', 'AFC', 73, 64],
+  ['UAE', 'Emiratos Árabes Unidos', '🇦🇪', 'AFC', 74, 58],
+  ['JOR', 'Jordania', '🇯🇴', 'AFC', 71, 72],
+  ['OMA', 'Omán', '🇴🇲', 'AFC', 70, 76],
+  ['CHN', 'China', '🇨🇳', 'AFC', 70, 73],
+  ['BHR', 'Baréin', '🇧🇭', 'AFC', 68, 78],
+  ['SYR', 'Siria', '🇸🇾', 'AFC', 68, 82],
+  ['THA', 'Tailandia', '🇹🇭', 'AFC', 68, 83],
+  ['LBN', 'Líbano', '🇱🇧', 'AFC', 67, 86],
+  ['TJN', 'Tayikistán', '🇹🇯', 'AFC', 65, 95],
+  ['VIE', 'Vietnam', '🇻🇳', 'AFC', 64, 99],
+  ['IND', 'India', '🇮🇳', 'AFC', 64, 98],
+  ['PSE', 'Palestina', '🇵🇸', 'AFC', 63, 103],
+  ['KGZ', 'Kirguistán', '🇰🇬', 'AFC', 61, 111],
+  ['MAS', 'Malasia', '🇲🇾', 'AFC', 60, 117],
+  ['PHI', 'Filipinas', '🇵🇭', 'AFC', 59, 124],
+  ['MYA', 'Myanmar', '🇲🇲', 'AFC', 57, 130],
+  ['IDN', 'Indonesia', '🇮🇩', 'AFC', 57, 128],
+  ['SIN', 'Singapur', '🇸🇬', 'AFC', 56, 137],
+  ['TKM', 'Turkmenistán', '🇹🇲', 'AFC', 56, 139],
+  ['HKG', 'Hong Kong', '🇭🇰', 'AFC', 55, 141],
+  ['AFG', 'Afganistán', '🇦🇫', 'AFC', 54, 144],
+  ['PAK', 'Pakistán', '🇵🇰', 'AFC', 53, 147],
+  ['PRK', 'Corea del Norte', '🇰🇵', 'AFC', 52, 150],
+  ['TPE', 'China Taipéi', '🇹🇼', 'AFC', 52, 149],
+  ['BAN', 'Bangladés', '🇧🇩', 'AFC', 50, 156],
+  ['SRI', 'Sri Lanka', '🇱🇰', 'AFC', 49, 163],
+  ['NEP', 'Nepal', '🇳🇵', 'AFC', 48, 165],
+  ['YEM', 'Yemen', '🇾🇪', 'AFC', 48, 167],
+  ['LAO', 'Laos', '🇱🇦', 'AFC', 47, 170],
+  ['CAM', 'Camboya', '🇰🇭', 'AFC', 47, 169],
+  ['MDV', 'Maldivas', '🇲🇻', 'AFC', 44, 181],
+  ['MNG', 'Mongolia', '🇲🇳', 'AFC', 44, 182],
+  ['BRU', 'Brunéi', '🇧🇳', 'AFC', 42, 192],
+  ['GUM', 'Guam', '🇬🇺', 'AFC', 41, 199],
+  ['BHU', 'Bután', '🇧🇹', 'AFC', 41, 196],
+  ['TLS', 'Timor Oriental', '🇹🇱', 'AFC', 40, 210],
+  ['MAC', 'Macao', '🇲🇴', 'AFC', 40, 207],
+  ['KUW', 'Kuwait', '🇰🇼', 'AFC', 65, 92],
+  ['USA', 'Estados Unidos', '🇺🇸', 'CONCACAF', 88, 15],
+  ['MEX', 'México', '🇲🇽', 'CONCACAF', 87, 18],
+  ['CAN', 'Canadá', '🇨🇦', 'CONCACAF', 77, 46],
+  ['CRC', 'Costa Rica', '🇨🇷', 'CONCACAF', 74, 57],
+  ['PAN', 'Panamá', '🇵🇦', 'CONCACAF', 72, 71],
+  ['JAM', 'Jamaica', '🇯🇲', 'CONCACAF', 67, 85],
+  ['HON', 'Honduras', '🇭🇳', 'CONCACAF', 66, 88],
+  ['HTI', 'Haití', '🇭🇹', 'CONCACAF', 64, 97],
+  ['GUA', 'Guatemala', '🇬🇹', 'CONCACAF', 64, 96],
+  ['NCA', 'Nicaragua', '🇳🇮', 'CONCACAF', 45, 176],
+  ['SLV', 'El Salvador', '🇸🇻', 'CONCACAF', 63, 102],
+  ['CUR', 'Curazao', '🇨🇼', 'CONCACAF', 60, 114],
+  ['TRI', 'Trinidad y Tobago', '🇹🇹', 'CONCACAF', 60, 121],
+  ['SUR', 'Surinam', '🇸🇷', 'CONCACAF', 55, 143],
+  ['DOM', 'República Dominicana', '🇩🇴', 'CONCACAF', 55, 142],
+  ['CUB', 'Cuba', '🇨🇺', 'CONCACAF', 52, 151],
+  ['GUY', 'Guyana', '🇬🇾', 'CONCACAF', 50, 159],
+  ['BER', 'Bermudas', '🇧🇲', 'CONCACAF', 47, 168],
+  ['BLZ', 'Belice', '🇧🇿', 'CONCACAF', 46, 172],
+  ['PUR', 'Puerto Rico', '🇵🇷', 'CONCACAF', 45, 177],
+  ['BRB', 'Barbados', '🇧🇧', 'CONCACAF', 44, 179],
+  ['LCA', 'Santa Lucía', '🇱🇨', 'CONCACAF', 44, 183],
+  ['GRN', 'Granada', '🇬🇩', 'CONCACAF', 44, 180],
+  ['ATG', 'Antigua y Barbuda', '🇦🇬', 'CONCACAF', 43, 184],
+  ['VIN', 'San Vicente y las Granadinas', '🇻🇨', 'CONCACAF', 43, 187],
+  ['BAH', 'Bahamas', '🇧🇸', 'CONCACAF', 43, 185],
+  ['SKN', 'San Cristóbal y Nieves', '🇰🇳', 'CONCACAF', 42, 194],
+  ['ARU', 'Aruba', '🇦🇼', 'CONCACAF', 42, 191],
+  ['DMA', 'Dominica', '🇩🇲', 'CONCACAF', 41, 197],
+  ['TCA', 'Islas Turcas y Caicos', '🇹🇨', 'CONCACAF', 41, 200],
+  ['VIR', 'Islas Vírgenes de los EE. UU.', '🇻🇮', 'CONCACAF', 41, 202],
+  ['VGB', 'Islas Vírgenes Británicas', '🇻🇬', 'CONCACAF', 41, 201],
+  ['CAY', 'Islas Caimán', '🇰🇾', 'CONCACAF', 40, 206],
+  ['MSR', 'Montserrat', '🇲🇸', 'CONCACAF', 40, 208],
+  ['AIA', 'Anguila', '🇦🇮', 'CONCACAF', 39, 211],
+  ['NZL', 'Nueva Zelanda', '🇳🇿', 'OFC', 73, 65],
+  ['TAH', 'Tahití', '🇵🇫', 'OFC', 56, 138],
+  ['FIJ', 'Fiyi', '🇫🇯', 'OFC', 52, 152],
+  ['PNG', 'Papúa Nueva Guinea', '🇵🇬', 'OFC', 51, 154],
+  ['NCL', 'Nueva Caledonia', '🇳🇨', 'OFC', 50, 161],
+  ['SOL', 'Islas Salomón', '🇸🇧', 'OFC', 49, 162],
+  ['VAN', 'Vanuatu', '🇻🇺', 'OFC', 47, 171],
+  ['SAM', 'Samoa', '🇼🇸', 'OFC', 45, 178],
+  ['TGA', 'Tonga', '🇹🇴', 'OFC', 43, 189],
+  ['COK', 'Islas Cook', '🇨🇰', 'OFC', 42, 193],
+  ['ASA', 'Samoa Americana', '🇦🇸', 'OFC', 40, 209]
+];
+
+// Helpers de selecciones (reutilizables por ranking, internacional y cooperativo).
+function seleccionPorCodigo(codigo) {
+  const f = (SELECCIONES || []).find(function (s) { return s[0] === codigo; });
+  if (!f) return null;
+  return { codigo: f[0], nombre: f[1], bandera: f[2], confederacion: f[3], fuerza: f[4], rankingFifa: f[5], clave: BANDERA_ICONO[f[0]] || "" };
+}
+
+function banderaSeleccion(codigo) {
+  const s = seleccionPorCodigo(codigo);
+  return s ? s.bandera : "🏳️";
+}
+
+function seleccionesPorConfederacion(confed) {
+  return (SELECCIONES || []).filter(function (s) { return s[3] === confed; });
+}
+
 // Fuerza de rivalidad: 1-10 (10 = máxima rivalidad histórica)
 const RIVALIDADES = [
   { clubA: "River Plate", clubB: "San Lorenzo", fuerza: 8 },
@@ -338,18 +647,33 @@ const TEXTOS_UI = {
     posDEL: "Delantero (DEL)", posCM: "Mediocampista (CM)", posDEF: "Defensa (DEF)", posGK: "Arquero (GK)",
     iniciar: "Iniciar Carrera", continuar: "▶️ Continuar Carrera Guardada", modoDesafio: "🛡️ Modo Leal",
     modoLealInfo: "Carrera de un solo club que no afecta el ranking online. Objetivo: ganarle <strong>10 títulos</strong> a tu club.",
-    ranking: "🏆 Ranking", slots: "💾 Slots", modoOscuroTitulo: "Modo oscuro", dueloBoton: "⚔️ Duelo 1v1 Online", dueloTab: "⚔️ Duelo 1v1", dueloBuscar: "BUSCAR PARTIDO", dueloAbre: "Jugá la carrera de 10 temporadas contra otro jugador en tiempo real.",
+    ranking: "🏆 Ranking", slots: "💾 Slots", modoOscuroTitulo: "Modo oscuro", dueloBoton: "⚔️ Duelo 1v1 Online", dueloTab: "⚔️ Duelo 1v1", dueloBuscar: "BUSCAR PARTIDO", dueloAbre: "Jugá la carrera de 10 temporadas contra otro jugador en tiempo real.", coopBoton: "🤝 Cooperativo Online", coopAbre: "Jugá en dupla con otro jugador: mismo club y misma selección, decisiones compartidas en tiempo real.",
     edad: "Edad:", anios: "años", media: "Media:", club: "Club:", moral: "Moral:", acciones: "Acciones",
     entrenar: "Entrenar", dominios: "⚽ Dominios", entrenamiento: "⚽ Entrenamiento",
     masMinijuegos: "🎮 Más Minijuegos", logros: "🏅 Logros", stats: "📊 Stats", sinEventos: "No hay eventos sociales esta temporada.", sinEventosTitulo: "Sin eventos por ahora", eventoSecTitulo: "⭐ Evento social", eventoAyuda: "Aceptá o rechazá la propuesta: puede subir tu media, cambiarte de club o mover tus redes.",
-  supportTitulo: "❤️ Ayudame a mantener COPERO PSO SA vivo", supportSubtitulo: "Actualmente me encuentro estudiando y mantener las bases de datos que guardan tu progreso, cuentas y ranking tiene un costo real cada mes. Con tu apoyo ayudas a cubrirlo y me das la motivación para seguir agregando contenido.",
-  supportBasicoTitulo: "🥉 Básico", supportBasicoPrecio: "1 USD/mes", supportBasicoDesc: "Insignia de apoyador, acceso al modo Ultrarealista y nuestro agradecimiento eterno.",
-  supportPremiumTitulo: "👑 Premium", supportPremiumPrecio: "3 USD/mes", supportPremiumDesc: "Todo lo del básico + evento especial de fin de semana, cosmético exclusivo y voz activa en las próximas features.",
-  supportDevTitulo: "💻 Desarrollador", supportDevPrecio: "Gratis", supportDevDesc: "El proyecto lo desarrollo yo solo: podés ayudar a desarrollarlo o tirar ideas, no se necesitan conocimientos previos. Abrí un ticket en Discord.",
-  supportBasicoBtn: "⭐ Apoyar", supportPremiumBtn: "💎 Apoyar", supportDevBtn: "💬 Abrir ticket",
+  supportTitulo: "❤️ Ayudame a mantener vivo a COPERO PSO SA",
+  supportSubtitulo: "Soy un estudiante: mantener las bases de datos que guardan tu progreso, cuenta y ranking tiene un costo real cada mes. Con tu apoyo las mantenemos en pie y me das la energía para seguir sumando contenido.",
+  supportBasicoTitulo: "Básico", supportBasicoPrecio: "1 USD",
+  supportBasicoDesc: "El arranque perfecto para bancar el proyecto.",
+  supportBasicoF1: "Insignia de apoyador en tu perfil",
+  supportBasicoF2: "Acceso al modo Ultrarealista",
+  supportBasicoF3: "Nuestro agradecimiento eterno",
+  supportPremiumTitulo: "Premium", supportPremiumPrecio: "3 USD",
+  supportPremiumDesc: "El paquete completo para los que aman el proyecto.",
+  supportPremiumF1: "Todo lo del Básico",
+  supportPremiumF2: "Evento especial de fin de semana",
+  supportPremiumF3: "Cosmético exclusivo",
+  supportPremiumF4: "Voz activa en las próximas features",
+  supportDevTitulo: "Desarrollador", supportDevPrecio: "Gratis",
+  supportDevDesc: "El proyecto es 100% mío: sumate a construirlo o tirá ideas.",
+  supportDevF1: "Ayudar a desarrollar el juego",
+  supportDevF2: "Tirar ideas a lo loco",
+  supportDevF3: "Cero conocimientos previos",
+  supportBasicoBtn: "Apoyar", supportPremiumBtn: "Apoyar", supportDevBtn: "Abrir ticket",
+  supportPeriodo: "/mes",
   supportBadge: "Recomendado",
   supportBtn: "🚀 Apoyar",
-  supportNota: "No es pay-to-win: ningún beneficio te da ventaja en el ranking online ni en el 1v1. Es pura pasión por el proyecto. ❤️",
+  supportNota: "Tranquilo, no es pay-to-win: ningún beneficio te da ventaja en el ranking online ni en el 1v1. Acá manda la pasión por el proyecto. ❤️",
     simular: "Simular Temporada", reiniciar: "Reiniciar Carrera", historial: "Historial de Carrera",
     thTemp: "Temp", thClub: "Club", thPJ: "PJ", thGoles: "Goles", thAsist: "Asist.", thTitulos: "Títulos / Logros",
     retiro: "🏁 Retiro Profesional", partidos: "Partidos:", goles: "Goles:", asistencias: "Asistencias:", jugarDeNuevo: "Jugar de Nuevo",
@@ -372,28 +696,50 @@ const TEXTOS_UI = {
   },
   en: {
     titulo: "PSO CAREER", nombreJugador: "Player Name:", placeholderNombre: "Ex: Caseros", posCancha: "📍 Position on the pitch", tuCasaca: "👕 Your shirt", dorsal: "🔢 Shirt number",
-    posDEL: "Forward (DEL)", posCM: "Midfielder (CM)", posDEF: "Defender (DEF)", posGK: "Goalkeeper (GK)", iniciar: "Start Career", continuar: "▶️ Continue Saved Career", modoDesafio: "🛡️ Loyal Mode", modoLealInfo: "A one-club career that does NOT affect the online ranking. Goal: win <strong>10 titles</strong> for your club.", ranking: "🏆 Ranking", slots: "💾 Slots", modoOscuroTitulo: "Dark mode", dueloBoton: "⚔️ 1v1 Duel Online", dueloTab: "⚔️ 1v1 Duel", dueloBuscar: "FIND MATCH", dueloAbre: "Play the 10-season career against another player in real time.",
+    posDEL: "Forward (DEL)", posCM: "Midfielder (CM)", posDEF: "Defender (DEF)", posGK: "Goalkeeper (GK)", iniciar: "Start Career", continuar: "▶️ Continue Saved Career", modoDesafio: "🛡️ Loyal Mode", modoLealInfo: "A one-club career that does NOT affect the online ranking. Goal: win <strong>10 titles</strong> for your club.", ranking: "🏆 Ranking", slots: "💾 Slots", modoOscuroTitulo: "Dark mode", dueloBoton: "⚔️ 1v1 Duel Online", dueloTab: "⚔️ 1v1 Duel", dueloBuscar: "FIND MATCH", dueloAbre: "Play the 10-season career against another player in real time.", coopBoton: "🤝 Co-op Online", coopAbre: "Play as a duo with another player: same club and same national team, shared decisions in real time.",
     edad: "Age:", anios: "years", media: "Rating:", club: "Club:", moral: "Morale:", acciones: "Actions", entrenar: "Train", dominios: "⚽ Ball Juggling", entrenamiento: "⚽ Training", masMinijuegos: "🎮 More Minigames", logros: "🏅 Achievements", stats: "📊 Stats", sinEventos: "No social events this season.", sinEventosTitulo: "No events right now", eventoSecTitulo: "⭐ Social event", eventoAyuda: "Accept or decline the offer: it can raise your rating, move you to another club or shake up your socials.",
-  supportTitulo: "❤️ Help me keep COPERO PSO SA alive", supportSubtitulo: "I'm currently a student, and keeping the databases that store your progress, accounts and ranking has a real cost every month. With your support you help cover it and give me the motivation to keep adding content.",
-  supportBasicoTitulo: "🥉 Basic", supportBasicoPrecio: "1 USD/month", supportBasicoDesc: "Supporter badge, access to Ultrarealistic mode and our eternal gratitude.",
-  supportPremiumTitulo: "👑 Premium", supportPremiumPrecio: "3 USD/month", supportPremiumDesc: "Everything in Basic + special weekend event, exclusive cosmetic and an active voice in our next features.",
-  supportDevTitulo: "💻 Developer", supportDevPrecio: "Free", supportDevDesc: "The project is developed by me alone: you can help develop it or share ideas, no previous knowledge needed. Open a ticket on Discord.",
-  supportBasicoBtn: "⭐ Support", supportPremiumBtn: "💎 Support", supportDevBtn: "💬 Open ticket",
+  supportTitulo: "❤️ Help me keep COPERO PSO SA alive", supportSubtitulo: "I'm a student: keeping the databases that host your progress, account and ranking has a real cost every month. With your support they stay online and you give me the energy to keep shipping content.",
+  supportBasicoTitulo: "Basic", supportBasicoPrecio: "1 USD", supportBasicoDesc: "The perfect first step to back the project.",
+  supportBasicoF1: "Supporter badge on your profile",
+  supportBasicoF2: "Access to Ultrarealistic mode",
+  supportBasicoF3: "Our eternal gratitude",
+  supportPremiumTitulo: "Premium", supportPremiumPrecio: "3 USD", supportPremiumDesc: "The full package for those who love the project.",
+  supportPremiumF1: "Everything in Basic",
+  supportPremiumF2: "Special weekend event",
+  supportPremiumF3: "Exclusive cosmetic",
+  supportPremiumF4: "Active voice in upcoming features",
+  supportDevTitulo: "Developer", supportDevPrecio: "Free", supportDevDesc: "A 100% solo project: jump in to build it or toss ideas.",
+  supportDevF1: "Help develop the game",
+  supportDevF2: "Drop any wild idea",
+  supportDevF3: "No prior knowledge needed",
+  supportBasicoBtn: "Support", supportPremiumBtn: "Support", supportDevBtn: "Open ticket",
+  supportPeriodo: "/month",
   supportBadge: "Recommended",
   supportBtn: "🚀 Support",
-  supportNota: "Not pay-to-win: no benefit gives you an edge in online ranking or 1v1. Pure passion for the project. ❤️", simular: "Simulate Season", reiniciar: "Restart Career", historial: "Career History", thTemp: "Season", thClub: "Club", thPJ: "MP", thGoles: "Goals", thAsist: "Assists", thTitulos: "Titles / Achievements", retiro: "🏁 Professional Retirement", partidos: "Matches:", goles: "Goals:", asistencias: "Assists:", jugarDeNuevo: "Play Again", rankTitulo: "🏆 Ranking", rankTabGlobal: "🌍 Global (Online)", rankTabLocal: "📱 This device", rankColJugador: "Player", rankColMedia: "Rating", rankColTitulos: "Titles", rankColAnio: "Year", rankCargando: "Loading online ranking...", rankErrorOnline: "Could not connect to the online ranking. Check your connection.", rankReintentar: "🔄 Retry", rankActualizar: "🔄 Refresh", rankVacioOnline: "No careers in the global ranking yet. Finish a career and be the first!", rankVacioLocal: "No careers registered on this device yet.", rankSincronizado: "🟢 Online ranking synced", rankPendiente: "📤 Your career was saved and will be sent when you're back online", btnInstalar: "📥 Install App", desarrollado: "Developed by:", colaboracion: "Collaboration:", privacidadLink: "Privacy Policy",
+  supportNota: "Relax, it's not pay-to-win: no perk gives you an edge in online ranking or 1v1. Passion for the project is what matters. ❤️", simular: "Simulate Season", reiniciar: "Restart Career", historial: "Career History", thTemp: "Season", thClub: "Club", thPJ: "MP", thGoles: "Goals", thAsist: "Assists", thTitulos: "Titles / Achievements", retiro: "🏁 Professional Retirement", partidos: "Matches:", goles: "Goals:", asistencias: "Assists:", jugarDeNuevo: "Play Again", rankTitulo: "🏆 Ranking", rankTabGlobal: "🌍 Global (Online)", rankTabLocal: "📱 This device", rankColJugador: "Player", rankColMedia: "Rating", rankColTitulos: "Titles", rankColAnio: "Year", rankCargando: "Loading online ranking...", rankErrorOnline: "Could not connect to the online ranking. Check your connection.", rankReintentar: "🔄 Retry", rankActualizar: "🔄 Refresh", rankVacioOnline: "No careers in the global ranking yet. Finish a career and be the first!", rankVacioLocal: "No careers registered on this device yet.", rankSincronizado: "🟢 Online ranking synced", rankPendiente: "📤 Your career was saved and will be sent when you're back online", btnInstalar: "📥 Install App", desarrollado: "Developed by:", colaboracion: "Collaboration:", privacidadLink: "Privacy Policy",
     cuentaTitulo: "👤 My account (optional)", cuentaInfo: "Your career is still saved on this device. Supabase manages your email, authentication and nickname. When you reload the page you will have to sign in again.", cuentaEmail: "Email", cuentaPass: "Password", cuentaAcepto1: "I have read and accept the", cuentaPrivacidadLink: "Privacy Policy (opens a new tab)", cuentaAcepto2: "to create my account.", cuentaAyuda: "Required only when signing up. We use the email and authentication to manage your account and the nickname for your profile. This acceptance does not allow advertising or optional measurement.", cuentaLogin: "Sign in", cuentaCrear: "Create account", cuentaRegistroAyuda: "To sign up, use at least 8 characters. Confirm the email you received before signing in.", cuentaApodo: "Profile nickname", cuentaGuardarApodo: "Save nickname", cuentaLeerPerfil: "Read profile again", cuentaSalir: "Sign out", btnEntendido: "Got it", btnRechazar: "Reject", btnAceptar: "Accept", btnContinuar: "Continue", btnCerrar: "Close", btnEntendido2: "Got it!", mercadoTitulo: "Transfer Market", penalTitulo: "⚽ DRAMATIC FINAL!", penalTexto: "The match is tied. The penalty to decide the title is at your feet.", minijuegoIndicacion: "Follow this minigame's instruction:", tiempoRestante: "Time left:", dardosTitulo: "🎯 Darts with the boys", dardosIndicacion: "Tap THROW at the right moment: the indicator swings from the outside toward the center and back. Center = more points.", dardosBoton: "🎯 THROW!", ssTitulo: "🔍 LIVE REVIEW (SS)", ssTexto: "Checking suspicious folders and files...", rolDesbloqueado: "🔓 ROLE UNLOCKED", avisoMinijuego: "You already played this season's minigame. You can only play 1 minigame per season, in addition to attribute training. Move on to the next season to play another."
   },
   pt: {
-    titulo: "CARREIRA PSO", nombreJugador: "Nome do jogador:", placeholderNombre: "Ex.: Caseros", posCancha: "📍 Posição em campo", tuCasaca: "👕 Sua camisa", dorsal: "🔢 Número", posDEL: "Atacante (DEL)", posCM: "Meio-campista (CM)", posDEF: "Zagueiro (DEF)", posGK: "Goleiro (GK)", iniciar: "Iniciar carreira", continuar: "▶️ Continuar carreira salva", modoDesafio: "🛡️ Modo Leal", ranking: "🏆 Ranking", slots: "💾 Slots", modoOscuroTitulo: "Modo escuro", dueloBoton: "⚔️ Duelo 1v1 Online", dueloTab: "⚔️ Duelo 1v1", dueloBuscar: "BUSCAR PARTIDA", dueloAbre: "Jogue a carreira de 10 temporadas contra outro jogador em tempo real.", edad: "Idade:", anios: "anos", media: "Média:", club: "Clube:", moral: "Moral:", acciones: "Ações", entrenar: "Treinar", dominios: "⚽ Embaixadinhas", entrenamiento: "⚽ Treinamento", masMinijuegos: "🎮 Mais minijogos", logros: "🏅 Conquistas", stats: "📊 Estatísticas", sinEventos: "Não há eventos sociais nesta temporada.", sinEventosTitulo: "Sem eventos por enquanto", eventoSecTitulo: "⭐ Evento social", eventoAyuda: "Aceite ou recuse a proposta: pode subir sua média, mudar seu clube ou mexer nas suas redes.",
-  supportTitulo: "❤️ Ajude-me a manter o COPERO PSO SA vivo", supportSubtitulo: "Atualmente estou estudando e manter os bancos de dados que guardam seu progresso, contas e ranking tem um custo real a cada mês. Com seu apoio, você ajuda a cobrir isso e me dá motivação para continuar adicionando conteúdo.",
-  supportBasicoTitulo: "🥉 Básico", supportBasicoPrecio: "1 USD/mês", supportBasicoDesc: "Insígnia de apoiador, acesso ao modo Ultrarealista e nosso agradecimento eterno.",
-  supportPremiumTitulo: "👑 Premium", supportPremiumPrecio: "3 USD/mês", supportPremiumDesc: "Tudo do básico + evento especial de fim de semana, cosmético exclusivo e voz ativa nas próximas features.",
-  supportDevTitulo: "💻 Desenvolvedor", supportDevPrecio: "Grátis", supportDevDesc: "O projeto é desenvolvido só por mim: você pode ajudar a desenvolver ou dar ideias, não precisa de conhecimento prévio. Abra um ticket no Discord.",
-  supportBasicoBtn: "⭐ Apoiar", supportPremiumBtn: "💎 Apoiar", supportDevBtn: "💬 Abrir ticket",
+    titulo: "CARREIRA PSO", nombreJugador: "Nome do jogador:", placeholderNombre: "Ex.: Caseros", posCancha: "📍 Posição em campo", tuCasaca: "👕 Sua camisa", dorsal: "🔢 Número", posDEL: "Atacante (DEL)", posCM: "Meio-campista (CM)", posDEF: "Zagueiro (DEF)", posGK: "Goleiro (GK)", iniciar: "Iniciar carreira", continuar: "▶️ Continuar carreira salva", modoDesafio: "🛡️ Modo Leal", ranking: "🏆 Ranking", slots: "💾 Slots", modoOscuroTitulo: "Modo escuro", dueloBoton: "⚔️ Duelo 1v1 Online", dueloTab: "⚔️ Duelo 1v1", dueloBuscar: "BUSCAR PARTIDA", dueloAbre: "Jogue a carreira de 10 temporadas contra outro jogador em tempo real.", coopBoton: "🤝 Cooperativo Online", coopAbre: "Jogue em dupla com outro jogador: mesmo clube e mesma seleção, decisões compartilhadas em tempo real.", edad: "Idade:", anios: "anos", media: "Média:", club: "Clube:", moral: "Moral:", acciones: "Ações", entrenar: "Treinar", dominios: "⚽ Embaixadinhas", entrenamiento: "⚽ Treinamento", masMinijuegos: "🎮 Mais minijogos", logros: "🏅 Conquistas", stats: "📊 Estatísticas", sinEventos: "Não há eventos sociais nesta temporada.", sinEventosTitulo: "Sem eventos por enquanto", eventoSecTitulo: "⭐ Evento social", eventoAyuda: "Aceite ou recuse a proposta: pode subir sua média, mudar seu clube ou mexer nas suas redes.",
+  supportTitulo: "❤️ Ajude-me a manter o COPERO PSO SA vivo", supportSubtitulo: "Sou estudante: manter os bancos de dados que guardam seu progresso, conta e ranking tem um custo real todo mês. Com seu apoio eles ficam no ar e você me dá energia para continuar adicionando conteúdo.",
+  supportBasicoTitulo: "Básico", supportBasicoPrecio: "1 USD", supportBasicoDesc: "O começo perfeito para apoiar o projeto.",
+  supportBasicoF1: "Distintivo de apoiador no seu perfil",
+  supportBasicoF2: "Acesso ao modo Ultrarealista",
+  supportBasicoF3: "Nossa gratidão eterna",
+  supportPremiumTitulo: "Premium", supportPremiumPrecio: "3 USD", supportPremiumDesc: "O pacote completo para quem ama o projeto.",
+  supportPremiumF1: "Tudo do Básico",
+  supportPremiumF2: "Evento especial de fim de semana",
+  supportPremiumF3: "Cosmético exclusivo",
+  supportPremiumF4: "Voz ativa nas próximas features",
+  supportDevTitulo: "Desenvolvedor", supportDevPrecio: "Grátis", supportDevDesc: "Um projeto 100% meu: entre para construir ou mande ideias.",
+  supportDevF1: "Ajudar a desenvolver o jogo",
+  supportDevF2: "Mandar ideias à vontade",
+  supportDevF3: "Sem conhecimento prévio",
+  supportBasicoBtn: "Apoiar", supportPremiumBtn: "Apoiar", supportDevBtn: "Abrir ticket",
+  supportPeriodo: "/mês",
   supportBadge: "Recomendado",
   supportBtn: "🚀 Apoiar",
-  supportNota: "Não é pay-to-win: nenhum benefício te dá vantagem no ranking online nem no 1v1. É pura paixão pelo projeto. ❤️", simular: "Simular temporada", reiniciar: "Reiniciar carreira", historial: "Histórico da carreira", thTemp: "Temp.", thClub: "Clube", thPJ: "PJ", thGoles: "Gols", thAsist: "Assist.", thTitulos: "Títulos / Conquistas", retiro: "🏁 Aposentadoria profissional", partidos: "Partidas:", goles: "Gols:", asistencias: "Assistências:", jugarDeNuevo: "Jogar novamente", rankTitulo: "🏆 Ranking", rankTabGlobal: "🌍 Global (online)", rankTabLocal: "📱 Este dispositivo", rankColJugador: "Jogador", rankColMedia: "Média", rankColTitulos: "Títulos", rankColAnio: "Ano", rankCargando: "Carregando ranking online...", rankErrorOnline: "Não foi possível conectar ao ranking online. Verifique sua conexão.", rankReintentar: "🔄 Tentar novamente", rankActualizar: "🔄 Atualizar", rankVacioOnline: "Ainda não há carreiras no ranking global. Termine uma carreira e seja o primeiro!", rankVacioLocal: "Ainda não há carreiras registradas neste dispositivo.", rankSincronizado: "🟢 Ranking online sincronizado", rankPendiente: "📤 Sua carreira foi salva e será enviada quando houver internet", btnInstalar: "📥 Instalar aplicativo", desarrollado: "Desenvolvido por:", colaboracion: "Colaboração:", privacidadLink: "Política de privacidade", dardosTitulo: "🎯 Dardos com a galera", dardosIndicacion: "Toque em ATIRAR no momento certo: o indicador vai de fora em direção ao centro e volta. Centro = mais pontos.", dardosBoton: "🎯 ATIRAR!", cuentaTitulo: "👤 Minha conta (opcional)", cuentaInfo: "Sua carreira continua salva neste dispositivo. O Supabase gerencia seu e-mail, autenticação e apelido. Ao recarregar a página, você terá que entrar novamente.", cuentaEmail: "E-mail", cuentaPass: "Senha", cuentaAcepto1: "Li e aceito a", cuentaPrivacidadLink: "Política de privacidade (abre em outra aba)", cuentaAcepto2: "para criar minha conta.", cuentaAyuda: "Obrigatório apenas no cadastro. Usamos o e-mail e a autenticação para gerenciar sua conta e o apelido do seu perfil. Esta aceitação não autoriza publicidade nem medição opcional.", cuentaLogin: "Entrar", cuentaCrear: "Criar conta", cuentaRegistroAyuda: "Para se cadastrar, use pelo menos 8 caracteres. Confirme o e-mail recebido antes de entrar.", cuentaApodo: "Apelido do perfil", cuentaGuardarApodo: "Salvar apelido", cuentaLeerPerfil: "Ler perfil novamente", cuentaSalir: "Sair da conta", btnEntendido: "Entendi", btnRechazar: "Recusar", btnAceptar: "Aceitar", btnContinuar: "Continuar", btnCerrar: "Fechar", btnEntendido2: "Entendi!", mercadoTitulo: "Mercado de transferências", penalTitulo: "⚽ FINAL DRAMÁTICA!", penalTexto: "A partida está empatada. O pênalti para decidir o título está nos seus pés.", minijuegoIndicacion: "Siga a instrução deste minijogo:", tiempoRestante: "Tempo restante:", ssTitulo: "🔍 REVISÃO AO VIVO (SS)", ssTexto: "Verificando pastas e arquivos suspeitos...", rolDesbloqueado: "🔓 FUNÇÃO DESBLOQUEADA", avisoMinijuego: "Você já jogou o minijogo desta temporada. Só é possível jogar 1 minijogo por temporada, além do treinamento por atributos. Avance para a próxima temporada para jogar outro."
+  supportNota: "Fica tranquilo, não é pay-to-win: nenhum benefício te dá vantagem no ranking online nem no 1v1. Aqui manda a paixão pelo projeto. ❤️", simular: "Simular temporada", reiniciar: "Reiniciar carreira", historial: "Histórico da carreira", thTemp: "Temp.", thClub: "Clube", thPJ: "PJ", thGoles: "Gols", thAsist: "Assist.", thTitulos: "Títulos / Conquistas", retiro: "🏁 Aposentadoria profissional", partidos: "Partidas:", goles: "Gols:", asistencias: "Assistências:", jugarDeNuevo: "Jogar novamente", rankTitulo: "🏆 Ranking", rankTabGlobal: "🌍 Global (online)", rankTabLocal: "📱 Este dispositivo", rankColJugador: "Jogador", rankColMedia: "Média", rankColTitulos: "Títulos", rankColAnio: "Ano", rankCargando: "Carregando ranking online...", rankErrorOnline: "Não foi possível conectar ao ranking online. Verifique sua conexão.", rankReintentar: "🔄 Tentar novamente", rankActualizar: "🔄 Atualizar", rankVacioOnline: "Ainda não há carreiras no ranking global. Termine uma carreira e seja o primeiro!", rankVacioLocal: "Ainda não há carreiras registradas neste dispositivo.", rankSincronizado: "🟢 Ranking online sincronizado", rankPendiente: "📤 Sua carreira foi salva e será enviada quando houver internet", btnInstalar: "📥 Instalar aplicativo", desarrollado: "Desenvolvido por:", colaboracion: "Colaboração:", privacidadLink: "Política de privacidade", dardosTitulo: "🎯 Dardos com a galera", dardosIndicacion: "Toque em ATIRAR no momento certo: o indicador vai de fora em direção ao centro e volta. Centro = mais pontos.", dardosBoton: "🎯 ATIRAR!", cuentaTitulo: "👤 Minha conta (opcional)", cuentaInfo: "Sua carreira continua salva neste dispositivo. O Supabase gerencia seu e-mail, autenticação e apelido. Ao recarregar a página, você terá que entrar novamente.", cuentaEmail: "E-mail", cuentaPass: "Senha", cuentaAcepto1: "Li e aceito a", cuentaPrivacidadLink: "Política de privacidade (abre em outra aba)", cuentaAcepto2: "para criar minha conta.", cuentaAyuda: "Obrigatório apenas no cadastro. Usamos o e-mail e a autenticação para gerenciar sua conta e o apelido do seu perfil. Esta aceitação não autoriza publicidade nem medição opcional.", cuentaLogin: "Entrar", cuentaCrear: "Criar conta", cuentaRegistroAyuda: "Para se cadastrar, use pelo menos 8 caracteres. Confirme o e-mail recebido antes de entrar.", cuentaApodo: "Apelido do perfil", cuentaGuardarApodo: "Salvar apelido", cuentaLeerPerfil: "Ler perfil novamente", cuentaSalir: "Sair da conta", btnEntendido: "Entendi", btnRechazar: "Recusar", btnAceptar: "Aceitar", btnContinuar: "Continuar", btnCerrar: "Fechar", btnEntendido2: "Entendi!", mercadoTitulo: "Mercado de transferências", penalTitulo: "⚽ FINAL DRAMÁTICA!", penalTexto: "A partida está empatada. O pênalti para decidir o título está nos seus pés.", minijuegoIndicacion: "Siga a instrução deste minijogo:", tiempoRestante: "Tempo restante:", ssTitulo: "🔍 REVISÃO AO VIVO (SS)", ssTexto: "Verificando pastas e arquivos suspeitos...", rolDesbloqueado: "🔓 FUNÇÃO DESBLOQUEADA", avisoMinijuego: "Você já jogou o minijogo desta temporada. Só é possível jogar 1 minijogo por temporada, além do treinamento por atributos. Avance para a próxima temporada para jogar outro."
   }
 };
 
@@ -423,6 +769,42 @@ Object.assign(TEXTOS_UI.es, {
   sinNoticiasTitulo: "Sin novedades todavía", sinNoticiasTexto: "Simulá tu primera temporada para que comience la actividad de tu carrera.", entrenoAyuda: "Elegí una sesión por atributo o un minijuego para la temporada.", proximoRivalDetalle: "Rival probable según la reputación de tu club",
   partidoXDeY: "Partido {n} de {t}", partidosPendientes: "Partidos pendientes", partidoCompletado: "Partido completado", faltanPartidos: "Te quedan {n} por jugar"
 });
+Object.assign(TEXTOS_UI.es, {
+  tuNacionalidad: "🌍 Tu nacionalidad",
+  seleccionNacional: "Selección:",
+  internacionalTitulo: "🌍 Internacional",
+  selConvocado: "Convocado",
+  selNoConvocado: "Todavía no convocado",
+  selPartidos: "Partidos",
+  selGoles: "Goles",
+  selCapitan: "Capitán",
+  fechaFifaTitulo: "🌍 Fecha FIFA",
+  fechaFifaPartido: "Jugaste con {seleccion} contra {rival}: {ptsSel}-{ptsRival}. Vos marcaste {goles} gol(es).",
+  convConvocado: "¡Convocado a {seleccion}! Vas a jugar Fechas FIFA esta temporada.",
+  convCapitana: "¡Elegido capitán de {seleccion}!",
+  selTorneo: "Torneo:",
+  btnJugarTorneo: "Jugar torneo",
+  torneoIntro: "El {torneo} está en marcha: vas a jugarlo con tu selección desde la tarjeta Internacional. Coordinás cada partido (jugás o simulás) y el resto se define en el torneo.",
+  torneoComoJugar: "¿Cómo jugás tu próximo partido del {torneo}?",
+  torneoJugar: "Jugar (interactivo)",
+  torneoSimular: "Simular",
+  torneoResultado: "{seleccion} {pa} - {pb} {rival}. Marcaste {goles} gol(es).",
+  torneoClasificado: "¡Clasificaste a {fase}!",
+  torneoEliminado: "Quedaste afuera del {torneo} en {fase}.",
+  torneoCampeon: "¡Campeones del {torneo}! 🏆",
+  torneoFaseGrupos: "Fase de grupos",
+  torneoFaseOctavos: "Octavos de final",
+  torneoFaseCuartos: "Cuartos de final",
+  torneoFaseSemis: "Semifinal",
+  torneoFaseFinal: "Final",
+  torneoMundial: "Mundial",
+  torneoCopaAmerica: "Copa América",
+  torneoEuro: "Eurocopa",
+  torneoFinalissima: "Finalissima",
+  nacionalidadAyuda: "Elegí tu selección: si rendís, podés ser convocado a los torneos internacionales.",
+  rankColSeleccion: "🇺🇳 Selección",
+  confAFC: "AFC", confCAF: "CAF", confCONCACAF: "Concacaf", confCONMEBOL: "CONMEBOL", confOFC: "OFC", confUEFA: "UEFA"
+});
 Object.assign(TEXTOS_UI.en, {
   eventoRechazar: "Reject", eventoAceptar: "Accept", partidoTitulo: "⚽ Special Match Detected", partidoTexto: "A key moment appears in the season. How do you want to resolve it?", jugarMomentos: "⚽ PLAY KEY MOMENTS", simularPartido: "🎲 SIMULATE MATCH", tiroLibreTitulo: "🎯 Precision Free Kick", tiroLibreIndicacion: "Press SHOOT when the bar is in the center.", tiroLibreBoton: "SHOOT!", peleaIndicacion: "Press SPACE (or click) as fast as you can to defend yourself!", redesTitulo: "📱 Social Media", redesVacio: "There are no statements about your career yet.", redesResponde: "replies", viralidad: "virality", logrosTitulo: "🏅 Achievements", logroCompletado: "✅ Completed", logroPendiente: "⬜ Pending", entrenarAtributos: "🏋️ Train Attributes", entrenamientoTitulo: "🏋️ Training Center", entrenamientoElige: "Choose an attribute to train this season. You will see the progress before and after.", entrenamientoAgotado: "You already trained this season. Move on to the next one to train again.", entrenamientoFallido: "No progress today. The attribute did not improve, but the session was used.", entrenamientoTecho: "This attribute has reached your current club's ceiling.", atributoOVR: "OVR", cuentaPrivacidadError: "To create the account, read and accept the Privacy Policy.", cuentaConectando: "Connecting…", cuentaRegistroOk: "Request sent. If the account can be created, you will receive a confirmation email.", cuentaSesionOk: "Signed in.", cuentaPerfilOk: "Nickname saved and verified.", cuentaSesionCerrada: "Signed out. Your local career was not changed.", cuentaError429: "Too many attempts. Wait a few minutes before trying again.", cuentaErrorAuth: "The operation was not authorized. Check your session and email confirmation.", cuentaErrorGeneral: "The operation could not be completed. Check the data and try again later.", cuentaErrorConexion: "Could not connect to accounts. Check your internet and try again.", cuentaErrorSesion: "The server did not return a valid session.", cuentaErrorIniciar: "Sign in to use your profile.", cuentaErrorCambio: "The session changed. Sign in again.", cuentaErrorCredenciales: "Complete your email and password.", cuentaErrorPassword: "Use a password with at least 8 characters.", cuentaErrorCancelado: "Sign-in was canceled.", cuentaErrorApodo: "The nickname must be between 2 and 30 characters.", cuentaErrorReintentar: "The session changed. Try again."
 });
@@ -449,6 +831,42 @@ Object.assign(TEXTOS_UI.en, {
   sinNoticiasTitulo: "No news yet", sinNoticiasTexto: "Simulate your first season to start your career activity.", entrenoAyuda: "Pick an attribute session or a minigame for the season.", proximoRivalDetalle: "Likely rival based on your club's reputation",
   partidoXDeY: "Match {n} of {t}", partidosPendientes: "Pending matches", partidoCompletado: "Match complete", faltanPartidos: "{n} to go"
 });
+Object.assign(TEXTOS_UI.en, {
+  tuNacionalidad: "🌍 Your nationality",
+  seleccionNacional: "National team:",
+  internacionalTitulo: "🌍 International",
+  selConvocado: "Called up",
+  selNoConvocado: "Not called up yet",
+  selPartidos: "Caps",
+  selGoles: "Goals",
+  selCapitan: "Captain",
+  fechaFifaTitulo: "🌍 International matchday",
+  fechaFifaPartido: "You played for {seleccion} against {rival}: {ptsSel}-{ptsRival}. You scored {goles} goal(s).",
+  convConvocado: "Called up to {seleccion}! You will play international matchdays this season.",
+  convCapitana: "Named captain of {seleccion}!",
+  selTorneo: "Tournament:",
+  btnJugarTorneo: "Play tournament",
+  torneoIntro: "The {torneo} is on: you will play it with your national team from the International card. You run each match (play or simulate) and the rest plays out in the tournament.",
+  torneoComoJugar: "How do you play your next {torneo} match?",
+  torneoJugar: "Play (interactive)",
+  torneoSimular: "Simulate",
+  torneoResultado: "{seleccion} {pa} - {pb} {rival}. You scored {goles} goal(s).",
+  torneoClasificado: "Qualified to {fase}!",
+  torneoEliminado: "Eliminated from the {torneo} in the {fase}.",
+  torneoCampeon: "{torneo} champions! 🏆",
+  torneoFaseGrupos: "Group stage",
+  torneoFaseOctavos: "Round of 16",
+  torneoFaseCuartos: "Quarter-finals",
+  torneoFaseSemis: "Semi-final",
+  torneoFaseFinal: "Final",
+  torneoMundial: "World Cup",
+  torneoCopaAmerica: "Copa America",
+  torneoEuro: "European Championship",
+  torneoFinalissima: "Finalissima",
+  nacionalidadAyuda: "Pick your national team: perform well and you can earn international call-ups.",
+  rankColSeleccion: "🇺🇳 Team",
+  confAFC: "AFC", confCAF: "CAF", confCONCACAF: "CONCACAF", confCONMEBOL: "CONMEBOL", confOFC: "OFC", confUEFA: "UEFA"
+});
 Object.assign(TEXTOS_UI.pt, {
   eventoRechazar: "Recusar", eventoAceptar: "Aceitar", partidoTitulo: "⚽ Partida especial detectada", partidoTexto: "Surge um momento decisivo na temporada. Como você quer resolvê-lo?", jugarMomentos: "⚽ JOGAR MOMENTOS DECISIVOS", simularPartido: "🎲 SIMULAR PARTIDA", tiroLibreTitulo: "🎯 Cobrança de falta precisa", tiroLibreIndicacion: "Pressione CHUTAR quando a barra estiver no centro.", tiroLibreBoton: "CHUTAR!", peleaIndicacion: "Pressione ESPAÇO (ou clique) o mais rápido possível para se defender!", redesTitulo: "📱 Redes sociais", redesVacio: "Ainda não há declarações sobre a sua carreira.", redesResponde: "responde", viralidad: "viralidade", logrosTitulo: "🏅 Conquistas", logroCompletado: "✅ Concluído", logroPendiente: "⬜ Pendente", entrenarAtributos: "🏋️ Treinar Atributos", entrenamientoTitulo: "🏋️ Centro de Treinamento", entrenamientoElige: "Escolha um atributo para treinar nesta temporada. Você verá o progresso antes e depois.", entrenamientoAgotado: "Você já treinou nesta temporada. Avance para a próxima para treinar de novo.", entrenamientoFallido: "Sem frutos hoje. O atributo não subiu, mas a sessão foi usada.", entrenamientoTecho: "Este atributo já chegou ao teto do seu clube atual.", atributoOVR: "OVR", cuentaPrivacidadError: "Para criar a conta, leia e aceite a Política de privacidade.", cuentaConectando: "Conectando…", cuentaRegistroOk: "Solicitação enviada. Se a conta puder ser criada, você receberá um e-mail de confirmação.", cuentaSesionOk: "Sessão iniciada.", cuentaPerfilOk: "Apelido salvo e verificado.", cuentaSesionCerrada: "Sessão encerrada. Sua carreira local não foi alterada.", cuentaError429: "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.", cuentaErrorAuth: "A operação não foi autorizada. Verifique sua sessão e a confirmação do e-mail.", cuentaErrorGeneral: "Não foi possível concluir a operação. Verifique os dados e tente novamente mais tarde.", cuentaErrorConexion: "Não foi possível conectar às contas. Verifique a internet e tente novamente.", cuentaErrorSesion: "O servidor não retornou uma sessão válida.", cuentaErrorIniciar: "Entre na sua conta para usar o perfil.", cuentaErrorCambio: "A sessão mudou. Entre novamente.", cuentaErrorCredenciales: "Preencha o e-mail e a senha.", cuentaErrorPassword: "Use uma senha com pelo menos 8 caracteres.", cuentaErrorCancelado: "A entrada foi cancelada.", cuentaErrorApodo: "O apelido deve ter entre 2 e 30 caracteres.", cuentaErrorReintentar: "A sessão mudou. Tente novamente."
 });
@@ -474,6 +892,42 @@ Object.assign(TEXTOS_UI.pt, {
   cuentaBoton: "🔐 Conta", temporadaActual: "Temporada", jugar: "Jogar", momentosClave: "Momentos decisivos", penales: "Pênaltis", tirosLibres: "Faltas", partidosEspeciales: "Partidas especiais", tandaPenales: "Disputa de pênaltis", idioma: "🌐 Idioma", modoOscuro: "🌙 Modo escuro", temporadaTitulo: "🏁 Temporada atual", partidosPorTemporada: "Partidas por temporada",
   sinNoticiasTitulo: "Sem novidades ainda", sinNoticiasTexto: "Simule sua primeira temporada para começar a atividade da sua carreira.", entrenoAyuda: "Escolha uma sessão por atributo ou um minijogo para a temporada.", proximoRivalDetalle: "Adversário provável segundo a reputação do seu clube",
   partidoXDeY: "Partida {n} de {t}", partidosPendientes: "Partidas pendentes", partidoCompletado: "Partida concluída", faltanPartidos: "Faltam {n}"
+});
+Object.assign(TEXTOS_UI.pt, {
+  tuNacionalidad: "🌍 Sua nacionalidade",
+  seleccionNacional: "Seleção:",
+  internacionalTitulo: "🌍 Internacional",
+  selConvocado: "Convocado",
+  selNoConvocado: "Ainda não convocado",
+  selPartidos: "Partidas",
+  selGoles: "Gols",
+  selCapitan: "Capitão",
+  fechaFifaTitulo: "🌍 Data FIFA",
+  fechaFifaPartido: "Você jogou pela {seleccion} contra {rival}: {ptsSel}-{ptsRival}. Você marcou {goles} gol(ns).",
+  convConvocado: "Convocado pela {seleccion}! Você vai jogar as datas FIFA nesta temporada.",
+  convCapitana: "Eleito capitão da {seleccion}!",
+  selTorneo: "Torneio:",
+  btnJugarTorneo: "Jogar torneio",
+  torneoIntro: "O {torneo} começou: você vai jogá-lo com sua seleção pelo cartão Internacional. Você conduz cada partida (joga ou simula) e o resto se resolve no torneio.",
+  torneoComoJugar: "Como você joga a próxima partida do {torneo}?",
+  torneoJugar: "Jogar (interativo)",
+  torneoSimular: "Simular",
+  torneoResultado: "{seleccion} {pa} - {pb} {rival}. Você marcou {goles} gol(ns).",
+  torneoClasificado: "Classificado para {fase}!",
+  torneoEliminado: "Eliminado do {torneo} na {fase}.",
+  torneoCampeon: "Campeões do {torneo}! 🏆",
+  torneoFaseGrupos: "Fase de grupos",
+  torneoFaseOctavos: "Oitavas de final",
+  torneoFaseCuartos: "Quartas de final",
+  torneoFaseSemis: "Semifinal",
+  torneoFaseFinal: "Final",
+  torneoMundial: "Mundial",
+  torneoCopaAmerica: "Copa América",
+  torneoEuro: "Eurocopa",
+  torneoFinalissima: "Finalissima",
+  nacionalidadAyuda: "Escolha sua seleção: se render, você pode ser convocado para os torneios internacionais.",
+  rankColSeleccion: "🇺🇳 Seleção",
+  confAFC: "AFC", confCAF: "CAF", confCONCACAF: "Concacaf", confCONMEBOL: "CONMEBOL", confOFC: "OFC", confUEFA: "UEFA"
 });
 
 // 6. CONFIGURACION GLOBAL (balance del juego centralizado)
@@ -541,6 +995,24 @@ function validarDatos() {
     errores.push("CONFIG no esta definido.");
   }
 
+  if (typeof SELECCIONES === "undefined" || !Array.isArray(SELECCIONES) || SELECCIONES.length !== 211) {
+    errores.push("SELECCIONES debe contener las 211 asociaciones FIFA (actual: " + (SELECCIONES ? SELECCIONES.length : 0) + ").");
+  } else {
+    const confeds = Object.keys(CONFEDERACIONES || {});
+    const vistos = {};
+    SELECCIONES.forEach(function (s, i) {
+      if (!s || typeof s[0] !== "string" || typeof s[1] !== "string" || typeof s[2] !== "string") {
+        errores.push("Seleccion invalida en el indice " + i + ".");
+      } else {
+        if (vistos[s[0]]) errores.push("Seleccion duplicada: " + s[0]);
+        vistos[s[0]] = 1;
+        if (confeds.indexOf(s[3]) === -1) errores.push("Confederacion invalida para " + s[0] + ": " + s[3]);
+        if (typeof s[4] !== "number" || s[4] < 1 || s[4] > 100) errores.push("Fuerza fuera de rango para " + s[0]);
+        if (typeof s[5] !== "number" || s[5] < 1 || s[5] > 211) errores.push("Ranking FIFA fuera de rango para " + s[0]);
+      }
+    });
+  }
+
   return errores;
 }
 
@@ -599,13 +1071,30 @@ Object.assign(CONFIG, {
   DUELO: {
     TEMPORADAS: 10,
     TIMER_MS: 10000,
-    TANDA_PENALES: 3,
+TANDA_PENALES: 3,
     BONUS_OVR_CLASICO: 1,
     BONUS_MORAL_CLASICO: 20,
     PUNTOS_RIVALIDAD_CLASICO: 150,
     // Edad de arranque del duelista. Con 10 temporadas, 22 llega a 32
-    // (activa la mec�nica de +31); subila para verla antes.
+    // (activa la mecánica de +31); subila para verla antes.
     EDAD_INICIO: 22
+  },
+
+  // Cooperativo Online "Dupla de Carreras" (2 jugadores, mismo club y misma
+  // selección, decisiones comparadas a ciegas). Ver coop.js.
+  COOP: {
+    // Cantidad de temporadas del proyecto de la dupla.
+    TEMPORADAS: 8,
+    // Tiempo máximo para decidir cada táctica (si no, decide el tiempo).
+    TIMER_MS: 10000,
+    // Edad de arranque de ambos integrantes de la dupla.
+    EDAD_INICIO: 22,
+    // Opciones tácticas de los partidos compartidos de la selección.
+    TACTICAS: ["A", "B", "C"],
+    // Meta del proyecto compartido: goles de selección mínimos por temporada.
+    META_GOLES_INT_POR_TEMP: 2,
+    // Trofeos de club mínimos para cumplir la meta.
+    META_TROFEOS_MIN: 2
   },
 
   // ============ NUEVAS MEC�NICAS ============
@@ -692,6 +1181,26 @@ Object.assign(CONFIG, {
     COSTOS_PD: {
       SESION_ESPECIAL: 2     // decision especial del entrenador
     }
+  },
+
+  // ============ CONVOCATORIAS INTERNACIONALES ============
+  // El jugador es convocado a su selección según su OVR: desde 70 juega
+  // Fechas FIFA durante la temporada y desde 84 además es capitán.
+  SELECCION: {
+    UMBRAL_CONVOCATORIA: 70,
+    UMBRAL_CAPITAN: 84,
+    // Campeonatos internacionales (ciclo de 4 temporadas):
+    //   resto 1 -> continental (Copa América / Eurocopa)
+    //   resto 2 -> Finalissima (solo si salió campeón continental) + descanso
+    //   resto 3 -> Mundial
+    //   resto 0 -> descanso / clasificatorias
+    CICLO: 4,
+    ANIO_CONTINENTAL: 1,
+    ANIO_FINALISSIMA: 2,
+    ANIO_MUNDIAL: 3,
+    MUNDIAL_EQUIPOS: 32,
+    CONTINENTAL_EQUIPOS: 16,
+    GRUPOS: 4
   }
 });
 
@@ -771,5 +1280,198 @@ function compararRanking(a, b) {
 // 13. HELPER DE RANDOM GLOBAL (usa PRNG si hay semilla activa)
 let _randActivo = Math.random;
 function rnd() { return _randActivo(); }
+
+// ============================================================
+//  14. CONVOCATORIAS INTERNACIONALES (lógica pura y testeable)
+// ============================================================
+// OVR actual del jugador: si tiene atributos y hay calcularOVR disponible
+// (app.js) se deriva de ellos; si no, usa su media guardada.
+function mediaActualJugador(jugador) {
+  if (!jugador) return 0;
+  if (jugador.atributos &&
+      typeof window !== "undefined" && typeof window.calcularOVR === "function") {
+    const calculado = window.calcularOVR(jugador.atributos, jugador.posicion);
+    if (typeof calculado === "number" && !isNaN(calculado)) return calculado;
+  }
+  return Number(jugador.media) || 0;
+}
+
+// Evalúa la convocatoria según el OVR actual (con umbrales configurables).
+function evaluarConvocatoria(jugador, mediaOverride) {
+  const cfg = CONFIG.SELECCION || {};
+  const media = typeof mediaOverride === "number"
+    ? mediaOverride
+    : mediaActualJugador(jugador);
+  const umbralConvocatoria = cfg.UMBRAL_CONVOCATORIA || 70;
+  const umbralCapitan = cfg.UMBRAL_CAPITAN || 84;
+  return {
+    convocado: media >= umbralConvocatoria,
+    capitan: media >= umbralCapitan,
+    media: media,
+    umbralConvocatoria: umbralConvocatoria,
+    umbralCapitan: umbralCapitan
+  };
+}
+
+// Juega una Fecha FIFA de la selección del jugador contra un rival de su
+// misma confederación. Devuelve el rival, el marcador, el rendimiento
+// personal (goles) y el ajuste de moral (acotado).
+function simularFechaFifa(jugador) {
+  if (!jugador) return null;
+  const s = seleccionPorCodigo(jugador.nacionalidad);
+  if (!s) return null;
+  const candidatos = seleccionesPorConfederacion(s.confederacion)
+    .filter(function (f) { return f[0] !== s.codigo; });
+  if (!candidatos.length) return null;
+  const rival = candidatos[Math.floor(rnd() * candidatos.length)];
+  const media = mediaActualJugador(jugador);
+  // Ventaja del duelo: fuerza de su selección menos la del rival + aporte del jugador
+  const ventaja = (s.fuerza - rival[4]) / 30 + (media - 70) / 60;
+  const golesSel = Math.max(0, Math.round(1.4 + ventaja * 1.2 + (rnd() * 2 - 1)));
+  const golesRiv = Math.max(0, Math.round(1.2 - ventaja * 0.9 + (rnd() * 2 - 1)));
+  // Probabilidad de gol personal según la posición
+  let prob = 0.03;
+  if (jugador.posicion === "DEL") prob = 0.60;
+  else if (jugador.posicion === "CM") prob = 0.32;
+  else if (jugador.posicion === "DEF") prob = 0.08;
+  let goles = 0;
+  if (rnd() < prob) {
+    goles = 1;
+    if (jugador.posicion === "DEL" && rnd() < 0.20 && media >= 78) goles = 2;
+  }
+  if (goles > golesSel) goles = golesSel;
+  let moralDelta = (goles > 0 ? 2 : -1) + (golesSel > golesRiv ? 2 : (golesSel === golesRiv ? 0 : -2));
+  moralDelta = Math.max(-3, Math.min(4, moralDelta));
+  return {
+    seleccion: s.nombre,
+    seleccionCodigo: s.codigo,
+    confederacion: s.confederacion,
+    rival: rival[1],
+    rivalCodigo: rival[0],
+    marcador: { seleccion: golesSel, rival: golesRiv },
+    goles: goles,
+    moral: moralDelta,
+    victoria: golesSel > golesRiv
+  };
+}
+
+// ============================================================
+//  15. CAMPEONATOS INTERNACIONALES (lógica pura y testeable)
+// ============================================================
+// ¿Qué torneo corresponde a la temporada según la confederación?
+// Ciclo de 4 temporadas: continental, Finalissima, Mundial, descanso.
+function torneoDeTemporada(temporada, confederacion) {
+  const c = CONFIG.SELECCION || {};
+  const ciclo = c.CICLO || 4;
+  const resto = (((Number(temporada) || 0) % ciclo) + ciclo) % ciclo;
+  if (resto === (c.ANIO_CONTINENTAL || 1)) {
+    if (confederacion === "CONMEBOL") return { tipo: "copaAmerica", anio: resto };
+    if (confederacion === "UEFA") return { tipo: "euro", anio: resto };
+    return null;
+  }
+  if (resto === (c.ANIO_MUNDIAL || 3)) return { tipo: "mundial", anio: resto };
+  if (resto === (c.ANIO_FINALISSIMA || 2) &&
+      (confederacion === "CONMEBOL" || confederacion === "UEFA")) {
+    return { tipo: "finalissima", anio: resto };
+  }
+  return null;
+}
+
+// Equipos que participan de un torneo. La selección del jugador siempre
+// clasifica (por su nivel), aunque quede fuera del corte por ranking.
+function participantesDeTorneo(tipo, confederacion, selCodigo) {
+  const c = CONFIG.SELECCION || {};
+  let lista;
+  if (tipo === "mundial") {
+    lista = SELECCIONES.slice().sort(function (a, b) { return a[5] - b[5]; })
+      .slice(0, c.MUNDIAL_EQUIPOS || 32).map(function (f) { return f[0]; });
+  } else if (tipo === "copaAmerica") {
+    lista = SELECCIONES.filter(function (f) { return f[3] === "CONMEBOL"; }).map(function (f) { return f[0]; })
+      .concat(SELECCIONES.filter(function (f) { return f[3] === "CONCACAF"; })
+        .sort(function (a, b) { return a[5] - b[5]; })
+        .slice(0, 6).map(function (f) { return f[0]; }));
+  } else if (tipo === "euro") {
+    lista = SELECCIONES.filter(function (f) { return f[3] === "UEFA"; })
+      .sort(function (a, b) { return a[5] - b[5]; })
+      .slice(0, c.CONTINENTAL_EQUIPOS || 16).map(function (f) { return f[0]; });
+  } else if (tipo === "finalissima") {
+    return selCodigo ? [selCodigo] : null;
+  } else {
+    return null;
+  }
+  if (selCodigo && lista.indexOf(selCodigo) === -1) {
+    lista.pop();
+    lista.push(selCodigo);
+  }
+  return lista;
+}
+
+// Distribuye los equipos en grupos de a 4 (serpiente por ranking FIFA).
+function armarGruposEquipos(codigos) {
+  const c = CONFIG.SELECCION || {};
+  const equiposPorGrupo = c.GRUPOS || 4;
+  const cantGrupos = Math.max(1, Math.floor((codigos || []).length / equiposPorGrupo));
+  const grupos = [];
+  for (let i = 0; i < cantGrupos; i++) {
+    grupos.push({ letra: String.fromCharCode(65 + i), equipos: [] });
+  }
+  (codigos || []).forEach(function (cod, i) {
+    const fila = Math.floor(i / cantGrupos);
+    const col = i % cantGrupos;
+    const idx = (fila % 2 === 1) ? (cantGrupos - 1 - col) : col;
+    grupos[idx].equipos.push(cod);
+  });
+  return grupos;
+}
+
+// Partido entre dos selecciones. Si se pasa el jugador, su OVR inclina la
+// fuerza de su selección (media alta puede decidir un partido parejo).
+function simularPartidoSeleccion(codA, codB, jugador) {
+  const sA = seleccionPorCodigo(codA);
+  const sB = seleccionPorCodigo(codB);
+  if (!sA || !sB) return null;
+  let delta = sA.fuerza - sB.fuerza;
+  if (jugador && jugador.nacionalidad) {
+    if (jugador.nacionalidad === codA) delta += (mediaActualJugador(jugador) - 70) * 0.6;
+    else if (jugador.nacionalidad === codB) delta -= (mediaActualJugador(jugador) - 70) * 0.6;
+  }
+  const gA = Math.max(0, Math.round(1.3 + delta / 25 + (rnd() * 1.8 - 0.9)));
+  const gB = Math.max(0, Math.round(1.3 - delta / 25 + (rnd() * 1.8 - 0.9)));
+  return { a: codA, b: codB, golesA: gA, golesB: gB };
+}
+
+// Tabla de posiciones de un grupo a partir de los resultados.
+// Devuelve la lista ordenada (puntos, diferencia, goles a favor).
+function tablaGrupo(equipos, resultados) {
+  const tabla = {};
+  equipos.forEach(function (cod) {
+    tabla[cod] = { pj: 0, gf: 0, gc: 0, pts: 0 };
+  });
+  equipos.forEach(function (cod, i) {
+    equipos.slice(i + 1).forEach(function (cod2) {
+      const r = (resultados || []).find(function (x) {
+        return (x.a === cod && x.b === cod2) || (x.a === cod2 && x.b === cod);
+      });
+      if (!r || r.ga == null || r.gb == null) return;
+      const ga = r.a === cod ? r.ga : r.gb;
+      const gb = r.a === cod ? r.gb : r.ga;
+      tabla[cod].pj++;
+      tabla[cod2].pj++;
+      tabla[cod].gf += ga; tabla[cod].gc += gb;
+      tabla[cod2].gf += gb; tabla[cod2].gc += ga;
+      if (ga > gb) tabla[cod].pts += 3;
+      else if (ga < gb) tabla[cod2].pts += 3;
+      else { tabla[cod].pts++; tabla[cod2].pts++; }
+    });
+  });
+  return Object.keys(tabla).map(function (cod) {
+    return { codigo: cod, pj: tabla[cod].pj, gf: tabla[cod].gf, gc: tabla[cod].gc, pts: tabla[cod].pts };
+  }).sort(function (x, y) {
+    if (y.pts !== x.pts) return y.pts - x.pts;
+    const difX = x.gf - x.gc, difY = y.gf - y.gc;
+    if (difY !== difX) return difY - difX;
+    return y.gf - x.gf;
+  });
+}
 
 

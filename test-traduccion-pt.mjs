@@ -4,7 +4,11 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const read = name => fs.readFileSync(new URL(name, import.meta.url), 'utf8');
-const html = read('index.html');
+const dirReact = new URL('./react/', import.meta.url);
+const fuenteReact = fs.readdirSync(dirReact).filter(n => n.endsWith('.js'))
+  .map(n => fs.readFileSync(new URL(n, dirReact), 'utf8')).join('\n');
+// La capa visual vive en react/*.js: las claves data-i18n están ahí.
+const html = read('index.html') + fuenteReact;
 const contexto = vm.createContext({ console, Math, Date, JSON, localStorage: { getItem: () => null, setItem: () => {} }, document: { addEventListener() {}, getElementById: () => null, querySelectorAll: () => [] }, window: { addEventListener() {} } });
 vm.runInContext(read('data.js'), contexto);
 const pt = vm.runInContext('TEXTOS_UI.pt', contexto);

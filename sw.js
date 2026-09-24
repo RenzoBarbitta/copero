@@ -13,13 +13,13 @@
 //     con respaldo en cache para offline. Como no llevan hash, la
 //     unica forma correcta es revalidar contra la red en cada
 //     visita; la cache se refresca sola.
-//   - Bootstrap (CDN, version fija): CACHE-FIRST.
+//  - Bootstrap y Bootstrap Icons (CDN, version fija): CACHE-FIRST.
 //
 //  CACHE_NOMBRE es solo por higiene: al cambiarlo se purga toda la
 //  cache de golpe, pero no es necesario para ver las novedades.
 // ============================================================
 
-const CACHE_NOMBRE = "pso-carrera-v37";
+const CACHE_NOMBRE = "pso-carrera-v48";
 
 const ARCHIVOS_BASE = [
   "./",
@@ -32,6 +32,7 @@ const ARCHIVOS_BASE = [
   "./progression.js",
   "./features.js",
   "./duelo.js",
+  "./coop.js",
   "./camiseta.js",
   "./touch-controls.js",
   "./ranking-online.js",
@@ -43,6 +44,32 @@ const ARCHIVOS_BASE = [
   "./event-outcomes.js",
   "./minigame-camiseta.js",
   "./minigame-camiseta.css",
+  "./fx.css",
+  "./fx-detalle.css",
+  "./vendor/react.production.min.js",
+  "./vendor/react-dom.production.min.js",
+  "./vendor/htm.umd.js",
+  "./react/nucleo.js",
+  "./react/fx.js",
+  "./react/chrome.js",
+  "./react/inicio.js",
+  "./react/inicio-cancha.js",
+  "./react/inicio-modos.js",
+  "./react/inicio-apoyo.js",
+  "./react/juego-tarjeta.js",
+  "./react/vista-carrera.js",
+  "./react/vista-carrera2.js",
+  "./react/vista-extra.js",
+  "./react/vista-progreso.js",
+  "./react/resumen.js",
+  "./react/modales-1.js",
+  "./react/modales-2.js",
+  "./react/modales-3.js",
+  "./react/modales-4.js",
+  "./react/modales-5.js",
+  "./react/modales-6.js",
+  "./react/modales-7.js",
+  "./react/montar.js",
   "./manifest.webmanifest",
   "./imagenes/logo.png",
   "./imagenes/logopsoarg.png",
@@ -50,7 +77,9 @@ const ARCHIVOS_BASE = [
   "./imagenes/icon-192.png",
   "./imagenes/icon-512.png",
   "./imagenes/icon-512-maskable.png",
-  "./imagenes/icon-180.png"
+  "./imagenes/icon-180.png",
+  "./imagenes/banner%20copero.png",
+  "./imagenes/CoperoPsoSa.png"
 ];
 
 self.addEventListener("install", (evento) => {
@@ -87,9 +116,11 @@ self.addEventListener("fetch", (evento) => {
   if (host === "supabase.co" || host.endsWith(".supabase.co") ||
       host === "supabase.co." || host.endsWith(".supabase.co.")) return;
   if (url.origin !== self.location.origin &&
-      !(url.hostname === "cdn.jsdelivr.net" && url.pathname.startsWith("/npm/bootstrap@"))) return;
+      !(url.hostname === "cdn.jsdelivr.net" &&
+        (url.pathname.startsWith("/npm/bootstrap@") ||
+         url.pathname.startsWith("/npm/bootstrap-icons@")))) return;
 
-  // Solo Bootstrap: cache-first
+  // Solo CDN (Bootstrap + Bootstrap Icons): cache-first
   if (url.origin !== self.location.origin) {
     evento.respondWith(
       caches.match(req).then((cacheado) => {

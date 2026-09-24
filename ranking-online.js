@@ -209,13 +209,17 @@ function construirRegistroRanking(jug, usuarioId) {
   const trofeos = jug.trofeos || {};
   const titulos = (trofeos.primeraDivision || 0) + (trofeos.segundaDivision || 0) +
                   (trofeos.copaDeCampeones || 0) + (trofeos.copaArgentina || 0) +
-                  (trofeos.copaApa || 0);
+                  (trofeos.copaApa || 0) + (trofeos.mundial || 0) + (trofeos.copaAmerica || 0) +
+                  (trofeos.euro || 0) + (trofeos.finalissima || 0);
   const media = Math.round(Number(jug.media) || 0);
+  const selCodigo = String((jug.nacionalidad || "") || "").trim().toUpperCase().slice(0, 3);
+  const selValida = typeof seleccionPorCodigo === "function" && seleccionPorCodigo(selCodigo) ? selCodigo : "";
   return {
     user_id: usuarioId || null,
     display_name: String(jug.nombre || "Anonimo").trim().slice(0, 30),
     posicion: String(jug.posicion || "").trim().slice(0, 5),
     club: (jug.clubActual && jug.clubActual.nombre) ? String(jug.clubActual.nombre).trim().slice(0, 40) : "",
+    seleccion: selValida,
     media: Math.max(0, Math.min(99, media)),
     titulos: Math.max(0, Math.round(Number(titulos) || 0)),
     anio: new Date().getFullYear(),
@@ -225,7 +229,7 @@ function construirRegistroRanking(jug, usuarioId) {
 
 function urlRanking() {
   return supabaseConfig().url +
-    "/rest/v1/copero_ranking?select=user_id,display_name,posicion,club,media,titulos,anio,ts" +
+    "/rest/v1/copero_ranking?select=user_id,display_name,posicion,club,seleccion,media,titulos,anio,ts" +
     "&order=media.desc,titulos.desc,ts.desc&limit=" + RANKING_MAX;
 }
 
@@ -240,6 +244,7 @@ function normalizarFilas(datos) {
         nombre: String(f.display_name),
         posicion: String(f.posicion || ""),
         club: String(f.club || ""),
+        seleccion: String(f.seleccion || "").toUpperCase().slice(0, 3),
         media: Number(f.media) || 0,
         titulos: Number(f.titulos) || 0,
         anio: Number(f.anio) || 0,
@@ -329,10 +334,13 @@ async function publicarEnNube(registro) {
       p_nonce: String(registro_nonce),
       p_posicion: String(registro.posicion || ""),
       p_titulos: Math.max(0, Math.min(1000, Math.round(Number(registro.titulos) || 0))),
-      // Parámetros extra que el servidor resuelve si los espera; si la firma actual no
-      // los tiene, el 404 ya estaba manejado al ritmo del usuario y queda en cola.
+      // Parámetros extra que el servidor resuelve por clave:
       p_durante: "M",
-      p_a_longitud: 0
+      p_a_longitud: 0,
+      // Selección nacional (008). Si la firma de la base todavía no la
+      // espera, PostgREST responde 404 PGRST202 y se cae al upsert directo
+      // (que omite seleccion): el envío nunca queda atascado.
+      p_seleccion: String(registro.seleccion || "")
     };
     const resRpc = await fetchConTimeout(urlRpc, {
       method: "POST",
@@ -550,11 +558,17 @@ function tablaRankingHtml(lista, esLocal) {
   let filas = "";
   (lista || []).slice().sort(compararRankingOnline).forEach(function(r, i) {
     const propia = !esLocal && r.user_id && r.user_id === miId;
+    const selDatos = r.seleccion && typeof seleccionPorCodigo === "function" ? seleccionPorCodigo(r.seleccion) : null;
+    const celdaSel = selDatos
+      ? "<span class='ranking-seleccion' title='" + escaparHtml(selDatos.nombre) + "'>" +
+        banderaImg(selDatos.codigo, "ranking-bandera") + " <span class='small'>" + selDatos.codigo + "</span></span>"
+      : "";
     filas += "<tr class='" + (propia ? "ranking-fila-propia" : "") + "'>" +
       "<td class='fw-bold'>" + (i < 3 ? medallas[i] : (i + 1)) + "</td>" +
       "<td class='text-start'><div class='fw-bold'>" + escaparHtml(r.nombre) + "</div>" +
       (r.club ? "<div class='small text-secondary'>" + escaparHtml(r.club) + "</div>" : "") +
       "</td>" +
+      "<td>" + celdaSel + "</td>" +
       "<td><span class='fw-bold text-primary'>" + (r.media || 0) + "</span></td>" +
       "<td>" + (r.titulos || 0) + "</td>" +
       "<td>" + (r.anio || "") + "</td>" +
@@ -564,6 +578,7 @@ function tablaRankingHtml(lista, esLocal) {
     "<thead class='table-dark'><tr>" +
     "<th>#</th>" +
     "<th class='text-start'>" + tRanking("rankColJugador", "Jugador") + "</th>" +
+    "<th>" + tRanking("rankColSeleccion", "Selección") + "</th>" +
     "<th>" + tRanking("rankColMedia", "Media") + "</th>" +
     "<th>" + tRanking("rankColTitulos", "Títulos") + "</th>" +
     "<th>" + tRanking("rankColAnio", "Año") + "</th>" +

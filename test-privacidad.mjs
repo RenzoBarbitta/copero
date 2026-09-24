@@ -95,7 +95,11 @@ assert.equal(registro, 1);
 assert.equal(el('cuenta-privacidad').checked, false);
 assert.equal(el('cuenta-pass').value, '');
 console.log('OK UI: bloquea registro, enfoca casilla, permite login y reinicia aceptación.');
-const html = leer('index.html');
+  const dirReact = new URL('./react/', import.meta.url);
+  const fuenteReact = fs.readdirSync(dirReact).filter(n => n.endsWith('.js'))
+    .map(n => fs.readFileSync(new URL(n, dirReact), 'utf8')).join('\n');
+  // La casilla y los enlaces a privacidad viven ahora en react/*.js.
+  const html = leer('index.html') + fuenteReact;
 const checkbox = html.match(/<input[^>]+id="cuenta-privacidad"[^>]*>/)[0];
 assert.ok(!/\schecked(?:\s|=|>)/.test(checkbox));
 assert.equal((html.match(/href="privacidad.html"/g) || []).length, 2);
