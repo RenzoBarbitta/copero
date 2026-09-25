@@ -675,6 +675,9 @@ function activarModoDesafio() {
   jugador.desafioCompletado = false;
   const club = elegirClubDesafio();
   jugador.clubActual = club;
+  // El sorteo puede dar un club de 1ª (rep 7): sin esto el jugador arrancaba
+  // en 2ª porque crearJugadorInicial() deja division: 2 por defecto.
+  if (typeof sincronizarDivision === "function") sincronizarDivision();
   jugador.rolAnterior = obtenerRol(jugador.media);
   guardarPartida();
   mostrarNotificacion(
@@ -997,9 +1000,24 @@ iniciarCarrera = function() {
     mostrarNotificacion("Atención", "Por favor, ingresa el nombre de tu jugador.");
     return;
   }
+  const posicionInput = document.getElementById("select-posicion").value;
   jugador = crearJugadorInicial();
   jugador.nombre = nombreInput;
-  jugador.posicion = document.getElementById("select-posicion").value;
+  jugador.posicion = posicionInput;
+  // Misma selección que la carrera normal: respeta la que eligió en el panel
+  // de nacionalidad (si no, URU). Antes quedaba siempre Uruguay.
+  const selNacionalidad = document.getElementById("select-nacionalidad");
+  const codigoNac = selNacionalidad && selNacionalidad.value ? selNacionalidad.value : "URU";
+  jugador.nacionalidad = seleccionPorCodigo(codigoNac) ? codigoNac : "URU";
+  // Progresión por atributos: sin esto el jugador nace con atributos null y
+  // media 60, y ni la ficha ni los entrenamientos muestran nada.
+  const nacePromesa = Math.random() < CONFIG.PROMESA.PROB;
+  if (typeof window.generarAtributosIniciales === "function" && typeof window.calcularOVR === "function") {
+    jugador.atributos = window.generarAtributosIniciales(posicionInput, nacePromesa);
+    jugador.media = window.calcularOVR(jugador.atributos, posicionInput);
+  } else if (nacePromesa) {
+    jugador.media = CONFIG.PROMESA.OVR_INICIAL;
+  }
   document.getElementById("pantalla-inicio").classList.add("hidden");
   document.getElementById("pantalla-juego").classList.remove("hidden");
   ocultarPanelCuenta();

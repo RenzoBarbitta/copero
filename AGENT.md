@@ -151,7 +151,25 @@ node test-privacidad.mjs      # registro/privacidad
 | `test-camiseta` | Selector de casaca/dorsal y SVG |
 | `test-duelo`, `test-ranking-online`, `test-ranking-dinamico` | Duelo 1v1 y ranking (sandbox con fetch falso) |
 | `test-progresion`, `test-declive-veterano`, `test-ofertas`, `test-partidos-random`, `test-logros`, `test-redes-sociales` | Mecánicas puras |
+| `test-modo-leal` | **Modo Leal** (`features.js`): el arranque respeta la selección elegida, genera los atributos iniciales (OVR 65/75) y sincroniza la división con el club sorteado |
+| `test-selecciones` | Catálogo de 211 selecciones y banderas |
 | `test-seguridad-live` | Audita RLS contra Supabase real (requiere red; 1 punto preexistente pendiente: SQL 005/006) |
+
+### Modo Leal (arranque)
+
+`features.js` envuelve a `app.js` (override, no cambio en la base): `iniciarCarrera()`,
+`continuarCarrera()`, `generarOfertasDeFichaje()`, `simularTemporada()`,
+`finalizarCarrera()`, `actualizarInterfaz()`, `mostrarModalRol()`. El botón 🛡️
+(`react/inicio-modos.js` → `iniciarCarreraLeal()`) arma `modoDesafioPendiente` y
+delega en `iniciarCarrera()`, que intercepta **antes** de la base.
+
+**Trampa**: el arranque del Modo Leal no puede llamar a `iniciarCarrera()` de la
+base (se re-delegaría en sí mismo). Debe replicar su bloque de arranque —
+**nacionalidad** (lee `#select-nacionalidad`) y **atributos**
+(`generarAtributosIniciales` + `calcularOVR`) — o el jugador nace con
+`atributos: null`, `media: 60` y selección `URU` hardcodeada.
+`activarModoDesafio()` llama a `sincronizarDivision()` porque el sorteo puede dar
+un club de 1ª y `crearJugadorInicial()` deja `division: 2`.
 
 ## 5. Animaciones (dónde tocar para pulir la UI)
 
@@ -165,7 +183,7 @@ node test-privacidad.mjs      # registro/privacidad
 - `sw.js`: navegación y mismo origen **network-first**; Bootstrap CDN
   cache-first; Supabase excluido.
 - Al modificar o agregar archivos del juego: **subir `CACHE_NOMBRE`**
-  (hoy `pso-carrera-v51`) y agregar archivos nuevos a `ARCHIVOS_BASE`.
+  (hoy `pso-carrera-v53`) y agregar archivos nuevos a `ARCHIVOS_BASE`.
 
 ## 7. Deploy
 
