@@ -38,6 +38,13 @@
     height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <!-- End Google Tag Manager (noscript) -->
 
+  <!-- Telón opaco del arranque: sin JS, tapa la app mientras cargan los
+       scripts. montar.js lo elimina al montar la cinemática (fx.css). -->
+  <div id="precarga" class="precarga" aria-hidden="true">
+    <span class="precarga-spinner" aria-hidden="true"></span>
+  </div>
+  <noscript><style>#precarga{display:none}</style></noscript>
+
   <!-- ============================================================
        RAÍZ DE LA CAPA VISUAL EN REACT (sin build ni empaquetado).
        react/montar.js renderiza aquí TODO el body una sola vez con

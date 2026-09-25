@@ -71,5 +71,9 @@
     ReactDOM.flushSync(function () {
       raiz.render(React.createElement(Aplicacion));
     });
+    // El telón opaco de precarga ya quedó cubierto por la cinemática
+    // (opaca y con z-index mayor): se retira para no tapar la app.
+    const precarga = document.getElementById("precarga");
+    if (precarga) precarga.remove();
   }
 })(window.CR);

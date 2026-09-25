@@ -406,6 +406,33 @@
   100% { background-position: 260% 0; }
 }
 
+/* ---------- PRECARGA (telón opaco desde el primer paint) ---------- */
+/* Vivo desde el HTML inicial (#precarga), SIN javascript: tapa la app
+   mientras cargan React y la base; montar.js lo elimina al montar la
+   cinemática. Fondo idéntico al de .cinematica para una transición nula. */
+.precarga {
+  position: fixed;
+  inset: 0;
+  z-index: 4900;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(130% 90% at 50% 18%, rgba(22, 119, 255, 0.13), transparent 58%),
+    radial-gradient(110% 75% at 50% 115%, rgba(245, 200, 76, 0.08), transparent 55%),
+    linear-gradient(180deg, #0a0d15 0%, #0d1018 52%, #080b11 100%);
+}
+.precarga-spinner {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 3px solid rgba(22, 119, 255, 0.22);
+  border-top-color: var(--dorado, #f5c84c);
+  border-right-color: var(--azul, #1677ff);
+  animation: precarga-gira 0.9s linear infinite;
+  box-shadow: 0 0 26px -8px rgba(22, 119, 255, 0.5);
+}
+@keyframes precarga-gira { to { transform: rotate(360deg); } }
+
 /* ---------- CINEMÁTICA DE APERTURA (pantalla completa) ---------- */
 /* Secuencia coreografiada (todos los tiempos en el mismo eje):
    0.0-0.5  telón + orbes entran (cine-fondo)
@@ -427,7 +454,10 @@
     radial-gradient(130% 90% at 50% 18%, rgba(22, 119, 255, 0.16), transparent 58%),
     radial-gradient(110% 75% at 50% 115%, rgba(245, 200, 76, 0.1), transparent 55%),
     linear-gradient(180deg, #0a0d15 0%, #0d1018 52%, #080b11 100%);
-  animation: cine-fondo 0.5s ease-out both;
+  /* Opaca desde el frame 0: antes fundía desde transparente y se veía
+     la app detrás durante ~0.5s (el flash que reportan los jugadores). */
+  opacity: 1;
+  animation: none;
 }
 /* Telón que entra con leve grano de luz */
 .cinematica::before {
@@ -909,4 +939,5 @@ body.app-juego #sidebar {
   /* Cinemática: fuera de pantalla y sin timers visibles (el componente
      igual se desmonta solo por JS a los 3.35s, inofensivo) */
   .cinematica { display: none !important; }
+  .precarga-spinner { animation: none !important; opacity: 0.85; }
 }
