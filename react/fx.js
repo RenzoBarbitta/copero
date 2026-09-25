@@ -1,11 +1,12 @@
 // ============================================================
 //  COPERO - react/fx.js
-//  Componentes decorativos con estado propio (los ÚNICOS con
-//  estado de toda la capa React):
+//  Componentes decorativos con estado propio:
 //   - AmbienteFX: orbes de luz del fondo con parallax que sigue
 //     el puntero (solo punteros finos, con requestAnimationFrame).
 //   - BarraScroll: progreso de lectura de la página.
-//  Ambos son aria-hidden y no tocan ningún id de la base.
+//   - Cinematica: intro de apertura (se autodesmonta a los 3.35s;
+//     si hay que preguntar la calidad, arranca recién al elegir).
+//  Los tres son aria-hidden y no tocan ningún id de la base.
 //
 //  CALIDAD BAJA (preferencia del jugador, ver features.js):
 //  el markup se renderiza igual (así se puede volver a "Alta" en
@@ -103,20 +104,49 @@
   // Cinemática de apertura: pantalla completa que se autodesmonta.
   // Fases: "en" (logo + orbes + letras entran) → "fuera" (zoom-out y
   // fade del contenedor) → "fin" (return null, se quita del DOM).
+  // REGLA DEL PROYECTO: la intro se ve IGUAL en Alta y en Baja, y
+  // siempre DESPUÉS de elegir la calidad. Mientras el cuadro está
+  // abierto queda quieta en su primer fotograma (cinematica-espera,
+  // fondo opaco) y arranca cuando features.js → cerrarPreguntaCalidad()
+  // despacha "copero:calidad-elegida". Sin cuadro (ya eligió / no
+  // volver a preguntar) arranca sola, como siempre.
   // aria-hidden: es decorativa; el juego de abajo ya carga y anima.
   function Cinematica() {
+    const [esperando, setEsperando] = useState(function () {
+      try {
+        // Misma lógica que OverlayCalidad: no pueden divergir.
+        return !!(CR.hayQuePreguntarCalidad && CR.hayQuePreguntarCalidad());
+      } catch (e) {
+        return false;
+      }
+    });
     const [fase, setFase] = useState("en");
     useEffect(function () {
+      if (esperando) {
+        // Seguridad: si el cuadro no llegó a abrirse, no se espera.
+        const cuadro = document.getElementById("overlay-calidad");
+        if (!cuadro || cuadro.classList.contains("hidden")) {
+          setEsperando(false);
+          return undefined;
+        }
+        function elegida() { setEsperando(false); }
+        window.addEventListener("copero:calidad-elegida", elegida);
+        return function () { window.removeEventListener("copero:calidad-elegida", elegida); };
+      }
       const t1 = setTimeout(function () { setFase("fuera"); }, 2500);
       const t2 = setTimeout(function () { setFase("fin"); }, 3350);
       return function () { clearTimeout(t1); clearTimeout(t2); };
-    }, []);
+    }, [esperando]);
     if (fase === "fin") return null;
     const letras = "COPERO".split("").map(function (L) {
-      return html`<span>${L}</span>`;
+      // .cine-letra: marca de la intro (la exime del apagado de Baja).
+      return html`<span className="cine-letra">${L}</span>`;
     });
+    const clases = "cinematica" +
+      (esperando ? " cinematica-espera" : "") +
+      (fase === "fuera" ? " cinematica-fuera" : "");
     return html`
-      <div className=${"cinematica" + (fase === "fuera" ? " cinematica-fuera" : "")} aria-hidden="true">
+      <div className=${clases} aria-hidden="true">
         <span className="cine-orb cine-orb-1"></span>
         <span className="cine-orb cine-orb-2"></span>
         <span className="cine-orb cine-orb-3"></span>

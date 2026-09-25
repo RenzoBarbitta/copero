@@ -10,7 +10,9 @@
 //   - los botones del cuadro (conectados en features.js) responden al click.
 //   - i18n: las claves del cuadro existen en es/en/pt.
 //   - anclas estáticas: script del <head>, bloque html.calidad-baja de
-//     fx-detalle.css (solo cosmético) y guardas de react/fx.js.
+//     fx-detalle.css (solo cosmético; la intro queda exenta) y guardas
+//     de react/fx.js (la intro espera la elección y corre igual en
+//     ambos modos).
 // Ejecutar: node test-calidad.mjs
 // ============================================================
 import assert from 'node:assert/strict';
@@ -56,6 +58,7 @@ const documento = {
 };
 
 const almacen = new Map();
+const eventosVentana = []; // lo que features.js despacha a la ventana
 const contexto = vm.createContext({
   console, Math, Date, JSON, Object, Array, Set, String, Number,
   localStorage: {
@@ -64,7 +67,16 @@ const contexto = vm.createContext({
     removeItem: k => { almacen.delete(k); }
   },
   document: documento,
-  window: { addEventListener() {} },
+  CustomEvent: class CustomEvent {
+    constructor(tipo, opciones) {
+      this.type = tipo;
+      this.detail = (opciones && opciones.detail) || null;
+    }
+  },
+  window: {
+    addEventListener() {},
+    dispatchEvent(ev) { eventosVentana.push(ev && ev.type); return true; }
+  },
   bootstrap: { Modal: { getOrCreateInstance: () => ({ show() {} }) } }
 });
 
@@ -120,6 +132,8 @@ assert.equal(el('select-calidad').value, 'baja', 'Configuración queda sincroniz
 assert.equal(guardado().calidad, 'baja', 'la elección se persiste en pso_prefs_v1');
 assert.equal(guardado().preguntarCalidad, true, 'sin tildar la casilla se vuelve a preguntar');
 assert.equal(guardado().idioma, 'es', 'las otras preferencias no se pisan');
+assert.ok(eventosVentana.includes('copero:calidad-elegida'),
+  'al elegir se despacha el evento que arranca la intro');
 
 // ---------- 4) Volver a "Alta" desde Configuración ----------
 run('establecerCalidad("alta", false)');
@@ -157,7 +171,13 @@ const css = read('fx-detalle.css');
 assert.match(css, /\.calidad-overlay\s*\{/, 'fx-detalle.css define el cuadro de calidad');
 assert.match(css, /\.calidad-overlay\s*\{[^}]*z-index:\s*6000/, 'el cuadro va por encima de la cinemática (5000)');
 assert.match(css, /html\.calidad-baja \*[^}]*animation-duration:\s*0\.01ms/, 'Baja frena las animaciones');
-assert.match(css, /html\.calidad-baja \.cinematica/, 'Baja apaga la cinemática');
+// La intro NUNCA se apaga: es idéntica en Alta y en Baja (regla del proyecto).
+assert.doesNotMatch(css, /html\.calidad-baja \.cinematica/,
+  'Baja no oculta la intro de apertura');
+assert.match(css, /html\.calidad-baja \*:not\(\.cinematica\):not\(\[class\*="cine-"\]\)/,
+  'la intro queda exenta del apagado genérico de Baja');
+assert.match(css, /\.cinematica\.cinematica-espera[^{]*\{[^}]*animation-play-state:\s*paused/,
+  'la intro espera la elección quieta en su primer fotograma');
 assert.match(css, /html\.calidad-baja \*[^}]*backdrop-filter:\s*none/, 'Baja apaga el cristal');
 assert.match(css, /html\.calidad-baja \.fx-aurora/, 'Baja apaga las capas pesadas del fondo');
 const bloqueBaja = css.slice(css.indexOf('MODO CALIDAD BAJA'));
@@ -167,6 +187,10 @@ assert.doesNotMatch(bloqueBaja, /pantalla|\.hidden|#nav-inferior[^,{]*\{[^}]*dis
 const fx = read('react/fx.js');
 assert.match(fx, /function calidadBaja\(\)/, 'react/fx.js sabe si está en Baja');
 assert.match(fx, /if \(calidadBaja\(\)\) return;/, 'el parallax se corta en Baja');
+assert.match(fx, /cinematica-espera/, 'la intro espera la elección (cinematica-espera)');
+assert.match(fx, /copero:calidad-elegida/, 'la intro arranca con el evento de la elección');
+assert.match(fx, /cine-letra/, 'las letras de la intro llevan su marca .cine-letra');
+assert.match(fx, /CR\.hayQuePreguntarCalidad/, 'la intro usa la MISMA lógica que el cuadro');
 assert.match(read('react/montar.js'), /CR\.OverlayCalidad/, 'montar.js monta el cuadro');
 assert.match(read('ui.js'), /getElementById\("select-calidad"\)/, 'ui.js engancha el selector de Configuración');
 assert.match(read('ui.js'), /getElementById\("calidad-preguntar"\)/, 'ui.js engancha el switch de pregunta');
@@ -178,4 +202,4 @@ for (const id of IDS_CALIDAD) {
   assert.match(fuentesReact, new RegExp('id="' + id + '"'), 'la capa React no renderiza #' + id);
 }
 
-console.log('TODO OK: cuadro de calidad al entrar, Baja cosmético (juego 100% jugable) y Alta = juego base completo.');
+console.log('TODO OK: cuadro de calidad al entrar, Baja cosmético (juego 100% jugable), Alta = juego base completo e intro de apertura siempre igual, después de elegir.');

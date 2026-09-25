@@ -83,9 +83,15 @@ function establecerCalidad(modo, noPreguntar) {
   }
 }
 
+// Cierra el cuadro y le da el OK a la intro para que arranque: la
+// cinemática es IGUAL en Alta y en Baja y corre SIEMPRE después de
+// elegir (react/fx.js → Cinematica escucha "copero:calidad-elegida").
 function cerrarPreguntaCalidad() {
   const ov = document.getElementById("overlay-calidad");
   if (ov) ov.classList.add("hidden");
+  try {
+    window.dispatchEvent(new CustomEvent("copero:calidad-elegida"));
+  } catch (e) { /* sin ventana (tests): la intro no espera */ }
 }
 
 // Muestra el cuadro de CALIDAD? al entrar (salvo que el jugador haya

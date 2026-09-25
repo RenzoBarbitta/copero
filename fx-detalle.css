@@ -574,6 +574,18 @@ summary { cursor: pointer; }
   color: var(--texto-2, #a8b0bf);
 }
 
+/* Intro a la espera de la elección: mientras el cuadro está abierto,
+   la cinemática queda quieta en su primer fotograma (fondo opaco). Al
+   elegir, features.js → cerrarPreguntaCalidad() despacha
+   "copero:calidad-elegida", react/fx.js quita la clase y la intro
+   corre COMPLETA e IGUAL en Alta y en Baja. */
+.cinematica.cinematica-espera,
+.cinematica.cinematica-espera *,
+.cinematica.cinematica-espera::before,
+.cinematica.cinematica-espera::after {
+  animation-play-state: paused !important;
+}
+
 /* ============================================================
    MODO CALIDAD BAJA (móviles / PCs poco potentes)
    Todo lo de este bloque es cosmético: apaga animaciones y
@@ -581,13 +593,17 @@ summary { cursor: pointer; }
    Se activa con <html class="calidad-baja"> (lo pone el script
    inline del <head> si ya eligió Baja, o features.js al elegir
    en el cuadro / en Configuración).
+   EXCEPCIÓN: la intro de apertura (.cinematica y todo lo marcado
+   .cine-*) NUNCA se apaga: es idéntica en Alta y en Baja.
    ============================================================ */
 
 /* 1) Sin animaciones ni transiciones (mismo criterio que
-      prefers-reduced-motion: saltan a su estado final y frenan). */
-html.calidad-baja *,
-html.calidad-baja *::before,
-html.calidad-baja *::after {
+      prefers-reduced-motion: saltan a su estado final y frenan).
+      EXCEPCIÓN: la intro de apertura queda FUERA (.cinematica y
+      todo su marcado .cine-*): corre igual en ambos modos. */
+html.calidad-baja *:not(.cinematica):not([class*="cine-"]),
+html.calidad-baja *:not(.cinematica):not([class*="cine-"])::before,
+html.calidad-baja *:not(.cinematica):not([class*="cine-"])::after {
   animation-duration: 0.01ms !important;
   animation-delay: 0s !important;
   animation-iteration-count: 1 !important;
@@ -596,9 +612,8 @@ html.calidad-baja *::after {
   scroll-behavior: auto !important;
 }
 
-/* 2) Cinemática de apertura y barra de scroll: fuera. El telón de
-      precarga queda (es lo único durante la carga) pero sin girar. */
-html.calidad-baja .cinematica,
+/* 2) Barra de scroll: fuera. El telón de precarga queda (es lo único
+      durante la carga) pero sin girar. La intro NUNCA se apaga. */
 html.calidad-baja .fx-scroll { display: none !important; }
 html.calidad-baja .precarga-spinner { animation: none !important; }
 
@@ -616,10 +631,11 @@ html.calidad-baja .fx-ambiente {
   background: linear-gradient(180deg, #0d1119 0%, #0a0d14 100%);
 }
 
-/* 4) Cristal (backdrop-filter): lo más caro de repintar al scrollear. */
-html.calidad-baja *,
-html.calidad-baja *::before,
-html.calidad-baja *::after {
+/* 4) Cristal (backdrop-filter): lo más caro de repintar al scrollear.
+      La intro queda exenta también: tiene que verse idéntica. */
+html.calidad-baja *:not(.cinematica):not([class*="cine-"]),
+html.calidad-baja *:not(.cinematica):not([class*="cine-"])::before,
+html.calidad-baja *:not(.cinematica):not([class*="cine-"])::after {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }

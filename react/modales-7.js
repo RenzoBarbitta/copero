@@ -119,4 +119,7 @@
   CR.ModalDardos = ModalDardos;
   CR.ModalConfiguracion = ModalConfiguracion;
   CR.OverlayCalidad = OverlayCalidad;
+  // La intro de apertura (react/fx.js → Cinematica) usa ESTA misma
+  // lógica para decidir si espera la elección: nunca divergen.
+  CR.hayQuePreguntarCalidad = hayQuePreguntarCalidad;
 })(window.CR);
