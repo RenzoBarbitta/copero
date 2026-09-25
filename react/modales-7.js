@@ -1,11 +1,61 @@
 // ============================================================
 //  COPERO - react/modales-7.js
-//  Modal Dardos con los pibes y modal Configuración (idioma +
-//  modo oscuro). index.html original líneas 789-830.
+//  Modal Dardos con los pibes, modal Configuración (idioma +
+//  modo oscuro + calidad visual) y el cuadro de CALIDAD que se
+//  pregunta al entrar. index.html original líneas 789-830.
 // ============================================================
 (function (CR) {
   "use strict";
   const html = CR.html;
+
+  // ------------------------------------------------------------
+  //  CUADRO DE CALIDAD (se pregunta al entrar)
+  //  No es un modal de Bootstrap: es un overlay propio con z-index
+  //  6000 para quedar POR ENCIMA de la cinemática de apertura
+  //  (z-index 5000) y verse en el primer instante.
+  //  Los botones los conecta features.js (conectarCalidad): acá solo
+  //  se decide si arranca visible, leyendo la preferencia guardada
+  //  (clave pso_prefs_v1, igual que features.js → PREFS_KEY).
+  // ------------------------------------------------------------
+  function hayQuePreguntarCalidad() {
+    try {
+      if (typeof localStorage === "undefined") return true; // sin storage: se pregunta
+      const raw = localStorage.getItem("pso_prefs_v1");
+      if (!raw) return true; // primera visita: se pregunta
+      const p = JSON.parse(raw) || {};
+      return p.preguntarCalidad !== false;
+    } catch (e) {
+      return true;
+    }
+  }
+
+  function OverlayCalidad() {
+    const arrancaOculto = !hayQuePreguntarCalidad();
+    return html`
+      <div id="overlay-calidad" className=${
+        "calidad-overlay" + (arrancaOculto ? " hidden" : "")
+      } role="dialog" aria-modal="true" aria-labelledby="calidad-titulo">
+        <div className="calidad-caja">
+          <h2 className="calidad-titulo" id="calidad-titulo" data-i18n="calidadTitulo">CALIDAD?</h2>
+          <p className="calidad-intro" data-i18n="calidadIntro">Elegí cómo querés ver el juego. Podés cambiarlo cuando quieras desde Configuración.</p>
+          <div className="calidad-opciones">
+            <button type="button" className="calidad-opcion calidad-opcion-alta" id="btn-calidad-alta">
+              <span className="calidad-badge" data-i18n="supportBadge">Recomendado</span>
+              <span className="calidad-opcion-titulo" data-i18n="calidadAlta">Alta (Recomendado)</span>
+              <span className="calidad-opcion-detalle" data-i18n="calidadAltaDetalle">Mantiene todas las animaciones, transiciones, textos y el diseño completo.</span>
+            </button>
+            <button type="button" className="calidad-opcion calidad-opcion-baja" id="btn-calidad-baja">
+              <span className="calidad-opcion-titulo" data-i18n="calidadBaja">Baja (Recomendado para móviles o PCs poco potentes)</span>
+              <span className="calidad-opcion-detalle" data-i18n="calidadBajaDetalle">Apaga animaciones y efectos pesados. El juego sigue 100% jugable.</span>
+            </button>
+          </div>
+          <div className="form-check form-switch calidad-pie">
+            <input className="form-check-input" type="checkbox" id="calidad-no-preguntar"/>
+            <label className="form-check-label" htmlFor="calidad-no-preguntar" data-i18n="calidadNoPreguntar">No volver a preguntar (se cambia en Configuración)</label>
+          </div>
+        </div>
+      </div>`;
+  }
 
   function ModalDardos() {
     return html`
@@ -45,6 +95,18 @@
                 <input className="form-check-input" type="checkbox" id="btn-modo-oscuro-perfil"/>
                 <label className="form-check-label fw-bold" htmlFor="btn-modo-oscuro-perfil" data-i18n="modoOscuro">🌙 Modo oscuro</label>
               </div>
+              <hr/>
+              <div className="mb-3">
+                <label htmlFor="select-calidad" className="form-label fw-bold" data-i18n="calidadEtiqueta">🎚️ Calidad visual</label>
+                <select id="select-calidad" className="form-select">
+                  <option value="alta" data-i18n="calidadAlta">Alta (Recomendado)</option>
+                  <option value="baja" data-i18n="calidadBaja">Baja (Recomendado para móviles o PCs poco potentes)</option>
+                </select>
+              </div>
+              <div className="form-check form-switch">
+                <input className="form-check-input" type="checkbox" id="calidad-preguntar"/>
+                <label className="form-check-label fw-bold" htmlFor="calidad-preguntar" data-i18n="calidadPreguntar">🎬 Preguntar la calidad al entrar</label>
+              </div>
             </div>
             <div className="modal-footer border-top-0 justify-content-center pt-0">
               <button type="button" className="btn btn-outline-secondary btn-sm fw-bold" data-bs-dismiss="modal" data-i18n="btnCerrar">Cerrar</button>
@@ -56,4 +118,5 @@
 
   CR.ModalDardos = ModalDardos;
   CR.ModalConfiguracion = ModalConfiguracion;
+  CR.OverlayCalidad = OverlayCalidad;
 })(window.CR);

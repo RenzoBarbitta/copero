@@ -493,6 +493,31 @@ function abrirConfiguracion() {
     }
     chk.checked = !!(typeof prefs !== "undefined" && prefs.modoOscuro);
   }
+  // Calidad visual (alta / baja): cambiar acá NO vuelve a preguntar al
+  // entrar; eso se controla con el switch de abajo. Ver features.js.
+  const selCalidad = document.getElementById("select-calidad");
+  if (selCalidad) {
+    if (!selCalidad.dataset.listo) {
+      selCalidad.dataset.listo = "1";
+      selCalidad.addEventListener("change", function() {
+        if (typeof establecerCalidad === "function") establecerCalidad(selCalidad.value);
+      });
+    }
+    selCalidad.value = (typeof prefs !== "undefined" && prefs.calidad === "baja") ? "baja" : "alta";
+  }
+  const chkCalidad = document.getElementById("calidad-preguntar");
+  if (chkCalidad) {
+    if (!chkCalidad.dataset.listo) {
+      chkCalidad.dataset.listo = "1";
+      chkCalidad.addEventListener("change", function() {
+        if (typeof prefs === "undefined") return;
+        prefs.preguntarCalidad = chkCalidad.checked;
+        if (typeof guardarPrefs === "function") guardarPrefs();
+        if (typeof aplicarCalidad === "function") aplicarCalidad();
+      });
+    }
+    chkCalidad.checked = !(typeof prefs !== "undefined" && prefs.preguntarCalidad === false);
+  }
   const mod = document.getElementById("modalConfiguracion");
   if (mod && typeof bootstrap !== "undefined") {
     bootstrap.Modal.getOrCreateInstance(mod).show();

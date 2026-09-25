@@ -48,7 +48,10 @@ const IDS_ORIGINALES = ('app-ruta,atributos-vista,aviso-minijuego-usado,barraTL,
   'btn-nacionalidad,nacionalidad-bandera,nacionalidad-card,nacionalidad-confed,nacionalidad-flecha,' +
   'nacionalidad-nombre,nacionalidad-panel,seccion-internacional,seleccion-card-bandera,seleccion-card-confed,' +
   'seleccion-card-nombre,sel-capitan,sel-estado,sel-goles,sel-partidos,sel-torneo,btn-torneo-seleccion,' +
-  'vista-entrenamiento,vista-progreso').split(',');
+  'vista-entrenamiento,vista-progreso,' +
+  // +7 del cuadro de CALIDAD al entrar (overlay propio + control en Configuración)
+  'overlay-calidad,calidad-titulo,btn-calidad-alta,btn-calidad-baja,calidad-no-preguntar,' +
+  'select-calidad,calidad-preguntar').split(',');
 
 // Handlers inline originales del index.html (onclick="…").
 const HANDLERS_ORIGINALES = ('abrirConfiguracion,abrirEntrenamientoAtributos,abrirModalEvento,' +
@@ -59,9 +62,11 @@ const HANDLERS_ORIGINALES = ('abrirConfiguracion,abrirEntrenamientoAtributos,abr
   'simularPartidoNormal,toggleAtributosPanel').split(',');
 
 const FOR_ORIGINALES = ('cuenta-email,cuenta-pass,cuenta-privacidad,cuenta-apodo,input-nombre,' +
-  'input-dorsal,select-idioma-perfil,btn-modo-oscuro-perfil').split(',');
+  'input-dorsal,select-idioma-perfil,btn-modo-oscuro-perfil,' +
+  // +3 del bloque de calidad (cuadro al entrar + Configuración)
+  'calidad-no-preguntar,select-calidad,calidad-preguntar').split(',');
 
-const TOTAL_DATA_I18N = 186; // +3 card de nacionalidad (…) +4 tarjeta Internacional +2 torneo +1 coop
+const TOTAL_DATA_I18N = 198; // 186 + 12 del selector de calidad (cuadro al entrar + Configuración)
 
 // ---------- Sandbox con React en stub y htm real de vendor/ ----------
 let raiz = null;

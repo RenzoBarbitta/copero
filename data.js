@@ -930,6 +930,44 @@ Object.assign(TEXTOS_UI.pt, {
   confAFC: "AFC", confCAF: "CAF", confCONCACAF: "Concacaf", confCONMEBOL: "CONMEBOL", confOFC: "OFC", confUEFA: "UEFA"
 });
 
+// 6b. CALIDAD VISUAL (cuadro que se pregunta al entrar)
+// "Alta"  = juego base tal cual (todas las animaciones y efectos).
+// "Baja"  = apaga animaciones, cinematica y capas pesadas del fondo
+//           (moviles o PCs poco potentes). El juego sigue jugable.
+Object.assign(TEXTOS_UI.es, {
+  calidadTitulo: "CALIDAD?",
+  calidadIntro: "Elegí cómo querés ver el juego. Podés cambiarlo cuando quieras desde Configuración.",
+  calidadAlta: "Alta (Recomendado)",
+  calidadAltaDetalle: "Mantiene todas las animaciones, transiciones, textos y el diseño completo.",
+  calidadBaja: "Baja (Recomendado para móviles o PCs poco potentes)",
+  calidadBajaDetalle: "Apaga animaciones y efectos pesados. El juego sigue 100% jugable.",
+  calidadNoPreguntar: "No volver a preguntar (se cambia en Configuración)",
+  calidadEtiqueta: "🎚️ Calidad visual",
+  calidadPreguntar: "🎬 Preguntar la calidad al entrar"
+});
+Object.assign(TEXTOS_UI.en, {
+  calidadTitulo: "QUALITY?",
+  calidadIntro: "Choose how you want to see the game. You can change it anytime in Settings.",
+  calidadAlta: "High (Recommended)",
+  calidadAltaDetalle: "Keeps all animations, transitions, texts and the full design.",
+  calidadBaja: "Low (Recommended for phones or low-end PCs)",
+  calidadBajaDetalle: "Turns off animations and heavy effects. The game stays 100% playable.",
+  calidadNoPreguntar: "Don't ask again (change it in Settings)",
+  calidadEtiqueta: "🎚️ Visual quality",
+  calidadPreguntar: "🎬 Ask for quality on start"
+});
+Object.assign(TEXTOS_UI.pt, {
+  calidadTitulo: "QUALIDADE?",
+  calidadIntro: "Escolha como você quer ver o jogo. Pode mudar quando quiser em Configurações.",
+  calidadAlta: "Alta (Recomendado)",
+  calidadAltaDetalle: "Mantém todas as animações, transições, textos e o design completo.",
+  calidadBaja: "Baixa (Recomendado para celulares ou PCs pouco potentes)",
+  calidadBajaDetalle: "Desliga animações e efeitos pesados. O jogo continua 100% jogável.",
+  calidadNoPreguntar: "Não perguntar de novo (muda em Configurações)",
+  calidadEtiqueta: "🎚️ Qualidade visual",
+  calidadPreguntar: "🎬 Perguntar a qualidade ao entrar"
+});
+
 // 6. CONFIGURACION GLOBAL (balance del juego centralizado)
 const CONFIG = {
   OVR_MIN: 40,

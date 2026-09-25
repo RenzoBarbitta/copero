@@ -6,12 +6,30 @@
 //     el puntero (solo punteros finos, con requestAnimationFrame).
 //   - BarraScroll: progreso de lectura de la página.
 //  Ambos son aria-hidden y no tocan ningún id de la base.
+//
+//  CALIDAD BAJA (preferencia del jugador, ver features.js):
+//  el markup se renderiza igual (así se puede volver a "Alta" en
+//  caliente, sin recargar) y el trabajo pesado se corta por JS en
+//  el momento del evento + el apagado visual lo hace el CSS
+//  (bloque `html.calidad-baja` en fx-detalle.css).
 // ============================================================
 (function (CR) {
   "use strict";
   const html = CR.html;
   const useState = React.useState;
   const useEffect = React.useEffect;
+
+  // ¿El jugador está en calidad Baja? La clase la pone <html> el script
+  // inline del <head> (arranque) o features.js (al elegir en el cuadro).
+  function calidadBaja() {
+    try {
+      return !!(typeof document !== "undefined" && document.documentElement &&
+        document.documentElement.classList &&
+        document.documentElement.classList.contains("calidad-baja"));
+    } catch (e) {
+      return false;
+    }
+  }
 
   function AmbienteFX() {
     const [puntero, setPuntero] = useState({ x: 0, y: 0 });
@@ -21,7 +39,10 @@
       let enCola = false;
       let ultimo = null;
       function mover(ev) {
+        // Calidad Baja: sin parallax (ni estado ni re-render por puntero).
+        if (calidadBaja()) return;
         ultimo = ev;
+
         if (enCola) return;
         enCola = true;
         requestAnimationFrame(function () {
@@ -63,6 +84,8 @@
     const [progreso, setProgreso] = useState(0);
     useEffect(function () {
       function calcular() {
+        // Calidad Baja: la barra de scroll no se dibuja (ver fx-detalle.css).
+        if (calidadBaja()) return;
         const alto = document.documentElement.scrollHeight - window.innerHeight;
         setProgreso(alto > 0 ? Math.min(100, (window.scrollY / alto) * 100) : 0);
       }

@@ -451,3 +451,191 @@ summary { cursor: pointer; }
   #redes-feed-lateral .red-social-post, #redes-feed .red-social-post { transition: none !important; }
   ::-webkit-scrollbar-thumb { transition: none; box-shadow: none !important; }
 }
+
+/* ============================================================
+   SELECTOR DE CALIDAD (pregunta al entrar) + MODO BAJA
+   ------------------------------------------------------------
+   - .calidad-overlay: cuadro grande que se muestra al entrar.
+     z-index 6000 para quedar POR ENCIMA de la cinemática de
+     apertura (z-index 5000). Se cierra agregando .hidden.
+   - html.calidad-baja: apaga animaciones, cinemática, capas
+     pesadas del fondo y el cristal (backdrop-filter). Es SOLO
+     estético: la lógica del juego sigue intacta y jugable.
+   ============================================================ */
+
+/* ---------- CUADRO DE CALIDAD AL ENTRAR ---------- */
+.calidad-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 6000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  overflow-y: auto;
+  background:
+    radial-gradient(120% 85% at 50% 6%, rgba(22, 119, 255, 0.2), transparent 62%),
+    radial-gradient(100% 60% at 50% 118%, rgba(245, 200, 76, 0.08), transparent 60%),
+    rgba(5, 7, 12, 0.94);
+}
+/* Se cierra con la clase .hidden de styles.css (display:none !important) */
+.calidad-caja {
+  width: min(640px, 100%);
+  padding: 26px 22px 18px;
+  border: 1px solid rgba(245, 200, 76, 0.35);
+  border-radius: 20px;
+  background: linear-gradient(180deg, #161b28 0%, #0f131c 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 30px 90px -34px rgba(0, 0, 0, 1);
+  text-align: center;
+  animation: calidad-entra 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes calidad-entra {
+  0%   { opacity: 0; transform: translateY(18px) scale(0.97); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.calidad-titulo {
+  margin: 0 0 8px;
+  font-family: var(--display, 'Barlow Condensed', 'Oswald', sans-serif);
+  font-size: clamp(2rem, 7vw, 3rem);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: linear-gradient(92deg, #f5c84c 0%, #ffe9a8 42%, #3d8bff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+.calidad-intro {
+  margin: 0 0 20px;
+  color: var(--texto-2, #a8b0bf);
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+.calidad-opciones { display: grid; gap: 14px; margin-bottom: 18px; }
+@media (min-width: 620px) { .calidad-opciones { grid-template-columns: 1fr 1fr; } }
+.calidad-opcion {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  min-height: 156px;
+  padding: 20px 14px;
+  border: 1px solid var(--borde, #2a3140);
+  border-radius: 16px;
+  background: linear-gradient(180deg, #1c2231 0%, #141924 100%);
+  color: var(--texto, #f5f7fa);
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.calidad-opcion:hover,
+.calidad-opcion:focus-visible {
+  transform: translateY(-3px);
+  border-color: var(--dorado, #f5c84c);
+  box-shadow: 0 16px 36px -18px rgba(245, 200, 76, 0.85);
+}
+.calidad-opcion-alta { border-color: rgba(53, 199, 122, 0.5); }
+.calidad-opcion-alta:hover,
+.calidad-opcion-alta:focus-visible {
+  border-color: var(--verde, #35c77a);
+  box-shadow: 0 16px 36px -18px rgba(53, 199, 122, 0.9);
+}
+.calidad-opcion-titulo { font-weight: 800; font-size: 1.02rem; line-height: 1.25; }
+.calidad-opcion-detalle {
+  font-size: 0.84rem;
+  line-height: 1.35;
+  color: var(--texto-2, #a8b0bf);
+}
+.calidad-badge {
+  position: absolute;
+  top: -11px;
+  padding: 2px 11px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f5c84c, #ffe9a8);
+  color: #1a1204;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.calidad-pie {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.calidad-pie .form-check-input { margin: 0; }
+.calidad-pie .form-check-label {
+  font-size: 0.8rem;
+  color: var(--texto-2, #a8b0bf);
+}
+
+/* ============================================================
+   MODO CALIDAD BAJA (móviles / PCs poco potentes)
+   Todo lo de este bloque es cosmético: apaga animaciones y
+   efectos caros para la GPU. La jugabilidad no se toca.
+   Se activa con <html class="calidad-baja"> (lo pone el script
+   inline del <head> si ya eligió Baja, o features.js al elegir
+   en el cuadro / en Configuración).
+   ============================================================ */
+
+/* 1) Sin animaciones ni transiciones (mismo criterio que
+      prefers-reduced-motion: saltan a su estado final y frenan). */
+html.calidad-baja *,
+html.calidad-baja *::before,
+html.calidad-baja *::after {
+  animation-duration: 0.01ms !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  transition-delay: 0s !important;
+  scroll-behavior: auto !important;
+}
+
+/* 2) Cinemática de apertura y barra de scroll: fuera. El telón de
+      precarga queda (es lo único durante la carga) pero sin girar. */
+html.calidad-baja .cinematica,
+html.calidad-baja .fx-scroll { display: none !important; }
+html.calidad-baja .precarga-spinner { animation: none !important; }
+
+/* 3) Fondo: una sola capa plana. Sin orbes, aurora, reflejos,
+      polvo, partículas ni viñeta pulsante. */
+html.calidad-baja .fx-orb,
+html.calidad-baja .fx-orbes-peq,
+html.calidad-baja .fx-aurora,
+html.calidad-baja .fx-reflejos,
+html.calidad-baja .fx-polvo,
+html.calidad-baja .fx-lineas-cancha,
+html.calidad-baja .fx-ambiente::before,
+html.calidad-baja .fx-ambiente::after { display: none !important; }
+html.calidad-baja .fx-ambiente {
+  background: linear-gradient(180deg, #0d1119 0%, #0a0d14 100%);
+}
+
+/* 4) Cristal (backdrop-filter): lo más caro de repintar al scrollear. */
+html.calidad-baja *,
+html.calidad-baja *::before,
+html.calidad-baja *::after {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* 5) Sombras enormes de las superficies grandes: quedan mínimas. */
+html.calidad-baja .card-custom,
+html.calidad-baja .modal-content,
+html.calidad-baja .tarjeta-jugador,
+html.calidad-baja #topbar,
+html.calidad-baja #nav-inferior,
+html.calidad-baja body.app-juego #sidebar {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* 6) El cuadro de calidad tampoco rebota al entrar ni al pasar el mouse. */
+html.calidad-baja .calidad-caja { animation: none !important; }
+html.calidad-baja .calidad-opcion:hover,
+html.calidad-baja .calidad-opcion:focus-visible { transform: none !important; }
+

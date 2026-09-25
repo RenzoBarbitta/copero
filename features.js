@@ -9,7 +9,7 @@
 //  PREFERENCIAS (idioma, modo oscuro, seed)
 // ------------------------------------------------------------
 const PREFS_KEY = "pso_prefs_v1";
-let prefs = { idioma: "es", modoOscuro: false, seed: null };
+let prefs = { idioma: "es", modoOscuro: false, seed: null, calidad: null, preguntarCalidad: true };
 let modoDesafioPendiente = false;
 try {
   const rawPrefs = localStorage.getItem(PREFS_KEY);
@@ -38,6 +38,88 @@ function toggleModoOscuro() {
   prefs.modoOscuro = !prefs.modoOscuro;
   guardarPrefs();
   aplicarModoOscuro();
+}
+
+// ------------------------------------------------------------
+//  CALIDAD VISUAL (alta / baja) — se pregunta al entrar
+// ------------------------------------------------------------
+// Es SOLO estético: la lógica del juego no cambia.
+//   "alta" (o null = sin elegir todavía): juego base tal cual, con
+//          todas las animaciones, textos y diseño.
+//   "baja": apaga la cinemática de apertura, las animaciones, las
+//          capas pesadas del fondo (orbes, aurora, reflejos, polvo,
+//          partículas) y el cristal (backdrop-filter). Pensado para
+//          móviles o PCs poco potentes: sigue 100% jugable.
+// La marca vive en <html> (html.calidad-baja) para que el CSS de
+// fx-detalle.css la lea; el <script> inline del <head> la aplica
+// antes del primer pintado cuando el jugador pidió no ser preguntado.
+function esCalidadBaja() {
+  return prefs.calidad === "baja";
+}
+
+function aplicarCalidad() {
+  try {
+    const raiz = document.documentElement;
+    if (raiz && raiz.classList) raiz.classList.toggle("calidad-baja", esCalidadBaja());
+  } catch (e) { /* sin DOM (tests): ignorar */ }
+  const sel = document.getElementById("select-calidad");
+  if (sel) sel.value = esCalidadBaja() ? "baja" : "alta";
+  const chkNoPreguntar = document.getElementById("calidad-no-preguntar");
+  if (chkNoPreguntar) chkNoPreguntar.checked = prefs.preguntarCalidad === false;
+  const chkPreguntar = document.getElementById("calidad-preguntar");
+  if (chkPreguntar) chkPreguntar.checked = prefs.preguntarCalidad !== false;
+}
+
+// modo: "alta" | "baja". noPreguntar=true (casilla del cuadro) guarda
+// además que no se vuelva a preguntar en las próximas entradas.
+function establecerCalidad(modo, noPreguntar) {
+  prefs.calidad = modo === "baja" ? "baja" : "alta";
+  if (noPreguntar === true) prefs.preguntarCalidad = false;
+  guardarPrefs();
+  aplicarCalidad();
+  cerrarPreguntaCalidad();
+  if (typeof mostrarNotificacion === "function") {
+    mostrarNotificacion(t("calidadTitulo"), t(esCalidadBaja() ? "calidadBajaDetalle" : "calidadAltaDetalle"));
+  }
+}
+
+function cerrarPreguntaCalidad() {
+  const ov = document.getElementById("overlay-calidad");
+  if (ov) ov.classList.add("hidden");
+}
+
+// Muestra el cuadro de CALIDAD? al entrar (salvo que el jugador haya
+// pedido no volver a ser preguntado). El markup ya viene renderizado
+// por React (react/modales-7.js → OverlayCalidad).
+function preguntarCalidadAlEntrar() {
+  const ov = document.getElementById("overlay-calidad");
+  if (!ov) return;
+  ov.classList.toggle("hidden", prefs.preguntarCalidad === false);
+}
+
+function conectarCalidad() {
+  const alta = document.getElementById("btn-calidad-alta");
+  const baja = document.getElementById("btn-calidad-baja");
+  const chk = document.getElementById("calidad-no-preguntar");
+  if (alta && !alta.dataset.listo) {
+    alta.dataset.listo = "1";
+    alta.addEventListener("click", function () { establecerCalidad("alta", chk && chk.checked); });
+  }
+  if (baja && !baja.dataset.listo) {
+    baja.dataset.listo = "1";
+    baja.addEventListener("click", function () { establecerCalidad("baja", chk && chk.checked); });
+  }
+}
+
+// Arranque de la calidad: los nodos del cuadro ya existen porque la
+// capa React (react/montar.js) se monta ANTES que estos scripts base;
+// se conecta y se sincroniza acá mismo para que el cuadro responda en
+// cuanto aparece. aplicarCalidad() respeta la última elección guardada
+// (si era "baja", se entra sin animaciones aunque se vuelva a preguntar).
+if (typeof document !== "undefined" && document.getElementById) {
+  conectarCalidad();
+  aplicarCalidad();
+  preguntarCalidadAlEntrar();
 }
 
 // ------------------------------------------------------------

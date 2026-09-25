@@ -31,6 +31,7 @@
     return html`
       <${Fragment}>
         <${CR.Cinematica}/>
+        <${CR.OverlayCalidad}/>
         <${CR.AmbienteFX}/>
         <${CR.BarraScroll}/>
         <${CR.BarraLateral}/>

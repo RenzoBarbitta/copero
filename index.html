@@ -17,6 +17,26 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Carrera PSO">
+  <!-- CALIDAD VISUAL: se resuelve ANTES del primer pintado, leyendo la
+       misma clave de preferencias que features.js (PREFS_KEY =
+       "pso_prefs_v1"). Si el jugador ya eligió "Baja" (y pidió no
+       volver a ser preguntado), la clase queda puesta en <html> desde
+       el frame 0: no arranca ninguna animación pesada ni la cinemática.
+       Si eligió "Alta" o es su primera visita, no se toca nada: el
+       juego base se ve completo y features.js abre el cuadro de
+       CALIDAD?. Ver los bloques "calidad" en fx-detalle.css. -->
+  <script>
+    (function () {
+      try {
+        var raw = localStorage.getItem("pso_prefs_v1");
+        if (!raw) return;
+        var p = JSON.parse(raw) || {};
+        if (p.calidad === "baja" && p.preguntarCalidad === false) {
+          document.documentElement.classList.add("calidad-baja");
+        }
+      } catch (e) { /* almacenamiento no disponible: se juega en Alta */ }
+    })();
+  </script>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/png" href="imagenes/icon-192.png">
   <link rel="apple-touch-icon" href="imagenes/icon-180.png">

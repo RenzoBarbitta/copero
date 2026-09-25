@@ -123,7 +123,7 @@ algunas APIs requieren `http://localhost` o HTTPS.
 | `vista-extra.js` | Vistas Entrenamiento y Comunidad (tabs pills) |
 | `vista-progreso.js` | Vista Progreso (stats/evolución/temporadas/logros) |
 | `resumen.js` | Pantalla de retiro / resumen final |
-| `modales-1..7.js` | Footer, toast y los 16 modales en orden original (info, decisión, fichajes, penal, partido interactivo, momentos clave, tiro libre, dominios, SS, rol, ranking, redes, entrenamiento, camiseta, dardos, configuración) |
+| `modales-1..7.js` | Footer, toast y los 16 modales en orden original (info, decisión, fichajes, penal, partido interactivo, momentos clave, tiro libre, dominios, SS, rol, ranking, redes, entrenamiento, camiseta, dardos, configuración) + el cuadro de **CALIDAD** que se pregunta al entrar (`OverlayCalidad`) |
 | `montar.js` | Compone `Aplicacion` y monta con `flushSync` en `#aplicacion` |
 
 ### `supabase/` — backend SQL
@@ -145,7 +145,7 @@ node test-privacidad.mjs      # registro/privacidad
 
 | Test | Cubre |
 |---|---|
-| `test-react-ui.mjs` | **Espejo visual**: render del árbol React en sandbox → 177 ids, 165 data-i18n, 25 handlers, forms/estados |
+| `test-react-ui.mjs` | **Espejo visual**: render del árbol React en sandbox → 204 ids, 198 data-i18n, 26 handlers, forms/estados |
 | `test-traduccion-pt.mjs` | Claves `data-i18n` (lee `index.html` + `react/*.js`) |
 | `test-privacidad.mjs` | Casilla sin marcar, enlaces, precache de la política (lee `index.html` + `react/*.js`) |
 | `test-camiseta` | Selector de casaca/dorsal y SVG |
@@ -157,6 +157,7 @@ node test-privacidad.mjs      # registro/privacidad
 
 - `fx.css` (912 líneas, 268 bloques, **reescrito limpio v4 — sin duplicados ni bloques huérfanos**): fondo con más resalte (gradiente base azul/dorado en `.fx-ambiente`, 5 orbes con flotación+rotación+escala y glow pulsante, 4 orbes pequeños decorativos, partículas `fx-ambiente::before` en deriva por tile, líneas de cancha con doble gradiente en dos ejes, viñeta con pulso, **aurora cónica girando** `.fx-aurora`, **barrido diagonal de luz** `.fx-reflejos` y **polvo fino flotando** `.fx-polvo` — estas 3 capas se suman al parallax del puntero en `react/fx.js`), `react/fx.js` renderiza los 5 orbes + orbes pequeños + parallax al puntero, barra de scroll, **intro animada** (`.intro-banner` con `banner copero.png` + emblema `CoperoPsoSa.png`: entrada con overshoot, barrido de brillo, pulso de borde y logo que "pica" — todo apagado en `prefers-reduced-motion`), **textos del menú y cards de apoyo** (títulos con gradiente dorado/azul que se desplaza, emojis de precio flotando, precio que respira con glow, badge "Recomendado" que late, botones con glow pulsante, entrada escalonada de las `.support-cards` y borde luminoso `.support-card::before` que viaja al hover), **cinemática de apertura** (`.cinematica` en `react/fx.js` → `Cinematica`, se autodesmonta a los ~3.35s con `return null`; orbes que estallan, anillo dorado, logo con overshoot + brillo, título COPERO letra por letra con `linear-gradient`-clip, línea de carga dorada y salida en zoom-out hacia la app), entradas de pantalla/vistas/tarjetas escalonadas con overshoot (se re-disparan al quitar `.hidden`), hover lift+glow de tarjetas, navegación (pill activo que crece, ícono pop, respiración del ícono activo en nav inferior), **profundidad**: modales, topbar/sidebar/nav cristal con `backdrop-filter`, tarjeta del jugador/VS/escudos/OVR, chips, inputs hundidos, progreso y tablas, `#aplicacion{display:contents}`.
 - `fx-detalle.css` (453 líneas, 156 bloques, **reescrito limpio v4 — sin triplicados; usa solo markup real**): botones con bisel estático + glow/micro-escala al hover y press, CTA `#btn-jugar-partido` con pulso azul, `.vs-badge-vs` sway, hover de VS/tarjeta-jugador, glow del OVR al subir (`.ovr-up`), toasts con rebote, chips con micro-bounce, stagger de filas de tabla (**excluye** `.tabla-historial`), menús `details`, foco latido, scrollbar con glow, **redes sociales** (selectors sobre `#redes-feed-lateral`/`#redes-feed` + `.red-social-post` real; NO existen `.autor-badge`/`.viralidad-badge`): entrada escalonada con overshoot, hover lift+glow, barra superior de color que se enciende, `@autor` con breath, badge de estilo con pop, viralidad (`.small.text-danger`) latiendo al hover, estado vacío flotando, **minijuegos** (IDs reales `#contenedorMinijuegoCamiseta`/`#contenedorDardos`): entrada con overshoot, chips con glow, vidas con glow **sumado** al pulse de la base vía `.mg-wrap .mg-life`, botones táctiles con spring, escena con resplandor, **casaca** (`#camiseta-preview`/`#camiseta-badge`): marco con halo pulsante, flotación del SVG, nombre con `paint-order` stroke (halo claro), inputs `#input-nombre`/`#input-dorsal` con glow al focus, **movimiento reducido** completo.
+- **Selector de calidad (Alta / Baja)**: al entrar, `OverlayCalidad` (`react/modales-7.js` → `#overlay-calidad`, `z-index: 6000`, por encima de la cinemática que es 5000) pregunta `CALIDAD?` con dos botones grandes. `features.js` guarda `prefs.calidad` (`"alta"`/`"baja"`) y `prefs.preguntarCalidad` en `pso_prefs_v1` y pone/quitá la clase `<html class="calidad-baja">`; el script inline del `<head>` (`index.html`) la aplica antes del primer pintado cuando el jugador ya pidió no volver a ser preguntado. El control posterior está en el modal de Configuración (`#select-calidad` + `#calidad-preguntar`, enganchados en `ui.js → abrirConfiguracion`). El apagado visual vive en el bloque **MODO CALIDAD BAJA** de `fx-detalle.css` (animaciones/transiciones a 0.01ms, cinemática y barra de scroll fuera, fondo plano sin orbes/aurora/reflejos/polvo/partículas, sin `backdrop-filter` y sombras mínimas); el lado JS lo corta `react/fx.js` con `calidadBaja()` (frena parallax y progreso de scroll). Reglas: **ninguna animación puede ser necesaria para jugar** (en Baja el juego queda 100% jugable) y **toda animación pesada nueva debe apagarse también con `html.calidad-baja`**.
 - Regla: CSS puro sobre clases existentes; **nunca** escribir valores que la base lea después (p. ej. no animar el `textContent` de `#j-media`).
 
 ## 6. PWA / caché
@@ -164,7 +165,7 @@ node test-privacidad.mjs      # registro/privacidad
 - `sw.js`: navegación y mismo origen **network-first**; Bootstrap CDN
   cache-first; Supabase excluido.
 - Al modificar o agregar archivos del juego: **subir `CACHE_NOMBRE`**
-  (hoy `pso-carrera-v42`) y agregar archivos nuevos a `ARCHIVOS_BASE`.
+  (hoy `pso-carrera-v51`) y agregar archivos nuevos a `ARCHIVOS_BASE`.
 
 ## 7. Deploy
 
