@@ -552,6 +552,7 @@
     cCola.canal = canal;
     canal.on("presence", { event: "sync" }, function() { chequearColaCoop(); });
     canal.on("presence", { event: "leave" }, function() { chequearColaCoop(); });
+    escucharColaCoop(canal);
     canal.subscribe(function(estado) {
       if (estado === "SUBSCRIBED") {
         if (!cCola || !cCola.activo) { try { canal.untrack(); } catch (e) { /* noop */ } return; }
@@ -572,6 +573,7 @@
     if (!cCola) return;
     cCola.activo = false;
     cCola.conectado = false;
+    cCola.gen = (cCola.gen || 0) + 1; // invalida conexiones diferidas pendientes
     if (cCola.canal) {
       try {
         cCola.canal.untrack();
@@ -628,10 +630,64 @@
     const par = dl.calcularParejaCola(presentes, cCola.miId);
     if (!par) return;
     const sala = dl.salaAutomaticaDuelo(par.ids);
-    salirDeColaCoop();
+    // Avisamos al par ANTES de salir de la cola: el socio puede llegar un
+    // instante después al sync y, si ya nos fuimos sin avisar, nunca forma el
+    // par y se queda buscando para siempre. Con este broadcast + demora de
+    // cortesía ambos calculan la MISMA sala automática.
+    try {
+      if (cCola.canal && typeof cCola.canal.send === "function") {
+        cCola.canal.send({
+          type: "broadcast",
+          event: "cola",
+          payload: { t: "pareja", ids: par.ids, sala: sala, de: cCola.miId }
+        });
+      }
+    } catch (e) { /* best-effort */ }
+    const canalCola = cCola.canal, clienteCola = cCola.cliente;
+    const gen = (cCola.gen = (cCola.gen || 0) + 1);
+    cCola.activo = false;
+    cCola.conectado = false;
     renderLobbyCoop(miApodoCoop);
     estadoLobbyCoop('<div class="alert alert-success p-2 mb-0">🎯 ¡Socio encontrado! Conectando a la dupla...</div>');
-    conectarCanalCoop(sala.nombre, sala.clave, { modoAuto: true });
+    enTareaCoop(function() {
+      // Si el usuario canceló o empezó otra búsqueda, no conectamos.
+      if (!cCola || cCola.gen !== gen || cCola.activo) return;
+      if (caSesion || (c && c.activo)) return;
+      try {
+        if (canalCola) {
+          try { canalCola.untrack(); } catch (e) { /* noop */ }
+          if (clienteCola && clienteCola.removeChannel) clienteCola.removeChannel(canalCola);
+        }
+      } catch (e) { /* noop */ }
+      if (cCola && cCola.canal === canalCola) { cCola.canal = null; cCola.cliente = null; }
+      mostrarPanelBusquedaCoop(false);
+      conectarCanalCoop(sala.nombre, sala.clave, { modoAuto: true });
+    }, 1200);
+  }
+
+  function escucharColaCoop(canal) {
+    // El compañero que llegó primero ya salió de la cola y nos dejó el aviso
+    // de la pareja: conectamos directo a la misma sala automática sin esperar
+    // otro sync (que ya nunca llegaría porque él se fue).
+    canal.on("broadcast", { event: "cola" }, function(m) {
+      const msg = (m && m.payload) || {};
+      if (msg.t !== "pareja" || !msg.sala) return;
+      if (!cCola || !cCola.activo) return;
+      if (msg.de && msg.de === cCola.miId) return; // mi propio aviso, ignorar eco
+      if (!msg.ids || msg.ids.indexOf(cCola.miId) === -1) return;
+      cCola.activo = false;
+      cCola.conectado = false;
+      try {
+        try { canal.untrack(); } catch (e) { /* noop */ }
+        if (cCola.cliente && cCola.cliente.removeChannel) cCola.cliente.removeChannel(canal);
+      } catch (e) { /* noop */ }
+      cCola.canal = null;
+      cCola.cliente = null;
+      mostrarPanelBusquedaCoop(false);
+      renderLobbyCoop(miApodoCoop);
+      estadoLobbyCoop('<div class="alert alert-success p-2 mb-0">🎯 ¡Socio encontrado! Conectando a la dupla...</div>');
+      conectarCanalCoop(msg.sala.nombre, msg.sala.clave, { modoAuto: true });
+    });
   }
 
   function conectarCanalCoop(nombre, clave, opts) {
@@ -668,12 +724,21 @@
           caSesion.canal = canal;
           canal.track({ id: miId, apodo: miApodoCoop });
           registrarSalaSeguraCoop(topic);
+          // Sin este hola inicial, si el presence sync llega antes que el
+          // broadcast del socio, ambos se ven (2/2) pero nunca definen rol y
+          // los dos muestran "el socio está creando". El hola también se
+          // reintenta en chequearPresenciaCoop por si se pierde.
+          sendHolaIfPendingCoop();
           if (opts.modoAuto) {
             estadoLobbyCoop('<div class="alert alert-success p-2 mb-0">🟢 ¡Socio localizado! Preparando la dupla...</div>');
             enTareaCoop(function() {
-              if (!caSesion || !c || !c.iniciado) {
-                const presentes = caSesion && caSesion.canal ? Object.keys(caSesion.canal.presenceState() || {}).length : 0;
-                if (presentes < 2) {
+              // Solo reintentamos si SEGUIMOS en esta misma sala automática y
+              // el proyecto no arrancó. Miramos los HOLAS (no el presence, que
+              // cuenta fantasmas): sin hola del socio no hay dupla posible.
+              if (!caSesion || caSesion.topic !== topic) return;
+              if (!c || !c.iniciado) {
+                const holas = Object.keys((caSesion && caSesion.holas) || {}).length;
+                if (holas < 1) {
                   cerrarSesionCoop();
                   renderLobbyCoop(miApodoCoop);
                   estadoLobbyCoop('<div class="alert alert-warning p-2 mb-0">⚠️ No se pudo conectar al socio. Buscando otra vez...</div>');
@@ -706,9 +771,23 @@
       estadoLobbyCoop('<div class="alert alert-danger p-2 mb-0">⛔ La sala está ocupada (ya hay una dupla en curso).</div>');
       return;
     }
+    if (presentes.length >= 2) {
+      // El broadcast "hola" puede perderse si se envió antes de que el socio
+      // terminara el SUBSCRIBE. Reintentamos hasta que llegue su hola: solo
+      // entonces hay rol y panel (ver detectarGenteSalaCoop).
+      sendHolaIfPendingCoop();
+      if (!Object.keys(caSesion.holas || {}).length && !caSesion.reintentoHola) {
+        caSesion.reintentoHola = true;
+        caSesion.holaEnviado = false;
+        enTareaCoop(function() {
+          if (!caSesion || caSesion.cerrada || (c && c.iniciado)) return;
+          caSesion.reintentoHola = false;
+          sendHolaIfPendingCoop(true);
+        }, 1500);
+      }
+    }
     // Contador visible del lobby 0/2 -> 1/2 -> 2/2
     detectarGenteSalaCoop(presentes.length);
-    if (presentes.length >= 2) sendHolaIfPendingCoop();
     if (c) setEstadoSocioCoop(presentes.length >= 2 ? "🟢 Conectado" : "🔴 Desconectado");
     if (c && c.activo && presentes.length < 2) bannerDesconectadoSocio();
   }
@@ -718,10 +797,13 @@
     const el = document.getElementById("coop-gente-count");
     if (el) el.innerHTML = cantidad + "/2";
     if (cantidad >= 2 && !caSesion.configMostrada && !caSesion.iniciado) {
-      // Ya somos dos: definimos roles (determinista y cacheado) y mostramos
-      // la config al anfitrión. Sin el hola del socio todavía no hay rol.
-      const soyAnfitrion = definirRolCoop() === "A";
-      if (soyAnfitrion === null) return;
+      // El rol SOLO se puede definir cuando ya llegó el "hola" del socio
+      // (caSesion.holas no vacío). Si mostráramos el panel con solo el
+      // presence, ambos verían "el socio está creando" y el anfitrión nunca
+      // recibiría el formulario. Por eso: sin hola, esperamos.
+      const rol = definirRolCoop();
+      if (!rol) return;
+      const soyAnfitrion = rol === "A";
       caSesion.configMostrada = true;
       if (soyAnfitrion) {
         renderConfigAnfitrionCoop();
@@ -754,10 +836,23 @@
     return caSesion.miRol;
   }
 
-  function sendHolaIfPendingCoop() {
-    if (!caSesion || caSesion.holaEnviado) return;
+  function sendHolaIfPendingCoop(forzar) {
+    if (!caSesion) return;
+    if (caSesion.holaEnviado && !forzar) return;
+    // Sin canal conectado el send se pierde igual: no marcamos enviado.
+    if (!caSesion.canal || !caSesion.conectado) { caSesion.holaEnviado = false; return; }
     caSesion.holaEnviado = true;
     enviarCoop({ t: "hola", id: caSesion.miId, apodo: caSesion.apodo });
+    // Respuesta de cortesía: si el socio ya nos saludó y nosotros llegamos
+    // tarde, nuestro primer hola puede haberse perdido; reenviamos una vez.
+    if (!forzar) {
+      enTareaCoop(function() {
+        if (!caSesion || caSesion.cerrada || (c && c.iniciado)) return;
+        if (!Object.keys(caSesion.holas || {}).length) return;
+        caSesion.holaEnviado = false;
+        sendHolaIfPendingCoop();
+      }, 2000);
+    }
   }
 
   // ============================================================
@@ -913,8 +1008,15 @@
     if (msg.id === caSesion.miId) return;
 
     if (msg.t === "hola") {
-      if (!caSesion.holas[msg.id]) {
+      const esNuevo = !caSesion.holas[msg.id];
+      if (esNuevo) {
         caSesion.holas[msg.id] = { apodo: msg.apodo };
+        // Respondemos el saludo aunque ya hubiéramos marcado holaEnviado: el
+        // socio pudo haberlo enviado antes de que existiera nuestro canal y su
+        // primer hola se perdió. Sin esta respuesta ambos se quedan esperando.
+        // Solo ante hola NUEVO: responder a duplicados armaría un ping-pong.
+        caSesion.holaEnviado = false;
+        sendHolaIfPendingCoop();
       }
       chequearPresenciaCoop();
       return;
