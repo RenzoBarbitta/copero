@@ -156,5 +156,17 @@ const semSinServidor = L.semillaCoop("sala-1", 3, "tactica");
 ok(semConServidor !== semSinServidor, 'semilla del servidor cambia el desenlace (jugador no puede armar estrategia cómoda)');
 ok(L.semillaCoop("sala-1", 3, "tactica") === semSinServidor, 'sin servidor: semilla estable del topic');
 
+// 14) Sorteo puro de la dupla: determinista y válido
+const s1 = L.sortearDuplaCoopPuro("base-sala");
+const s2 = L.sortearDuplaCoopPuro("base-sala");
+ok(JSON.stringify(s1) === JSON.stringify(s2), 'sorteo: misma base -> mismo club y selección');
+ok(s1.rep >= 1 && s1.rep <= 10 && typeof s1.clubNombre === "string" && s1.clubNombre.length > 0 && typeof s1.sel === "string",
+  'sorteo: rep 1-10, club y selección válidos');
+
+// 15) La dupla respeta el club exacto sorteado (ambos terminan en el mismo equipo)
+const duplaSorteo = L.construirDuplaCoop({ rep: s1.rep, sel: s1.sel, clubNombre: s1.clubNombre }, "sala-x");
+ok(duplaSorteo.club && duplaSorteo.club.nombre === s1.clubNombre, 'dupla: respeta el club exacto del sorteo');
+ok(duplaSorteo.seleccion && duplaSorteo.seleccion.codigo === s1.sel, 'dupla: respeta la selección sorteada');
+
 if (fallos === 0) { console.log('TODO OK'); }
 else { console.error(fallos + ' pruebas fallaron'); process.exit(1); }

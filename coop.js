@@ -111,14 +111,27 @@
   }
 
   // Núcleo compartido de la dupla: el mismo club y la misma selección.
+  // Si la cfg trae clubNombre (viene del sorteo del anfitrión), se
+  // respeta ESE club exacto: así ambos terminan en el mismo equipo
+  // aunque haya varios clubes con la misma reputación.
   function construirDuplaCoop(cfg, topic) {
     void topic;
     const rep = Math.max(1, Math.min(10, Number(cfg && cfg.rep) || 5));
     const sel = (cfg && cfg.sel) ? seleccionPorCodigo(cfg.sel) : null;
     const seleccion = sel || seleccionPorCodigo("ARG") ||
       { codigo: "ARG", nombre: "Argentina", bandera: "🇦🇷", fuerza: 99 };
+    let club = clubDeReputacionCoop(rep);
+    // Club exacto del sorteo: primero por nombre dentro de los clubes de
+    // esa reputación (así ambos lados resuelven idéntico).
+    if (cfg && cfg.clubNombre) {
+      const clubes = (typeof CLUBES !== "undefined") ? CLUBES : [];
+      const exacto = (clubes || []).find(function(x) {
+        return x && x.nombre === cfg.clubNombre && x.reputacion === rep;
+      }) || (clubes || []).find(function(x) { return x && x.nombre === cfg.clubNombre; });
+      if (exacto) club = exacto;
+    }
     return {
-      club: clubDeReputacionCoop(rep),
+      club: club,
       seleccion: seleccion,
       partidosSeleccion: 0,
       golesSeleccion: 0,
@@ -126,6 +139,26 @@
       puntosSincronia: 0,
       trofeos: {},
       detalleTrofeos: {}
+    };
+  }
+
+  // Sorteo PURO de la dupla (testeable, sin DOM): con la MISMA base ambos
+  // clientes sortean lo MISMO (club exacto + selección). La base es la
+  // semilla del SERVIDOR si llegó, o el topic de la sala como respaldo
+  // (idéntico en ambos lados igual).
+  function sortearDuplaCoopPuro(base) {
+    const rng = prngDeterminista(hashCoop(String(base || "sala") + "|coop-sorteo"));
+    const clubes = (typeof CLUBES !== "undefined") ? CLUBES : [];
+    const rep = 1 + Math.floor(rng() * 10);
+    const candidatos = (clubes || []).filter(function(x) { return x && x.reputacion === rep; });
+    const bolsa = candidatos.length ? candidatos : (clubes || []);
+    const club = bolsa.length ? bolsa[Math.floor(rng() * bolsa.length)] : null;
+    const catalogo = (typeof SELECCIONES !== "undefined") ? SELECCIONES : [];
+    const sel = catalogo.length ? catalogo[Math.floor(rng() * catalogo.length)] : null;
+    return {
+      rep: rep,
+      clubNombre: club ? club.nombre : "Libre",
+      sel: sel ? sel[0] : "ARG"
     };
   }
 
@@ -270,6 +303,7 @@
     resumenCoop: resumenCoop,
     calcularAporteCoop: calcularAporteCoop,
     calcularProyectoCoop: calcularProyectoCoop,
+    sortearDuplaCoopPuro: sortearDuplaCoopPuro,
     _setSemillaServidor: function(s) { coopSemillaServidor = s || null; }
   };
 
@@ -695,6 +729,11 @@
     const cuenta = window.CoperoCuenta;
     cuenta.perfil().then(function(apodo) {
       miApodoCoop = apodo || "Dupla";
+      // uid ESTABLE de cuenta (para el rol sin servidor). Se lee SINCRÓNICO
+      // acá porque cuenta.idUsuario() es sync; antes se leía dentro del
+      // objeto y si la sesión aún no estaba restaurada quedaba null en AMBOS
+      // lados -> sin verdad compartida -> los dos se creían anfitriones.
+      const uidEstable = (cuenta && typeof cuenta.idUsuario === "function") ? cuenta.idUsuario() : null;
       const topic = "coop:" + slugCoop(nombre) + "-" + slugCoop(clave);
       const miId = "u" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
@@ -702,7 +741,8 @@
         salaNombre: nombre, topic: topic, miId: miId, apodo: miApodoCoop,
         canal: null, conectado: false, holas: {}, iniciado: false, cerrada: false,
         holaEnviado: false, modoAuto: !!opts.modoAuto,
-        configMostrada: false, semillaServidor: null, rolServidor: null, verificado: false
+        configMostrada: false, semillaServidor: null, rolServidor: null, verificado: false,
+        uid: uidEstable
       };
 
       if (opts.modoAuto) {
@@ -722,7 +762,10 @@
         if (estado === "SUBSCRIBED") {
           caSesion.conectado = true;
           caSesion.canal = canal;
-          canal.track({ id: miId, apodo: miApodoCoop });
+          // El presence también lleva el uid estable: aunque el broadcast
+          // "hola" se pierda, el presence sync SÍ llega y con él los uids de
+          // ambos. Es el respaldo que evita el doble-anfitrión.
+          canal.track({ id: miId, apodo: miApodoCoop, uid: caSesion.uid });
           registrarSalaSeguraCoop(topic);
           // Sin este hola inicial, si el presence sync llega antes que el
           // broadcast del socio, ambos se ven (2/2) pero nunca definen rol y
@@ -797,19 +840,29 @@
     const el = document.getElementById("coop-gente-count");
     if (el) el.innerHTML = cantidad + "/2";
     if (cantidad >= 2 && !caSesion.configMostrada && !caSesion.iniciado) {
-      // El rol SOLO se puede definir cuando ya llegó el "hola" del socio
-      // (caSesion.holas no vacío). Si mostráramos el panel con solo el
-      // presence, ambos verían "el socio está creando" y el anfitrión nunca
-      // recibiría el formulario. Por eso: sin hola, esperamos.
+      // El rol SOLO se puede definir cuando hay verdad compartida: rol del
+      // servidor (ideal) o uid estable en el hola (respaldo). Con ids
+      // efímeros cada lado calculaba distinto y AMBOS se creían anfitriones.
+      // Sin rol, mejor esperar que mostrar un panel equivocado.
       const rol = definirRolCoop();
-      if (!rol) return;
+      if (!rol) {
+        // Aviso visible (una sola vez) para no dejar la sala en 2/2 en blanco
+        // mientras llega el rol del servidor o el hola con uid del socio.
+        if (!caSesion.esperaMostrada) {
+          caSesion.esperaMostrada = true;
+          renderPanelSalaCoop(
+            '<div class="alert alert-info p-2 mb-3">⏳ ¡Ya son 2! Conectando con tu socio...</div>'
+          );
+        }
+        return;
+      }
       const soyAnfitrion = rol === "A";
       caSesion.configMostrada = true;
       if (soyAnfitrion) {
         renderConfigAnfitrionCoop();
       } else {
         renderPanelSalaCoop(
-          '<div class="alert alert-success p-2 mb-3">🎯 <strong>' + escCoop(nombreInvitadoCoop() || "Tu socio") + "</strong> es el anfitrión. Está eligiendo el club y la selección de la dupla...</div>" +
+          '<div class="alert alert-success p-2 mb-3">🎯 <strong>' + escCoop(nombreInvitadoCoop() || "Tu socio") + "</strong> es el anfitrión. Está sorteando el club y la selección de la dupla...</div>" +
           '<div class="text-center p-3">' + avatarCoop(nombreInvitadoCoop() || "?") + "</div>"
         );
       }
@@ -825,15 +878,54 @@
   }
 
   function definirRolCoop() {
-    // El rol se resuelve UNA sola vez y se cachea: si el del servidor llegara
-    // tarde (o por otro ordenamiento de ids) no volvemos a cambiar a mitad de
-    // la dupla. El "anfitrión" (rol A) es el de miId menor, como en el duelo.
-    if (caSesion.miRol) return caSesion.miRol;
-    const ids = Object.keys(caSesion.holas);
-    if (!ids.length) return null;
-    const orden = [caSesion.miId].concat(ids).sort();
-    caSesion.miRol = orden[0] === caSesion.miId ? "A" : "B";
+    // PRIORIDAD 1: el rol del SERVIDOR (006: min(user_id) = A). Es estable,
+    // idéntico en ambos clientes y no depende de ids efímeros que cambian en
+    // cada recarga. Llega por RPC; mientras tanto devolvemos null (esperar).
+    // El cache solo vale si SIGUE coincidiendo con el servidor (si el RPC
+    // llega tarde y corrige, no nos quedamos con el rol viejo: eso era el
+    // bug de "los dos son anfitriones").
+    if (caSesion.rolServidor === "A" || caSesion.rolServidor === "B") {
+      caSesion.miRol = caSesion.rolServidor;
+      return caSesion.miRol;
+    }
+    // PRIORIDAD 2 (respaldo sin servidor): ids ESTABLES de cuenta. El menor
+    // es A. Fuentes en orden: hola con uid -> presence con uid. Sin uid en
+    // ambos lados, no definimos rol (mejor esperar que mostrar "los dos son
+    // anfitriones"). El cache por uid solo vale si los uids no cambiaron.
+    var uidPropio = caSesion.uid || null;
+    var ids = Object.keys(caSesion.holas || {});
+    var uidSocio = null;
+    if (ids.length && caSesion.holas[ids[0]]) uidSocio = caSesion.holas[ids[0]].uid || null;
+    if ((!uidPropio || !uidSocio) && caSesion.canal) {
+      try {
+        var pres = caSesion.canal.presenceState() || {};
+        var claves = Object.keys(pres);
+        for (var i = 0; i < claves.length; i++) {
+          var meta = pres[claves[i]] && pres[claves[i]][0];
+          if (!meta) continue;
+          // Mi propia entrada de presence puede traer el uid aunque
+          // caSesion.uid haya quedado null (sesión restaurada tarde).
+          if (claves[i] === caSesion.miId && meta.uid && !uidPropio) {
+            uidPropio = meta.uid;
+            caSesion.uid = meta.uid;
+          } else if (claves[i] !== caSesion.miId && meta.uid && !uidSocio) {
+            uidSocio = meta.uid;
+          }
+        }
+      } catch (e) { /* presence no disponible: se espera al hola */ }
+    }
+    if (!uidPropio || !uidSocio) { caSesion.miRol = null; return null; }
+    if (uidPropio === uidSocio) { caSesion.miRol = null; return null; } // misma cuenta dos veces: esperar
+    caSesion.miRol = String(uidPropio) < String(uidSocio) ? "A" : "B";
     return caSesion.miRol;
+  }
+
+  // Sorteo del club + selección de la dupla: delega en la versión PURA
+  // (testeable, Parte 1). La base es la semilla del SERVIDOR si llegó o el
+  // topic de la sala como respaldo: idéntica en ambos lados, así que el
+  // invitado saca lo MISMO y puede verificar el sorteo sin confiar.
+  function sortearDuplaCoop() {
+    return sortearDuplaCoopPuro(coopSemillaServidor || (caSesion && caSesion.topic) || "sala");
   }
 
   function sendHolaIfPendingCoop(forzar) {
@@ -842,7 +934,10 @@
     // Sin canal conectado el send se pierde igual: no marcamos enviado.
     if (!caSesion.canal || !caSesion.conectado) { caSesion.holaEnviado = false; return; }
     caSesion.holaEnviado = true;
-    enviarCoop({ t: "hola", id: caSesion.miId, apodo: caSesion.apodo });
+    // El uid (id estable de cuenta) viaja en el hola: con ids efímeros
+    // ("u..."+random) el min(id) NO coincide entre clientes y ambos se creen
+    // anfitriones. Con uid estable el rol queda igual en los dos lados.
+    enviarCoop({ t: "hola", id: caSesion.miId, apodo: caSesion.apodo, uid: caSesion.uid });
     // Respuesta de cortesía: si el socio ya nos saludó y nosotros llegamos
     // tarde, nuestro primer hola puede haberse perdido; reenviamos una vez.
     if (!forzar) {
@@ -857,23 +952,27 @@
 
   // ============================================================
   //  CONFIGURACION DE LA DUPLA (solo el anfitrión, rol A)
+  //  El club y la selección se SORTEAN (botón 🎲): nada de elegir a dedo.
   // ============================================================
   function renderConfigAnfitrionCoop() {
     const selHtml = armarSelectSeleccionesCoop();
     renderPanelSalaCoop(
-      '<div class="alert alert-success p-2 mb-3">🎯 ¡Ya son 2! Configurá la dupla...</div>' +
+      '<div class="alert alert-success p-2 mb-3">🎯 ¡Ya son 2! Sos el anfitrión: sorteá la dupla...</div>' +
       '<div class="p-2">' +
+      '<div id="coop-sorteo-previa" class="alert alert-secondary p-2 mb-3">🎲 Todavía sin sortear: tocá el botón para sortear club + selección al azar.</div>' +
+      '<button class="btn btn-warning btn-lg fw-bold w-100 mb-2" onclick="sortearDuplaCoopUI()">🎲 SORTEAR EQUIPO + SELECCIÓN</button>' +
       '<label class="small text-secondary fw-bold d-block mb-1">🏟️ Nivel del club compartido (reputación 1-10)</label>' +
-      '<select id="coop-config-rep" class="form-control mb-3 coop-select">' +
+      '<select id="coop-config-rep" class="form-control mb-2 coop-select" disabled>' +
       Array.from({ length: 10 }, function(_, i) {
         const n = i + 1;
         return '<option value="' + n + '"' + (n === 5 ? " selected" : "") + ">Reputación " + n + " / 10</option>";
       }).join("") +
       "</select>" +
+      '<div id="coop-sorteo-club" class="small fw-bold text-success mb-3"></div>' +
       '<label class="small text-secondary fw-bold d-block mb-1">🌍 Selección de la dupla</label>' +
-      '<select id="coop-config-sel" class="form-control mb-3 coop-select">' + selHtml + "</select>" +
-      '<button class="btn btn-success btn-lg fw-bold w-100" onclick="iniciarCoopConfig()">🎮 COMENZAR DUPLA</button>' +
-      '<p class="small text-secondary mt-2 mb-0">Ambos van a jugar en el MISMO club y la MISMA selección. Cada temporada toman juntos la táctica del partido internacional.</p>' +
+      '<select id="coop-config-sel" class="form-control mb-3 coop-select" disabled>' + selHtml + "</select>" +
+      '<button id="btn-coop-comenzar" class="btn btn-success btn-lg fw-bold w-100" onclick="iniciarCoopConfig()" disabled>🎮 COMENZAR DUPLA</button>' +
+      '<p class="small text-secondary mt-2 mb-0">El sorteo es al azar con semilla compartida: a tu socio le toca lo mismo. Ambos juegan en el MISMO club y la MISMA selección.</p>' +
       "</div>"
     );
   }
@@ -896,16 +995,40 @@
     return html;
   }
 
-  function iniciarCoopConfig() {
+  // El anfitrión NO elige: sortea. El sorteo es determinista (misma semilla
+  // en ambos) así que el invitado lo puede verificar al recibir el "inicio".
+  function sortearDuplaCoopUI() {
     if (!caSesion || caSesion.iniciado || (c && c.iniciado)) return;
+    if (definirRolCoop() !== "A") return; // solo el anfitrión sortea
+    const sorteo = sortearDuplaCoop();
+    caSesion.sorteo = sorteo;
     const repEl = document.getElementById("coop-config-rep");
     const selEl = document.getElementById("coop-config-sel");
-    const cfg = {
-      rep: Number(repEl ? repEl.value : 5),
-      sel: selEl ? selEl.value : "ARG"
-    };
+    if (repEl) repEl.value = String(sorteo.rep);
+    if (selEl) selEl.value = sorteo.sel;
+    const previa = document.getElementById("coop-sorteo-previa");
+    if (previa) {
+      previa.className = "alert alert-success p-2 mb-3";
+      previa.innerHTML = "🎲 Sorteo: <strong>" + escCoop(sorteo.clubNombre) + "</strong> (rep. " +
+        sorteo.rep + ") · <strong>" + escCoop(sorteo.sel) + "</strong>";
+    }
+    const clubEl = document.getElementById("coop-sorteo-club");
+    if (clubEl) clubEl.textContent = "🏟️ " + sorteo.clubNombre;
+    const btn = document.getElementById("btn-coop-comenzar");
+    if (btn) btn.disabled = false;
+  }
+
+  function iniciarCoopConfig() {
+    if (!caSesion || caSesion.iniciado || (c && c.iniciado)) return;
+    if (definirRolCoop() !== "A") return; // cinturón: solo el anfitrión arranca
+    // Sin sorteo no hay dupla: el equipo y la selección salen del 🎲.
+    if (!caSesion.sorteo) {
+      estadoLobbyCoop('<div class="alert alert-warning p-2 mb-0">🎲 Primero tocá SORTEAR EQUIPO + SELECCIÓN.</div>');
+      return;
+    }
+    const cfg = { rep: caSesion.sorteo.rep, sel: caSesion.sorteo.sel, clubNombre: caSesion.sorteo.clubNombre };
     enviarCoop({ t: "inicio", cfg: cfg });
-    estadoLobbyCoop('<div class="alert alert-info p-2 mb-0">🎮 Dupla configurada. Arrancando el proyecto...<br><small>Club rep. ' + cfg.rep + " · Selección " + cfg.sel + "</small></div>");
+    estadoLobbyCoop('<div class="alert alert-info p-2 mb-0">🎮 Dupla sorteada. Arrancando el proyecto...<br><small>' + escCoop(caSesion.sorteo.clubNombre) + " · Selección " + escCoop(cfg.sel) + "</small></div>");
     renderPanelSalaCoop("");
     iniciarCoop(cfg);
   }
@@ -968,6 +1091,19 @@
         if (typeof window.CoperoCoopLogica !== "undefined" && window.CoperoCoopLogica._setSemillaServidor) {
           window.CoperoCoopLogica._setSemillaServidor(caSesion.semillaServidor);
         }
+        // Si el rol del servidor llegó DESPUÉS de mostrar el panel (o antes
+        // de tener hola), reevaluamos: el servidor es la verdad y corrige
+        // cualquier "los dos son anfitriones". Solo reseteamos el panel si
+        // el rol CAMBIÓ, para no borrarle el sorteo al anfitrión real.
+        if (!c || !c.iniciado) {
+          const previo = caSesion.miRol || null;
+          caSesion.miRol = null;
+          const ahora = definirRolCoop();
+          if (!previo || previo !== ahora || !caSesion.configMostrada) {
+            caSesion.configMostrada = false;
+            chequearPresenciaCoop();
+          }
+        }
       }
     });
   }
@@ -1010,22 +1146,34 @@
     if (msg.t === "hola") {
       const esNuevo = !caSesion.holas[msg.id];
       if (esNuevo) {
-        caSesion.holas[msg.id] = { apodo: msg.apodo };
+        // Guardamos el uid estable del socio (si lo trae): es la base del
+        // rol sin servidor. Los hola viejos sin uid se completan al reintento.
+        caSesion.holas[msg.id] = { apodo: msg.apodo, uid: msg.uid || null };
         // Respondemos el saludo aunque ya hubiéramos marcado holaEnviado: el
         // socio pudo haberlo enviado antes de que existiera nuestro canal y su
         // primer hola se perdió. Sin esta respuesta ambos se quedan esperando.
         // Solo ante hola NUEVO: responder a duplicados armaría un ping-pong.
         caSesion.holaEnviado = false;
         sendHolaIfPendingCoop();
+      } else if (msg.uid && caSesion.holas[msg.id] && !caSesion.holas[msg.id].uid) {
+        caSesion.holas[msg.id].uid = msg.uid;
       }
       chequearPresenciaCoop();
       return;
     }
     if (msg.t === "inicio") {
       if (caSesion.iniciado || (c && c.iniciado)) return;
-      estadoLobbyCoop('<div class="alert alert-info p-2 mb-0">🎮 El anfitrión configuró la dupla. Arrancando el proyecto...</div>');
+      // Cinturón anti doble-anfitrión: si yo también me creo A, el "inicio"
+      // ajeno gana y yo arranco como invitado con SU sorteo.
+      const cfg = msg.cfg || { rep: 5, sel: "ARG" };
+      caSesion.sorteo = { rep: cfg.rep, sel: cfg.sel, clubNombre: cfg.clubNombre || null };
+      // Cedo el rol: quien mandó "inicio" es el anfitrión (A) y yo soy B.
+      // Sin esto, si mi rol local quedó en A por un hola tardío, ambos
+      // jugarían como anfitriones con posiciones/roles cruzados.
+      caSesion.miRol = "B";
+      estadoLobbyCoop('<div class="alert alert-info p-2 mb-0">🎮 El anfitrión sorteó la dupla. Arrancando el proyecto...</div>');
       renderPanelSalaCoop("");
-      iniciarCoop(msg.cfg || { rep: 5, sel: "ARG" });
+      iniciarCoop(cfg);
       caSesion.iniciado = true;
       return;
     }
@@ -1601,6 +1749,7 @@
   window.cancelarBusquedaCoop = cancelarBusquedaCoop;
   window.jugarDeNuevoCoop = jugarDeNuevoCoop;
   window.iniciarCoopConfig = iniciarCoopConfig;
+  window.sortearDuplaCoopUI = sortearDuplaCoopUI;
   window.elegirTacticaCoop = elegirTacticaCoop;
   window.abandonarCoop = abandonarCoop;
 
