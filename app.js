@@ -486,7 +486,9 @@ function verificarCondicionLoro() {
       "🚨 Intervención Obligatoria de Loro",
       "Loro ha intervenido en tu carrera de forma inevitable.<br><br><strong>Quedas sancionado a jugar en Segunda División por las próximas " + CONFIG.SANCION_LORO_TEMPORADAS + " temporadas.</strong>"
     );
+    return true;
   }
+  return false;
 }
 
 // V2 - Nittox: al pasar a la próxima temporada se puede recuperar el rango.
@@ -2574,9 +2576,19 @@ function finalizarResumenTemporada(partidos, goles, asistencias, subidaAplicada,
 }
 
 function generarOfertasDeFichaje(ascendio = false) {
+  const forzadoSegunda = (jugador.temporadasForzadoSegunda || 0) > 0;
+  // La sanción (Loro) y el descenso limitan al JUGADOR, no al equipo: si el club
+  // actual es de Primera no se puede seguir ahí, así que no se ofrece renovar.
+  const clubEsPrimera = jugador.clubActual.reputacion > CONFIG.UMBRAL_PRIMERA;
+  const clubRenovable = (forzadoSegunda && clubEsPrimera) ? null : jugador.clubActual;
+  const nombreClubActual = jugador.clubActual.nombre;
+  // Excepción al Modo Leal: la sanción de Loro va contra el jugador, así que
+  // obliga a bajar a Segunda aunque el modo pida lealtad para siempre.
+  const lealBloqueadoPorSancion = jugador.modoLeal && forzadoSegunda && clubEsPrimera;
+
   // Modo Leal: el jugador es fiel a su club para siempre.
   // No llegan ofertas de fichaje ni se abre el mercado de transferencias.
-  if (jugador.modoLeal) {
+  if (jugador.modoLeal && !lealBloqueadoPorSancion) {
     const contenedor = document.getElementById("contenedor-ofertas");
     if (contenedor) {
       contenedor.innerHTML = "";
@@ -2589,35 +2601,35 @@ function generarOfertasDeFichaje(ascendio = false) {
     return;
   }
 
-  let candidatos = CLUBES.filter(c => c.nombre !== jugador.clubActual.nombre);
+  let candidatos = CLUBES.filter(c => c.nombre !== nombreClubActual);
 
-  if (jugador.temporadasForzadoSegunda > 0) {
-    // Descenso o Sanción Loro: solo clubes de Segunda División
-    candidatos = candidatos.filter(c => c.reputacion <= CONFIG.UMBRAL_PRIMERA);
-    ofertasActuales = [
-      jugador.clubActual,
-      candidatos[0] || CLUBES[0],
-      candidatos[1] || CLUBES[1]
-    ];
+  if (forzadoSegunda) {
+    // Solo clubes de Segunda División. El club de Primera no se ofrece: la
+    // limitación es para el jugador, así que tampoco puede renovar ahí.
+    candidatos = CLUBES.filter(c => c.reputacion <= CONFIG.UMBRAL_PRIMERA
+      && c.nombre !== nombreClubActual);
+    ofertasActuales = armarTresOfertas(
+      candidatos.sort(() => Math.random() - 0.5),
+      clubRenovable,
+      c => c.reputacion <= CONFIG.UMBRAL_PRIMERA,
+      clubRenovable ? 2 : 3
+    );
   } else if (ascendio) {
     // Ascendió (por título o por clasificación): solo clubes de Primera División
-    candidatos = candidatos.filter(c => c.reputacion > CONFIG.UMBRAL_PRIMERA);
-    ofertasActuales = [
-      jugador.clubActual,
-      candidatos[0] || CLUBES[0],
-      candidatos[1] || CLUBES[1]
-    ];
+    candidatos = CLUBES.filter(c => c.reputacion > CONFIG.UMBRAL_PRIMERA
+      && c.nombre !== nombreClubActual);
+    ofertasActuales = armarTresOfertas(candidatos, clubRenovable);
   } else if (ofertasAleatoriasPorEdad(jugador.edad)) {
     // Veterano (más de 31): los equipos llegan más al azar, sin filtro por media.
     candidatos.sort(() => Math.random() - 0.5);
-    ofertasActuales = armarTresOfertas(candidatos, jugador.clubActual);
+    ofertasActuales = armarTresOfertas(candidatos, clubRenovable);
   } else {
     // Rangos coherentes según la media (ver rangoReputacionPorMedia en data.js)
     const rango = rangoReputacionPorMedia(jugador.media);
     const dentroRango = candidatos.filter(c => c.reputacion >= rango.min && c.reputacion <= rango.max);
     // Si el rango quedara vacío por alguna razón, se usa el pool completo.
     const pool = (dentroRango.length > 0 ? dentroRango : candidatos).sort(() => Math.random() - 0.5);
-    ofertasActuales = armarTresOfertas(pool, jugador.clubActual);
+    ofertasActuales = armarTresOfertas(pool, clubRenovable);
   }
 
   document.getElementById('fichajes-temp').innerText = jugador.temporadaActual + 1;
@@ -2627,7 +2639,9 @@ function generarOfertasDeFichaje(ascendio = false) {
   if (jugador.temporadasForzadoSegunda > 0) {
     const alerta = document.createElement("div");
     alerta.className = "alert alert-danger p-2 small mb-3";
-    alerta.innerHTML = `⚠️ <strong>Obligado en Segunda:</strong> por descenso o sanción solo podés renovar en Segunda o fichar en clubes de Segunda.`;
+    alerta.innerHTML = clubRenovable
+      ? `⚠️ <strong>Obligado en Segunda:</strong> por descenso o sanción jugás en Segunda. Solo podés renovar en ${clubRenovable.nombre} o fichar en clubes de Segunda.`
+      : `🚨 <strong>Sanción de Loro:</strong> no podés renovar en <strong>${jugador.clubActual.nombre}</strong> (Primera División). Tenés que fichar en un club de Segunda hasta que termine la sanción.`;
     contenedor.appendChild(alerta);
   } else if (ascendio) {
     const alerta = document.createElement("div");
@@ -2650,7 +2664,7 @@ function generarOfertasDeFichaje(ascendio = false) {
     const esClubPrimera = club.reputacion > CONFIG.UMBRAL_PRIMERA
       || (club.nombre === jugador.clubActual.nombre && jugador.division === 1);
     const etiquetaDiv = esClubPrimera ? " [Primera]" : " [Segunda]";
-    const esRenovacion = (club.nombre === jugador.clubActual.nombre && jugador.temporadasForzadoSegunda === 0);
+    const esRenovacion = club.nombre === nombreClubActual;
 
     const btn = document.createElement("button");
     btn.className = esRenovacion ? "btn btn-outline-primary py-2 mb-2 w-100" : "btn btn-pso py-2 mb-2 w-100";
@@ -2673,11 +2687,19 @@ function seleccionarOferta(clubElegido) {
   jugador.temporadaActual++;
 
   iniciarTemporadaInternacional(true);
-  verificarCondicionLoro();
   recuperarRangoNittox();
   prepararSiguienteEvento();
   actualizarInterfaz();
   guardarPartida();
+
+  // Loro puede caer justo en este cierre de mercado. Si sanciona y el club es de
+  // Primera, la sanción va contra el jugador: se reabre el mercado forzado a
+  // Segunda en vez de dejarlo renovando en Primera. No se avanza otra temporada.
+  if (verificarCondicionLoro()
+      && (jugador.temporadasForzadoSegunda || 0) > 0
+      && jugador.clubActual.reputacion > CONFIG.UMBRAL_PRIMERA) {
+    generarOfertasDeFichaje(false);
+  }
 }
 
 function abrirModalEvento() {

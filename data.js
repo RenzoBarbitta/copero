@@ -1274,13 +1274,19 @@ function calcularDecliveEdad(edad) {
 // Arma las ofertas del mercado: renovacion + 2 clubes alternativos distintos.
 // Nunca repite el club actual ni dos ofertas iguales. Si el pool queda vacio,
 // completa con clubes del listado general.
-function armarTresOfertas(pool, clubActual) {
+// `permitido` filtra también ese relleno y `cuantos` fija cuántos alternativos
+// se ofrecen (2 si hay renovación, 3 si no la hay): en sanciones/descensos la
+// restricción es para el JUGADOR, así que el completado nunca puede devolver un
+// club de Primera.
+function armarTresOfertas(pool, clubActual, permitido, cuantos) {
   const actual = clubActual || null;
+  const limite = typeof cuantos === "number" ? cuantos : 2;
   const candidatas = (pool || []).slice().concat(typeof CLUBES !== "undefined" ? CLUBES : []);
   const usados = [];
-  for (let i = 0; i < candidatas.length && usados.length < 2; i++) {
+  for (let i = 0; i < candidatas.length && usados.length < limite; i++) {
     const c = candidatas[i];
     if (!c || !c.nombre) continue;
+    if (permitido && !permitido(c)) continue;
     if (actual && c.nombre === actual.nombre) continue;
     if (usados.some(function(u) { return u.nombre === c.nombre; })) continue;
     usados.push(c);

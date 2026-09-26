@@ -1056,15 +1056,25 @@ function cargarSlotDesdePanelConLimpieza(n) {
 
 const _generarOfertasBase = generarOfertasDeFichaje;
 generarOfertasDeFichaje = function(ascendioPorTitulo) {
-  if (jugador.modoDesafio && !jugador.carreraTerminada) {
+  // La sanción de Loro limita al jugador, no al club: aunque el Modo Leal no
+  // abra mercado, un sancionado en un club de Primera tiene que bajar a Segunda.
+  const sancionadoEnPrimera = (jugador.temporadasForzadoSegunda || 0) > 0
+    && jugador.clubActual
+    && jugador.clubActual.reputacion > CONFIG.UMBRAL_PRIMERA;
+  if (jugador.modoDesafio && !jugador.carreraTerminada && !sancionadoEnPrimera) {
     // Sin mercado: seguis en el mismo club para siempre. Se avanza directo a la próxima temporada.
     modalFichajes.hide();
     jugador.temporadaActual++;
-    verificarCondicionLoro();
+    // Si Loro sanciona en este punto, el mercado se reabre forzado a Segunda.
+    const cayeronSancion = verificarCondicionLoro()
+      && (jugador.temporadasForzadoSegunda || 0) > 0
+      && jugador.clubActual
+      && jugador.clubActual.reputacion > CONFIG.UMBRAL_PRIMERA;
     recuperarRangoNittox();
     prepararSiguienteEvento();
     actualizarInterfaz();
     guardarPartida();
+    if (cayeronSancion) generarOfertasDeFichaje(false);
     return;
   }
   _generarOfertasBase(ascendioPorTitulo);

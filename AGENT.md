@@ -152,6 +152,7 @@ node test-privacidad.mjs      # registro/privacidad
 | `test-duelo`, `test-ranking-online`, `test-ranking-dinamico` | Duelo 1v1 y ranking (sandbox con fetch falso) |
 | `test-progresion`, `test-declive-veterano`, `test-ofertas`, `test-partidos-random`, `test-logros`, `test-redes-sociales` | Mecánicas puras |
 | `test-modo-leal` | **Modo Leal** (`features.js`): el arranque respeta la selección elegida, genera los atributos iniciales (OVR 65/75) y sincroniza la división con el club sorteado |
+| `test-sancion-loro` | **Sanción de Loro** (`app.js` + `data.js`): la sanción va contra el jugador, no contra el equipo, así que un sancionado en Primera no puede renovar ahí (solo fichar en Segunda); el Modo Leal no la esquiva y el relleno de ofertas nunca cruza de división |
 | `test-selecciones` | Catálogo de 211 selecciones y banderas |
 | `test-seguridad-live` | Audita RLS contra Supabase real (requiere red; 1 punto preexistente pendiente: SQL 005/006) |
 
@@ -171,6 +172,13 @@ base (se re-delegaría en sí mismo). Debe replicar su bloque de arranque —
 `activarModoDesafio()` llama a `sincronizarDivision()` porque el sorteo puede dar
 un club de 1ª y `crearJugadorInicial()` deja `division: 2`.
 
+**La lealtad no puede con la sanción de Loro**: `temporadasForzadoSegunda > 0`
+limita al **jugador**, no al club, así que el override de
+`generarOfertasDeFichaje()` (`features.js`) se saltea solo si no hay sanción *o*
+si el club actual ya es de Segunda. Con sanción y club de Primera, el mercado se
+abre igual y `app.js` ofrece únicamente clubes de Segunda: renovar en el club de
+Primera no existe como opción. Cubierto por `test-sancion-loro.mjs`.
+
 ## 5. Animaciones (dónde tocar para pulir la UI)
 
 - `fx.css` (912 líneas, 268 bloques, **reescrito limpio v4 — sin duplicados ni bloques huérfanos**): fondo con más resalte (gradiente base azul/dorado en `.fx-ambiente`, 5 orbes con flotación+rotación+escala y glow pulsante, 4 orbes pequeños decorativos, partículas `fx-ambiente::before` en deriva por tile, líneas de cancha con doble gradiente en dos ejes, viñeta con pulso, **aurora cónica girando** `.fx-aurora`, **barrido diagonal de luz** `.fx-reflejos` y **polvo fino flotando** `.fx-polvo` — estas 3 capas se suman al parallax del puntero en `react/fx.js`), `react/fx.js` renderiza los 5 orbes + orbes pequeños + parallax al puntero, barra de scroll, **intro animada** (`.intro-banner` con `banner copero.png` + emblema `CoperoPsoSa.png`: entrada con overshoot, barrido de brillo, pulso de borde y logo que "pica" — todo apagado en `prefers-reduced-motion`), **textos del menú y cards de apoyo** (títulos con gradiente dorado/azul que se desplaza, emojis de precio flotando, precio que respira con glow, badge "Recomendado" que late, botones con glow pulsante, entrada escalonada de las `.support-cards` y borde luminoso `.support-card::before` que viaja al hover), **cinemática de apertura** (`.cinematica` en `react/fx.js` → `Cinematica`, se autodesmonta a los ~3.35s con `return null` y, si hay cuadro de calidad, espera quieta en `.cinematica-espera` hasta que el jugador elija — arranca con el evento `copero:calidad-elegida` y es idéntica en Alta y en Baja; orbes que estallan, anillo dorado, logo con overshoot + brillo, título COPERO letra por letra con `linear-gradient`-clip, línea de carga dorada y salida en zoom-out hacia la app), entradas de pantalla/vistas/tarjetas escalonadas con overshoot (se re-disparan al quitar `.hidden`), hover lift+glow de tarjetas, navegación (pill activo que crece, ícono pop, respiración del ícono activo en nav inferior), **profundidad**: modales, topbar/sidebar/nav cristal con `backdrop-filter`, tarjeta del jugador/VS/escudos/OVR, chips, inputs hundidos, progreso y tablas, `#aplicacion{display:contents}`.
@@ -183,7 +191,7 @@ un club de 1ª y `crearJugadorInicial()` deja `division: 2`.
 - `sw.js`: navegación y mismo origen **network-first**; Bootstrap CDN
   cache-first; Supabase excluido.
 - Al modificar o agregar archivos del juego: **subir `CACHE_NOMBRE`**
-  (hoy `pso-carrera-v53`) y agregar archivos nuevos a `ARCHIVOS_BASE`.
+  (hoy `pso-carrera-v54`) y agregar archivos nuevos a `ARCHIVOS_BASE`.
 
 ## 7. Deploy
 
