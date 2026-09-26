@@ -1723,7 +1723,24 @@ function registrarResultadoTorneo(ga, gb, golesJugador) {
   const estado = jugador.internacional;
   const p = siguientePendienteTorneo();
   if (!estado || !p) return;
-  estado.resultados.push({ a: p.a, b: p.b, ga: ga, gb: gb });
+  const mismoPartido = function (r) {
+    return (r.a === p.a && r.b === p.b) || (r.a === p.b && r.b === p.a);
+  };
+  // En grupos el partido ya tiene su fila desde que se armó el grupo (con
+  // ga/gb null): se completa en el lugar. Agregar una fila nueva dejaba el null
+  // adelante, tablaGrupo lo ignoraba y el jugador terminaba la fase con pj=0
+  // aunque hubiera ganado los 3 (y quedaba eliminado).
+  const fila = (estado.resultados || []).find(function (r) {
+    return mismoPartido(r) && r.ga == null && r.gb == null;
+  });
+  if (fila) { fila.ga = ga; fila.gb = gb; }
+  else if (!estado.grupos) estado.resultados.push({ a: p.a, b: p.b, ga: ga, gb: gb });
+  // El marcador de la ronda eliminatoria vive en estado.ronda, no en resultados:
+  // sin esto equipoAvanzado() devolvia null y el jugador se eliminaba en la
+  // primera ronda aunque hubiera ganado.
+  (estado.ronda || []).forEach(function (m) {
+    if (mismoPartido(m)) { m.ga = ga; m.gb = gb; }
+  });
   estado.pendientes.shift();
   estado.jugados++;
   const ganeYo = p.a === jugador.nacionalidad ? ga > gb : gb > ga;
@@ -1736,7 +1753,18 @@ function registrarResultadoTorneo(ga, gb, golesJugador) {
 function equipoAvanzado(m) {
   if (m.ga == null || m.gb == null) return null;
   if (m.ga !== m.gb) return m.ga > m.gb ? m.a : m.b;
-  return Math.random() < 0.5 ? m.a : m.b;
+  return (typeof rnd === "function" ? rnd() : Math.random()) < 0.5 ? m.a : m.b;
+}
+
+// Nombre de la ronda que se juega segun cuantos equipos quedan. Con 16 equipos
+// (8 grupos x 2 clasifican) y con 8 (4 grupos x 2) la primera ronda eliminatoria
+// son octavos; antes se decidia por cantidad de grupos y los torneos
+// continentales de 8 equipos arrancaban en "cuartos".
+function nombreRondaPorCantidad(cant) {
+  if (cant >= 8) return "octavos";
+  if (cant === 4) return "cuartos";
+  if (cant === 2) return "semis";
+  return "final";
 }
 
 function convertirVivosEnRonda(estado, vivos, nombreRonda) {
@@ -1748,6 +1776,7 @@ function convertirVivosEnRonda(estado, vivos, nombreRonda) {
       : nombreRonda === "semis" ? "torneoFaseSemis" : "torneoFaseFinal";
   for (let i = 0; i < vivos.length; i += 2) {
     let a = vivos[i], b = vivos[i + 1];
+    if (!a || !b) break;
     if (a === jugador.nacionalidad || b === jugador.nacionalidad) {
       if (a !== jugador.nacionalidad) { const tmp = a; a = b; b = tmp; }
       estado.pendientes.push({ a: a, b: b });
@@ -1774,8 +1803,8 @@ function continuarTorneoSeleccion() {
       return;
     }
     estado.vivos = clasificados;
-    const cantGrupos = estado.grupos.length;
-    convertirVivosEnRonda(estado, clasificados, cantGrupos > 4 ? "octavos" : "cuartos");
+    estado.avisoClasificado = true;
+    convertirVivosEnRonda(estado, clasificados, nombreRondaPorCantidad(clasificados.length));
     return;
   }
   if (estado.pendientes.length > 0) return;
@@ -1834,7 +1863,17 @@ function mostrarTrasPartidoTorneo(jugado) {
       : nombreFaseTorneo(estado.faseNombre);
     const jugadorNombre = seleccionPorCodigo(jugador.nacionalidad).nombre;
     const rivalJugado = jugado ? seleccionPorCodigo(jugado.b) : null;
-    const resultScore = jugado ? jugado.ga + " - " + jugado.gb : "";
+    const resultScore = jugando ? jugado.ga + " - " + jugado.gb : "";
+    // Al salir de grupos: decir que clasificaste y con qué récord, para que el
+    // avance sea visible (antes solo se veia "Quedaste afuera...").
+    const avisoClasificado = estado.avisoClasificado
+      ? "<p class='text-center fw-bold mb-1'>✅ " + t("torneoClasificado")
+          .replace("{fase}", nombreFaseTorneo(estado.faseNombre)) + "</p>" +
+        "<p class='text-center small text-secondary mb-2'>📊 " +
+          (estado.ganados || 0) + "/" + (estado.jugados || 0) + " 📈 " +
+          (jugador.golesSeleccion || 0) + " ⚽</p>"
+      : "";
+    estado.avisoClasificado = false;
     cuerpo =
       "<div class='d-flex justify-content-center align-items-center text-center mb-2'>" +
       "<div><div>" + banderaImg(jugador.nacionalidad, "ranking-bandera") + "</div><small>" + jugadorNombre + "</small></div>" +
@@ -1851,6 +1890,7 @@ function mostrarTrasPartidoTorneo(jugado) {
         ? (ganeYo ? "<p class='text-center small mb-1'>✅ Moral +3</p>" : "<p class='text-center small mb-1'>❌ Moral -2</p>")
         : "<p class='text-center small mb-1'>➖ Moral 0</p>") +
       "<hr>" +
+      avisoClasificado +
       "<p class='text-center mb-1'><strong>" + nombreTorneo(estado.tipo) + " — " + faseTexto + "</strong></p>" +
       "<p class='text-center small mb-2'>" + t("torneoComoJugar").replace("{torneo}", nombreTorneo(estado.tipo)) + "</p>" +
       "<div class='d-flex justify-content-center align-items-center text-center mb-2'>" +

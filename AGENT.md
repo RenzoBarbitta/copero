@@ -153,6 +153,7 @@ node test-privacidad.mjs      # registro/privacidad
 | `test-progresion`, `test-declive-veterano`, `test-ofertas`, `test-partidos-random`, `test-logros`, `test-redes-sociales` | Mecánicas puras |
 | `test-modo-leal` | **Modo Leal** (`features.js`): el arranque respeta la selección elegida, genera los atributos iniciales (OVR 65/75) y sincroniza la división con el club sorteado |
 | `test-sancion-loro` | **Sanción de Loro** (`app.js` + `data.js`): la sanción va contra el jugador, no contra el equipo, así que un sancionado en Primera no puede renovar ahí (solo fichar en Segunda); el Modo Leal no la esquiva y el relleno de ofertas nunca cruza de división |
+| `test-torneo-clasificacion` | **Fase de grupos** (`app.js` + `data.js`): ganar los 3 de grupos clasifica, la ronda eliminatoria no elimina al jugador por marcador sin registrar, y la ronda se nombra por cantidad de equipos (8 equipos = octavos, no cuartos) |
 | `test-selecciones` | Catálogo de 211 selecciones y banderas |
 | `test-seguridad-live` | Audita RLS contra Supabase real (requiere red; 1 punto preexistente pendiente: SQL 005/006) |
 
@@ -191,7 +192,7 @@ Primera no existe como opción. Cubierto por `test-sancion-loro.mjs`.
 - `sw.js`: navegación y mismo origen **network-first**; Bootstrap CDN
   cache-first; Supabase excluido.
 - Al modificar o agregar archivos del juego: **subir `CACHE_NOMBRE`**
-  (hoy `pso-carrera-v54`) y agregar archivos nuevos a `ARCHIVOS_BASE`.
+  (hoy `pso-carrera-v55`) y agregar archivos nuevos a `ARCHIVOS_BASE`.
 
 ## 7. Deploy
 

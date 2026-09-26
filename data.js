@@ -1493,8 +1493,11 @@ function tablaGrupo(equipos, resultados) {
   });
   equipos.forEach(function (cod, i) {
     equipos.slice(i + 1).forEach(function (cod2) {
+      // Solo cuentan las filas con marcador: una fila sin ga/gb es un partido
+      // todavia no disputado y no puede tapar el resultado de la misma pareja.
       const r = (resultados || []).find(function (x) {
-        return (x.a === cod && x.b === cod2) || (x.a === cod2 && x.b === cod);
+        const par = (x.a === cod && x.b === cod2) || (x.a === cod2 && x.b === cod);
+        return par && x.ga != null && x.gb != null;
       });
       if (!r || r.ga == null || r.gb == null) return;
       const ga = r.a === cod ? r.ga : r.gb;
