@@ -45,7 +45,7 @@ ok(secA.every(function(x) { return x >= 0 && x < 1; }), 'prng: valores en [0,1)'
 // 4) Construcción del jugador real de la dupla
 const jMio = L.construirMiCoop("Tano", "A", "sala-1");
 ok(jMio.apodo === "Tano" && jMio.rol === "A", 'construirMiCoop: apodo y rol');
-ok(jMio.ovr === 60 && jMio.moral === 60 && jMio.edad === 22, 'construirMiCoop: OVR 60, moral 60, edad 22');
+ok(jMio.ovr === 75 && jMio.moral === 60 && jMio.edad === 22, 'construirMiCoop: OVR 75, moral 60, edad 22');
 ok(["DEL", "CM", "DEF", "GK"].includes(jMio.posicion), 'construirMiCoop: posición válida: ' + jMio.posicion);
 ok(L.construirMiCoop("X", "A", "sala-1").posicion === L.construirMiCoop("X", "A", "sala-1").posicion,
   'construirMiCoop: posición determinista para la misma sala');

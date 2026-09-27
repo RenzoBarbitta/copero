@@ -31,6 +31,7 @@
     TEMPORADAS: 8,
     TIMER_MS: 10000,
     EDAD_INICIO: 22,
+    OVR_INICIAL: 75,
     TACTICAS: ["A", "B", "C"],
     META_GOLES_INT_POR_TEMP: 2,
     META_TROFEOS_MIN: 2
@@ -42,6 +43,141 @@
     B: { label: "⚖️ Equilibrado", desc: "balance entre ataque y defensa" },
     C: { label: "🛡️ Defensa total", desc: "menos goles, más seguridad" }
   };
+
+  // ============================================================
+  //  EVENTOS COOPERATIVOS EXCLUSIVOS (uno por temporada)
+  //  Eventos que la dupla resuelve JUNTA (táctica compartida).
+  //  Ambos ven lo mismo, eligen la misma opción, y el resultado
+  //  afecta a AMBOS jugadores (OVR, moral, goles, etc.).
+  // ============================================================
+  const COOP_EVENTOS = {
+    PRETEMPORADA: {
+      titulo: "🏕️ Pretemporada Dura",
+      texto: "El cuerpo técnico exige el doble de carga física.<br><br>¿Cómo la afrontan los dos?",
+      a: "💪 A tope los dos",
+      b: "🧠 Gestionan cargas",
+      resolver: function(op, mi, socio, dupla) {
+        if (op === "a") {
+          mi.ovr = Math.min(99, mi.ovr + 2);
+          socio.ovr = Math.min(99, socio.ovr + 2);
+          mi.moral = Math.max(0, mi.moral - 10);
+          socio.moral = Math.max(0, socio.moral - 10);
+          return "💪 Ambos se matan en la pretemporada: <strong>+2 OVR cada uno</strong>, pero la moral baja <strong>-10</strong>.";
+        }
+        mi.moral = Math.min(100, mi.moral + 10);
+        socio.moral = Math.min(100, socio.moral + 10);
+        return "🧠 Gestionan bien las cargas: <strong>+10 moral cada uno</strong>. OVR se mantiene.";
+      }
+    },
+    LESION_COMPARTIDA: {
+      titulo: "🏥 Lesión Compartida",
+      texto: "Los dos se lesionan en el mismo entrenamiento (choque fortuito).<br><br>¿Cómo reaccionan?",
+      a: "🩹 Rehabilitación conjunta",
+      b: "⚡ Apuran la vuelta",
+      resolver: function(op, mi, socio, dupla) {
+        if (op === "a") {
+          mi.ovr = Math.max(40, mi.ovr - 1);
+          socio.ovr = Math.max(40, socio.ovr - 1);
+          mi.moral = Math.min(100, mi.moral + 15);
+          socio.moral = Math.min(100, socio.moral + 15);
+          return "🩹 Rehabilitación lenta pero segura: <strong>-1 OVR</strong> cada uno, <strong>+15 moral</strong> por el apoyo mutuo.";
+        }
+        const rnd = Math.random();
+        if (rnd < 0.5) {
+          mi.ovr = Math.max(40, mi.ovr - 3);
+          socio.ovr = Math.max(40, socio.ovr - 3);
+          return "💥 Apuraron la vuelta y recayeron: <strong>-3 OVR cada uno</strong>.";
+        }
+        mi.ovr = Math.min(99, mi.ovr + 1);
+        socio.ovr = Math.min(99, socio.ovr + 1);
+        return "⚡ ¡Vuelta express exitosa! <strong>+1 OVR cada uno</strong> por la adaptación.";
+      }
+    },
+    SPONSOR_DUPLA: {
+      titulo: "💼 Sponsor de la Dupla",
+      texto: "Una marca quiere a los dos para una campaña.<br><br>¿Aceptan la exposición?",
+      a: "📸 Sí, a full",
+      b: "🚫 No, solo fútbol",
+      resolver: function(op, mi, socio, dupla) {
+        if (op === "a") {
+          mi.moral = Math.min(100, mi.moral + 10);
+          socio.moral = Math.min(100, socio.moral + 10);
+          dupla.golesSeleccion += 2;
+          return "📸 Campaña viral: <strong>+10 moral cada uno</strong> y <strong>+2 goles</strong> para la selección por la confianza.";
+        }
+        mi.ovr = Math.min(99, mi.ovr + 1);
+        socio.ovr = Math.min(99, socio.ovr + 1);
+        return "🚫 Rechazan y se concentran: <strong>+1 OVR cada uno</strong> por foco puro.";
+      }
+    },
+    VESTUARIO_TENSION: {
+      titulo: "🗣️ Tensión en el Vestuario",
+      texto: "Hay roces con referentes del plantel. La dupla es el centro.<br><br>¿Qué postura toman?",
+      a: "🤝 Lideran y unen",
+      b: "😤 Se blindan los dos",
+      resolver: function(op, mi, socio, dupla) {
+        if (op === "a") {
+          mi.moral = Math.min(100, mi.moral + 15);
+          socio.moral = Math.min(100, socio.moral + 15);
+          dupla.puntosSincronia++;
+          return "🤝 Lideran el vestuario: <strong>+15 moral cada uno</strong> y <strong>+1 punto de sincronía</strong>.";
+        }
+        mi.ovr = Math.min(99, mi.ovr + 1);
+        socio.ovr = Math.min(99, socio.ovr + 1);
+        mi.moral = Math.max(0, mi.moral - 5);
+        socio.moral = Math.max(0, socio.moral - 5);
+        return "😤 Se blindan y suben el nivel: <strong>+1 OVR cada uno</strong>, pero <strong>-5 moral</strong> por el aislamiento.";
+      }
+    },
+    CLASICO_CRUCIAL: {
+      titulo: "⚔️ Clásico Definitorio",
+      texto: "Llega el clásico de la temporada. La dupla puede decidirlo.<br><br>¿Cómo lo juegan?",
+      a: "🔥 Arriesgan todo",
+      b: "🛡️ Juegan al error rival",
+      resolver: function(op, mi, socio, dupla) {
+        const rnd = Math.random();
+        if (op === "a") {
+          if (rnd < 0.6) {
+            mi.goles += 2; socio.goles += 1;
+            mi.ovr = Math.min(99, mi.ovr + 1);
+            socio.ovr = Math.min(99, socio.ovr + 1);
+            return "🔥 ¡Ganan el clásico a lo grande! <strong>+3 goles repartidos</strong> y <strong>+1 OVR cada uno</strong>.";
+          }
+          mi.moral = Math.max(0, mi.moral - 15);
+          socio.moral = Math.max(0, socio.moral - 15);
+          return "💔 Pierden el clásico feo: <strong>-15 moral cada uno</strong>.";
+        }
+        if (rnd < 0.7) {
+          mi.asistencias += 1; socio.asistencias += 1;
+          return "🛡️ Empate táctico: <strong>+1 asistencia cada uno</strong> por juego asociado.";
+        }
+        mi.goles += 1; socio.goles += 1;
+        return "🛡️ Ganan 2-1 con paciencia: <strong>+1 gol cada uno</strong>.";
+      }
+    },
+    CONVOCATORIA_DOBLE: {
+      titulo: "🌍 Convocatoria Doble",
+      texto: "La selección llama a LOS DOS. Partido clave de eliminatorias.<br><br>¿Cómo lo viven?",
+      a: "🏆 A morir por la patria",
+      b: "🛡️ Cuidan la física",
+      resolver: function(op, mi, socio, dupla) {
+        if (op === "a") {
+          dupla.golesSeleccion += 3;
+          dupla.partidosSeleccion += 1;
+          dupla.victoriasSeleccion++;
+          mi.moral = Math.min(100, mi.moral + 10);
+          socio.moral = Math.min(100, socio.moral + 10);
+          return "🏆 Victoria épica con los dos: <strong>+3 goles selección</strong>, <strong>+1 PJ</strong>, <strong>+1 victoria</strong> y <strong>+10 moral cada uno</strong>.";
+        }
+        dupla.partidosSeleccion += 1;
+        mi.ovr = Math.min(99, mi.ovr + 1);
+        socio.ovr = Math.min(99, socio.ovr + 1);
+        return "🛡️ Juegan con cuidado, empatan: <strong>+1 PJ selección</strong> y <strong>+1 OVR cada uno</strong> por rodaje internacional.";
+      }
+    }
+  };
+
+  const COOP_EVENTOS_POOL = Object.keys(COOP_EVENTOS);
 
   // Semilla del SERVIDOR (006): la setea la Parte 2 cuando el RPC de sala
   // responde. Sin servidor, se usa el topic de la sala (como en el duelo).
@@ -92,7 +228,7 @@
       apodo: apodo || "Jugador",
       rol: rol || "A",
       posicion: asignarPosicionCoop(rol || "A", topic),
-      ovr: 60,
+      ovr: COOP_CFG.OVR_INICIAL || 75,
       moral: 60,
       edad: COOP_CFG.EDAD_INICIO || 22,
       goles: 0,
@@ -1193,6 +1329,12 @@
           resolverDecision();
         }
         break;
+      case "coopevt":
+        if (c && c.eventoActual && !c.eventoActual.resuelto) {
+          // En cooperativo ambos eligen lo mismo, esto confirma que el socio también eligió.
+          resolverEventoCoopUI();
+        }
+        break;
       case "listo":
         c.listos[msg.fase] = c.listos[msg.fase] || {};
         c.listos[msg.fase].rival = true;
@@ -1407,6 +1549,23 @@
   }
 
   // ============================================================
+  //  EVENTO COOPERATIVO EXCLUSIVO (uno por temporada, determinista)
+  // ============================================================
+  function elegirEventoCoop(temporada) {
+    const usados = c.eventosUsados || [];
+    let pool = COOP_EVENTOS_POOL.filter(function(e) { return usados.indexOf(e) === -1; });
+    if (pool.length === 0) pool = COOP_EVENTOS_POOL.slice();
+    const idx = semillaCoop(caSesion.topic, temporada, "evento") % pool.length;
+    return pool[idx];
+  }
+
+  function resolverEventoCoop(eventoId, eleccion) {
+    const evento = COOP_EVENTOS[eventoId];
+    if (!evento) return "Evento no encontrado.";
+    return evento.resolver(eleccion, c.mi, c.socio, c.dupla);
+  }
+
+  // ============================================================
   //  TEMPORADA DE LA DUPLA (simulación determinista)
   // ============================================================
   function iniciarTemporadaCoop() {
@@ -1466,8 +1625,8 @@
 
     renderHUDCoop();
     pintarResumenTemporadaCoop();
-    // Momento cooperativo: la táctica del partido de la selección.
-    enTareaCoop(function() { faseDecisionCoop(); }, 800);
+    // Evento cooperativo exclusivo de la temporada (antes del momento cooperativo).
+    enTareaCoop(function() { faseEventoCoop(); }, 800);
   }
 
   function pintarResumenTemporadaCoop() {
@@ -1493,6 +1652,77 @@
       '<p class="small text-secondary mt-2">Preparando el momento cooperativo: la táctica del partido de <strong>' + escCoop(c.dupla.seleccion.nombre) + "</strong>...</p>" +
       "</div>";
     enviarStatsCoop("Temporada " + c.temporada + ": decidí la táctica");
+  }
+
+  // ============================================================
+  //  EVENTO COOPERATIVO EXCLUSIVO DE LA TEMPORADA
+  //  La dupla elige JUNTA una opción (táctica compartida).
+  //  Ambos ven lo mismo, eligen lo mismo, resultado compartido.
+  // ============================================================
+  function faseEventoCoop() {
+    if (!c || !c.activo) return;
+    const eventoId = elegirEventoCoop(c.temporada);
+    const evento = COOP_EVENTOS[eventoId];
+    if (!evento) { faseDecisionCoop(); return; }
+
+    // Marcar evento como usado
+    c.eventosUsados = c.eventosUsados || [];
+    c.eventosUsados.push(eventoId);
+
+    c.eventoActual = { id: eventoId, eleccion: null, resuelto: false };
+    enviarStatsCoop("Evento de temporada...");
+
+    let footer = "";
+    footer += '<button class="btn btn-warning fw-bold mx-2 my-1" onclick="elegirEventoCoopUI(\'a\')">' + evento.a + "</button>";
+    footer += '<button class="btn btn-outline-warning fw-bold mx-2 my-1" onclick="elegirEventoCoopUI(\'b\')">' + evento.b + "</button>";
+
+    abrirModalCoop(
+      "⭐ EVENTO DE TEMPORADA — " + evento.titulo + " (Temporada " + c.temporada + ")",
+      "<p class='fs-5'>" + evento.texto + "</p>" +
+      "<p class='small text-secondary'>Ambos eligen la <strong>misma opción</strong>: el resultado afecta a los <strong>dos</strong>.</p>",
+      footer
+    );
+    iniciarTimerCoop(COOP_CFG.TIMER_MS / 1000, function() { elegirEventoCoopUI("a", true); });
+  }
+
+  function elegirEventoCoopUI(op, porTimer) {
+    if (!c || !c.eventoActual || c.eventoActual.eleccion) return;
+    detenerTimerCoop();
+    c.eventoActual.eleccion = op;
+    enviarCoop({ t: "coopevt", op: op });
+    enviarStatsCoop("Opción enviada...");
+
+    const enEspera =
+      (porTimer ? '<p class="small text-warning">⏱️ Se eligió automáticamente por tiempo.</p>' : "") +
+      '<p class="mt-3">📨 Opción enviada. Esperando a tu socio...</p>';
+    actualizarModalCoop(enEspera, "");
+    resolverEventoCoopUI();
+  }
+
+  function resolverEventoCoopUI() {
+    if (!c || !c.eventoActual || c.eventoActual.resuelto) return;
+    if (!c.eventoActual.eleccion) return; // esperar al socio (llegará por broadcast)
+
+    // En modo cooperativo, AMBOS eligen lo mismo (táctica compartida).
+    // La resolución es local y determinista, no hay "elección rival" distinta.
+    c.eventoActual.resuelto = true;
+    const evento = COOP_EVENTOS[c.eventoActual.id];
+    const resultado = resolverEventoCoop(c.eventoActual.id, c.eventoActual.eleccion);
+
+    const resumen =
+      "<h2 class='text-warning'>" + evento.titulo + "</h2>" +
+      "<p>" + resultado + "</p>" +
+      "<p class='small text-secondary mt-2'>Opción elegida: <strong>" + (c.eventoActual.eleccion === 'a' ? evento.a : evento.b) + "</strong></p>";
+
+    actualizarModalCoop(resumen, '');
+    enviarStatsCoop("Evento resuelto");
+    renderHUDCoop();
+    c.eventoActual = null;
+
+    enTareaCoop(function() {
+      cerrarModalCoop();
+      faseDecisionCoop(); // continuar al momento cooperativo (selección)
+    }, 3200);
   }
 
   // ============================================================
@@ -1751,6 +1981,7 @@
   window.iniciarCoopConfig = iniciarCoopConfig;
   window.sortearDuplaCoopUI = sortearDuplaCoopUI;
   window.elegirTacticaCoop = elegirTacticaCoop;
+  window.elegirEventoCoopUI = elegirEventoCoopUI;
   window.abandonarCoop = abandonarCoop;
 
   window.addEventListener("beforeunload", function() {
