@@ -21,7 +21,7 @@
 //  cache de golpe, pero no es necesario para ver las novedades.
 // ============================================================
 
-const CACHE_NOMBRE = "pso-carrera-v56";
+const CACHE_NOMBRE = "pso-carrera-v57";
 
 const ARCHIVOS_BASE = [
   "./",

@@ -1,10 +1,11 @@
 // ============================================================
 //  Rivalidad de jugador (rival.js)
 //  Verifica que el rival se sortee del catálogo correcto (misma
-//  posición que el usuario), que evolucione temporada a temporada,
-//  que el duelo se pueda jugar UNA vez por temporada con su propio
-//  contador (sin tocar el de minijuegos) y que los premios se
-//  apliquen según victoria / empate / derrota.
+//  posición que el usuario), que aparezca pintado apenas se inicia
+//  la carrera, que evolucione al cerrar la temporada (el cierre real
+//  es cerrarTemporadaFinalizada), que el botón ¡DUELAR! dispague de
+//  verdad y que el duelo se juegue UNA vez por temporada con su propio
+//  contador (sin tocar el de minijuegos) y los premios correctos.
 //  Ejecutar: node test-rivalidades.mjs
 // ============================================================
 import assert from 'node:assert/strict';
@@ -30,8 +31,15 @@ function nodo(id) {
     innerHTML: '',
     disabled: false,
     style: {},
+    listeners: {},
     classList: { add() {}, remove() {}, contains() { return false; }, toggle() {} },
-    addEventListener() {},
+    addEventListener(tipo, fn) { (this.listeners[tipo] = this.listeners[tipo] || []).push(fn); },
+    removeEventListener(tipo, fn) {
+      const l = this.listeners[tipo];
+      if (l) this.listeners[tipo] = l.filter(f => f !== fn);
+    },
+    // Dispara los handlers como haría un click real del usuario.
+    click() { (this.listeners.click || []).slice().forEach(fn => fn({ type: 'click' })); },
     querySelector: () => nodo('span'),
     setAttribute() {}
   };
@@ -45,7 +53,10 @@ function montar(semilla, posicion, nombreUsuario) {
   [
     'rival-card', 'rival-escudo', 'rival-nombre', 'rival-posicion', 'rival-club',
     'rival-stats', 'rival-media', 'rival-intensidad-texto', 'rival-intensidad-barra',
-    'rival-historial', 'btn-duelo-rivalidad'
+    'rival-historial', 'btn-duelo-rivalidad',
+    'modalRivalidad', 'rivalidad-barra', 'rivalidad-cursor', 'rivalidad-marcador',
+    'rivalidad-objetivo', 'rivalidad-turno', 'btn-disparar-rivalidad',
+    'btn-cerrar-rivalidad', 'rivalidad-resultado'
   ].forEach(crear);
 
   const math = Object.assign(Object.create(Math), { random: crearAzar(semilla) });
@@ -55,6 +66,7 @@ function montar(semilla, posicion, nombreUsuario) {
     localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
     document: {
       addEventListener() {},
+      removeEventListener() {},
       getElementById: id => nodos[id] || null,
       querySelectorAll: () => [],
       createElement: () => nodo('tmp'),
@@ -62,7 +74,10 @@ function montar(semilla, posicion, nombreUsuario) {
     },
     requestAnimationFrame: () => 0,
     cancelAnimationFrame: () => {},
-    window: null
+    window: null,
+    NOMBRE: nombreUsuario,
+    POS: posicion,
+    NODOS_GLOBAL: nodos
   });
   vm.runInContext('globalThis.window = globalThis; globalThis.addEventListener = function() {};', ctx);
 
@@ -77,25 +92,32 @@ function montar(semilla, posicion, nombreUsuario) {
     function ajustarMoral(d) { jugador.moral = (jugador.moral || 50) + d; }
     function mediaActual() { return jugador.media; }
     function clampMedia(v) { return Math.max(CONFIG.OVR_MIN, Math.min(CONFIG.OVR_MAX, v)); }
-    function iniciarCarrera() { jugador = crearJugador(); }
-    function continuarCarrera() {}
-    function simularTemporada() { jugador.temporadaActual++; jugador.edad++; }
     function crearJugador() {
       return {
-        nombre: "Prueba", posicion: "DEL", nacionalidad: "URU", edad: CONFIG.EDAD_INICIO,
+        nombre: NOMBRE_TEST, posicion: POSICION_TEST, nacionalidad: "URU", edad: CONFIG.EDAD_INICIO,
         media: 65, moral: 50, dorsal: 10, atributos: null, clubActual: null,
         carreraTerminada: false, minijuegosUsadosEstaTemporada: 0, rivalidad: null,
         historialTemporadas: [], trofeos: {}
       };
     }
+    function iniciarCarrera() { jugador = crearJugador(); }
+    function continuarCarrera() {}
+    // Espejo de app.js: cerrarTemporadaFinalizada() es el cierre real y
+    // simularTemporada() solo lo delega.
+    function cerrarTemporadaFinalizada() { jugador.temporadaActual++; jugador.edad++; }
+    function simularTemporada() { cerrarTemporadaFinalizada(); }
+    globalThis.NOMBRE_TEST = NOMBRE;
+    globalThis.POSICION_TEST = POS;
     globalThis.CFG = CONFIG;
     globalThis.CATALOGO_RIVAL = RIVALIDADES_PERSONAJES;
+    globalThis.NODOS = NODOS_GLOBAL;
   `, ctx);
   vm.runInContext(leer('rival.js'), ctx);
   vm.runInContext('globalThis.jugador = crearJugador();', ctx);
 
   ctx.jugador.posicion = posicion;
   ctx.jugador.nombre = nombreUsuario;
+  ctx.nodos = nodos;
   return ctx;
 }
 
@@ -325,6 +347,87 @@ for (let semilla = 201; semilla <= 230; semilla++) {
   assert.equal(rival.intensidad, 3 + cfg(ctx).INTENSIDAD_VICTORIA,
     'ganar debe subir la intensidad');
   casos++;
+}
+
+// ---------- 7) REGRESIÓN: al iniciar, la tarjeta ya tiene rival ----------
+// iniciarCarrera() de app.js renderiza ANTES de que rival.js sortee
+// al rival: sin el repintado del wrapper la tarjeta quedaba vacía.
+{
+  const ctx = montar(1234, 'CM', 'Prueba');
+  ctx.iniciarCarrera();
+  casos++;
+
+  const r = ctx.jugador.rivalidad;
+  assert.ok(r && r.nombre, 'iniciarCarrera() debe sortear el rival');
+  assert.equal(r.posicion, 'CM');
+  assert.equal(ctx.nodos['rival-nombre'].textContent, r.nombre,
+    'la tarjeta debe pintar el nombre del rival apenas se inicia');
+  assert.equal(ctx.nodos['rival-club'].textContent, r.clubNombre);
+  assert.equal(ctx.nodos['rival-posicion'].textContent, r.posicion);
+  assert.equal(String(ctx.nodos['rival-media'].textContent), String(r.media),
+    'la tarjeta debe pintar el OVR del rival');
+  assert.notEqual(ctx.nodos['rival-nombre'].textContent, '—',
+    'la tarjeta no debe quedar en el estado vacío');
+  assert.equal(ctx.nodos['btn-duelo-rivalidad'].disabled, false,
+    'el botón de duelo debe quedar habilitado con el rival ya sorteado');
+  assert.ok(ctx.nodos['rival-stats'].innerHTML.includes(r.nombre) === false &&
+    ctx.nodos['rival-stats'].innerHTML.length > 0, 'la línea de stats debe pintarse');
+}
+
+// Continuar una carrera vieja (sin rival) también lo genera y lo pinta.
+{
+  const ctx = montar(4321, 'DEF', 'Prueba');
+  ctx.jugador.rivalidad = null;
+  ctx.continuarCarrera();
+  casos++;
+  assert.ok(ctx.jugador.rivalidad && ctx.jugador.rivalidad.nombre,
+    'continuar una carrera sin rival debe generarlo');
+  assert.equal(ctx.nodos['rival-nombre'].textContent, ctx.jugador.rivalidad.nombre);
+}
+
+// ---------- 8) REGRESIÓN: el cierre REAL de temporada evoluciona al rival ----------
+// El hook va sobre cerrarTemporadaFinalizada() (no sobre simularTemporada,
+// que no tiene llamadores en el juego).
+{
+  const ctx = montar(5678, 'GK', 'Prueba');
+  ctx.iniciarCarrera();
+  const antes = JSON.parse(JSON.stringify(ctx.jugador.rivalidad));
+  casos++;
+  ctx.cerrarTemporadaFinalizada();
+  const r = ctx.jugador.rivalidad;
+  assert.equal(r.edad, antes.edad + 1, 'cerrar la temporada debe envejecer al rival');
+  assert.notEqual(r.media, antes.media, 'cerrar la temporada debe cambiar el OVR del rival');
+  assert.equal(r.dueloUsadoTemporada, false, 'el duelo debe quedar disponible para la nueva temporada');
+}
+
+// ---------- 9) REGRESIÓN: el botón ¡DUELAR! realmente dispara ----------
+// El botón del modal no tenía listener: el modal abría y no pasaba nada.
+{
+  const ctx = montar(24680, 'DEL', 'Prueba');
+  ctx.iniciarCarrera();
+  casos++;
+  assert.equal(ctx.iniciarDueloRivalidad(), true, 'el duelo debe abrir');
+
+  const btn = ctx.nodos['btn-disparar-rivalidad'];
+  assert.ok((btn.listeners.click || []).length > 0,
+    'el botón ¡DUELAR! debe tener listener de click');
+
+  // 3 chances: la tercera cierra el duelo y consume el contador anual.
+  btn.click();
+  assert.equal(ctx.jugador.rivalidad.dueloUsadoTemporada, false,
+    'con chances restantes el duelo no debe cerrarse');
+  btn.click();
+  btn.click();
+  assert.equal(ctx.jugador.rivalidad.dueloUsadoTemporada, true,
+    'al agotar las chances el duelo debe registrarse');
+  assert.equal(ctx.jugador.rivalidad.duelosGanados + ctx.jugador.rivalidad.duelosEmpatados +
+    ctx.jugador.rivalidad.duelosPerdidos, 1, 'el duelo debe sumar al historial');
+  assert.equal(ctx.jugador.minijuegosUsadosEstaTemporada, 0,
+    'el duelo no debe consumir el minijuego de la temporada');
+
+  // Cerrar el modal deja el botón listo para el siguiente duelo.
+  ctx.limpiarDueloRivalidad();
+  assert.equal(btn.disabled, false, 'al cerrar el modal el botón debe quedar habilitado');
 }
 
 assert.ok(decliveOk);

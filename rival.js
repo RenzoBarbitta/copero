@@ -263,17 +263,24 @@ function registrarDueloRivalidad(puntosJugador) {
 
 // Hook del flujo de temporadas: evoluciona al rival, enfría la
 // rivalidad si no hubo duelo y reinicia el contador anual.
-const _simularTemporadaRivalBase = simularTemporada;
-simularTemporada = function () {
-  const r = asegurarRivalidad();
-  const dueloEsteAnio = r ? r.dueloUsadoTemporada : false;
-  _simularTemporadaRivalBase();
-  const r2 = evolucionarRivalidad();
-  if (r2) {
+//
+// Se engancha a cerrarTemporadaFinalizada() y NO a simularTemporada():
+// el cierre real de la temporada pasa siempre por ahí (lo usan tanto
+// jugarPartidoContraRival como simularTemporada), mientras que
+// simularTemporada() no tiene llamadores en el juego y nunca se
+// ejecutaba, así que el rival se quedaba congelado toda la carrera.
+const _cerrarTemporadaFinalizadaRivalBase = cerrarTemporadaFinalizada;
+cerrarTemporadaFinalizada = function () {
+  const previo = (typeof jugador !== "undefined" && jugador) ? jugador.rivalidad : null;
+  const dueloEsteAnio = previo ? !!previo.dueloUsadoTemporada : false;
+  _cerrarTemporadaFinalizadaRivalBase();
+  if (typeof jugador === "undefined" || !jugador || jugador.carreraTerminada) return;
+  const r = evolucionarRivalidad();
+  if (r) {
     if (!dueloEsteAnio) {
-      r2.intensidad = Math.max(CONFIG.RIVALIDAD.INTENSIDAD_MIN, r2.intensidad - CONFIG.RIVALIDAD.DECAIMIENTO_SIN_DUELO);
+      r.intensidad = Math.max(CONFIG.RIVALIDAD.INTENSIDAD_MIN, r.intensidad - CONFIG.RIVALIDAD.DECAIMIENTO_SIN_DUELO);
     }
-    r2.dueloUsadoTemporada = false;
+    r.dueloUsadoTemporada = false;
   }
 };
 
@@ -282,19 +289,31 @@ simularTemporada = function () {
 // ============================================================
 
 // Al iniciar la carrera se sortea el rival y se avisa una vez.
+// La base ya renderizó antes de que existiera el rival, así que
+// hay que volver a pintar la tarjeta o queda vacía.
 const _iniciarCarreraRivalBase = iniciarCarrera;
 iniciarCarrera = function () {
   _iniciarCarreraRivalBase();
   sortearRivalidad();
   presentarRivalidad();
   guardarPartida();
+  actualizarInterfaz();
 };
 
-// Continuar una carrera vieja (sin rival) también lo genera.
+// Continuar una carrera vieja (sin rival) también lo genera. La base
+// ya renderizó el guardado, así que si el rival había que crearlo hay
+// que volver a pintar la tarjeta.
 const _continuarCarreraRivalBase = continuarCarrera;
 continuarCarrera = function () {
   _continuarCarreraRivalBase();
-  asegurarRivalidad();
+  if (typeof jugador === "undefined" || !jugador) return;
+  const previo = jugador.rivalidad;
+  const r = asegurarRivalidad();
+  if (r && !previo) {
+    presentarRivalidad();
+    guardarPartida();
+    actualizarInterfaz();
+  }
 };
 
 // Pinta la tarjeta "Tu Rival" del dashboard de Carrera.
@@ -418,6 +437,8 @@ function iniciarDueloRivalidad() {
     mostrarNotificacion(t("rivalidadTitulo"), t("rivalidadDueloYaUsado"));
     return false;
   }
+  // Si ya había un duelo corriendo, se limpia antes de empezar otro.
+  if (estadoDueloRivalidad) limpiarDueloRivalidad();
 
   const cfg = CONFIG.RIVALIDAD;
   const modal = obtenerModalRivalidad();
@@ -432,6 +453,28 @@ function iniciarDueloRivalidad() {
     terminado: false,
     listeners: []
   };
+
+  // El botón de disparo y la barra: sin esto el modal abría pero
+  // el "¡DUELAR!" no hacía nada.
+  const btnDisparo = document.getElementById("btn-disparar-rivalidad");
+  if (btnDisparo) {
+    btnDisparo.disabled = false;
+    btnDisparo.addEventListener("click", dispararDueloRivalidad);
+    estadoDueloRivalidad.listeners.push([btnDisparo, "click", dispararDueloRivalidad]);
+  }
+  const barra = document.getElementById("rivalidad-barra");
+  if (barra) {
+    barra.addEventListener("click", dispararDueloRivalidad);
+    estadoDueloRivalidad.listeners.push([barra, "click", dispararDueloRivalidad]);
+  }
+  const alTeclado = function (ev) {
+    if (ev && (ev.code === "Space" || ev.code === "Enter")) {
+      if (ev.preventDefault) ev.preventDefault();
+      dispararDueloRivalidad();
+    }
+  };
+  document.addEventListener("keydown", alTeclado);
+  estadoDueloRivalidad.listeners.push([document, "keydown", alTeclado]);
 
   const el = document.getElementById("modalRivalidad");
   if (el) {
@@ -528,14 +571,22 @@ function limpiarDueloRivalidad() {
     if (e.raf) cancelAnimationFrame(e.raf);
     e.raf = null;
     e.terminado = true;
+    (e.listeners || []).forEach(function (l) {
+      if (l && l[0] && l[0].removeEventListener) l[0].removeEventListener(l[1], l[2]);
+    });
+    e.listeners = [];
     estadoDueloRivalidad = null;
   }
   const resultado = document.getElementById("rivalidad-resultado");
   if (resultado) resultado.innerHTML = "";
   const turno = document.getElementById("rivalidad-turno");
   if (turno) turno.textContent = "";
-  const seguir = document.getElementById("btn-cerrar-rivalidad");
-  if (seguir) seguir.classList.add("hidden");
+  const marcador = document.getElementById("rivalidad-marcador");
+  if (marcador) marcador.textContent = "—";
+  const cursor = document.getElementById("rivalidad-cursor");
+  if (cursor) cursor.style.left = "0%";
+  const btnCerrar = document.getElementById("btn-cerrar-rivalidad");
+  if (btnCerrar) btnCerrar.classList.add("hidden");
   const btn = document.getElementById("btn-disparar-rivalidad");
   if (btn) { btn.disabled = false; }
 }

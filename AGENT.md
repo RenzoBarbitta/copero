@@ -95,7 +95,7 @@ algunas APIs requieren `http://localhost` o HTTPS.
 | Archivo | Rol |
 |---|---|
 | `index.html` | Shell: head (fuentes, Bootstrap CDN, CSS) + `#aplicacion` + orden de scripts |
-| `rival.js` | Rival de jugador (envuelve `iniciarCarrera`/`continuarCarrera`/`simularTemporada`/`actualizarInterfaz`) y Duelo de Rivalidad |
+| `rival.js` | Rival de jugador (envuelve `iniciarCarrera`/`continuarCarrera`/`cerrarTemporadaFinalizada`/`actualizarInterfaz`) y Duelo de Rivalidad |
 | `carta.js` | Carta de retiro PNG (envuelve `finalizarCarrera`/`actualizarInterfaz`) |
 | `styles.css` | Estilos base históricos |
 | `theme.css` | Tema oscuro "carrera futbolística" (cargado después de styles) |
@@ -162,7 +162,7 @@ node test-privacidad.mjs      # registro/privacidad
 | `test-sancion-loro` | **Sanción de Loro** (`app.js` + `data.js`): la sanción va contra el jugador, no contra el equipo, así que un sancionado en Primera no puede renovar ahí (solo fichar en Segunda); el Modo Leal no la esquiva y el relleno de ofertas nunca cruza de división |
 | `test-torneo-clasificacion` | **Fase de grupos y cuadro** (`app.js` + `data.js`): ganar los 3 de grupos clasifica, el marcador de la ronda se registra en `estado.ronda`, `planRondasEliminatorias` **siempre termina en final** (ganar la semifinal NO da el título), un empate en eliminatorias va a tanda de penales (nunca se decide por azar) y el amistoso no elimina ni da trofeo |
 | `test-campeonatos` | Calendario: ciclo de 4 temporadas (resto 1 continental, resto 2 Finalissima **solo si sos campeón continental**, resto 3 Mundial) y **amistoso** en el resto; ningún Mundial seguido |
-| `test-rivalidades` | **`rival.js`**: el rival sale de `RIVALIDADES_PERSONAJES` de la posición del usuario (nunca `PERSONAJES`), evoluciona por temporada (edad, OVR, club, títulos, goles, asistencias), el duelo usa su propio contador y se juega 1 vez por temporada con premios correctos |
+| `test-rivalidades` | **`rival.js`**: el rival sale de `RIVALIDADES_PERSONAJES` de la posición del usuario (nunca `PERSONAJES`), aparece pintado en la tarjeta apenas se inicia la carrera, evoluciona al cerrar la temporada real (`cerrarTemporadaFinalizada`: edad, OVR, club, títulos, goles, asistencias), el botón ¡DUELAR! dispara de verdad y el duelo usa su propio contador, 1 vez por temporada con premios correctos |
 | `test-carta` | **`carta.js`**: rareza por OVR, 6 atributos de la posición, totales de carrera, avatares del juego, descarga PNG y botón solo al terminar la carrera |
 | `test-selecciones` | Catálogo de 211 selecciones y banderas |
 | `test-seguridad-live` | Audita RLS contra Supabase real (requiere red; 1 punto preexistente pendiente: SQL 005/006) |
@@ -202,7 +202,7 @@ Primera no existe como opción. Cubierto por `test-sancion-loro.mjs`.
 - `sw.js`: navegación y mismo origen **network-first**; Bootstrap CDN
   cache-first; Supabase excluido.
 - Al modificar o agregar archivos del juego: **subir `CACHE_NOMBRE`**
-  (hoy `pso-carrera-v56`) y agregar archivos nuevos a `ARCHIVOS_BASE`
+  (hoy `pso-carrera-v57`) y agregar archivos nuevos a `ARCHIVOS_BASE`
   (`rival.js`, `carta.js`, `react/modales-8.js`, `react/modales-9.js` y los
   avatares de la carta ya están).
 
@@ -221,6 +221,17 @@ día hace falta y nunca dentro del deploy.
 - Correr la suite completa antes de cerrar cambios.
 - `ui.js` re-pinta `#app-ruta` con `innerHTML` y `features.js` traduce con
   `textContent` sobre `[data-i18n]`: es esperado; React no re-renderiza.
+- **Rivalidad (`rival.js`) tiene dos trampas**:
+  1. `iniciarCarrera()`/`continuarCarrera()` de `app.js` llaman
+     `actualizarInterfaz()` **antes** de que el wrapper de `rival.js`
+     sortee el rival. El wrapper tiene que llamar `actualizarInterfaz()`
+     al final o la tarjeta `#rival-card` queda en estado vacío.
+  2. El hook de evolution va sobre **`cerrarTemporadaFinalizada()`**, no
+     sobre `simularTemporada()`: `simularTemporada()` no tiene llamadores
+     en el juego y nunca se ejecuta, así que engancharlo ahí dejaba al rival
+     congelado toda la carrera. `cerrarTemporadaFinalizada()` es el único
+     cierre real (lo usan `jugarPartidoContraRival` y `simularTemporada`).
+     No envolver los dos o el rival evoluciona dos veces por temporada.
 - `irA(seccion)` alterna `.hidden`/`.activo` desde la base: las animaciones de
   entrada dependen de ese ciclo (no "arreglar" quitando `.hidden`).
 - El MutationObserver de `ui.js` sincroniza `body.app-juego` (sidebar/bottom).
