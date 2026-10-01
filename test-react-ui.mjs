@@ -49,6 +49,14 @@ const IDS_ORIGINALES = ('app-ruta,atributos-vista,aviso-minijuego-usado,barraTL,
   'nacionalidad-nombre,nacionalidad-panel,seccion-internacional,seleccion-card-bandera,seleccion-card-confed,' +
   'seleccion-card-nombre,sel-capitan,sel-estado,sel-goles,sel-partidos,sel-torneo,btn-torneo-seleccion,' +
   'vista-entrenamiento,vista-progreso,' +
+  // +21 del Duelo de Rivalidad (tarjeta del dashboard + modal)
+'rival-card,rival-escudo,rival-nombre,rival-posicion,rival-club,rival-stats,rival-media,rival-intensidad-texto,' +
+    'rival-intensidad-barra,rival-historial,btn-duelo-rivalidad,' +
+  'modalRivalidad,modalRivalidadTitulo,rivalidad-barra,rivalidad-cursor,rivalidad-marcador,' +
+  'rivalidad-objetivo,rivalidad-turno,btn-disparar-rivalidad,btn-cerrar-rivalidad,rivalidad-resultado,' +
+  // +8 de la carta de retiro (botón en el retiro + modal del canvas)
+  'btn-crear-carta,modalCarta,modalCartaTitulo,carta-canvas,carta-foto,carta-avatares,' +
+  'btn-descargar-carta,' +
   // +7 del cuadro de CALIDAD al entrar (overlay propio + control en Configuración)
   'overlay-calidad,calidad-titulo,btn-calidad-alta,btn-calidad-baja,calidad-no-preguntar,' +
   'select-calidad,calidad-preguntar').split(',');
@@ -59,14 +67,19 @@ const HANDLERS_ORIGINALES = ('abrirConfiguracion,abrirEntrenamientoAtributos,abr
   'continuarCarrera,detenerTiroLibre,elegirIdioma,iniciarCarrera,iniciarCarreraLeal,' +
   'iniciarMinijuegoDominios,iniciarMinijuegoEntrenamiento,iniciarMinijuegoPenales,irA,jugarMomentosClave,' +
   'jugarPartidoContraRival,mostrarRedesSociales,mostrarSlots,patearPenal,reiniciarCarrera,' +
-  'simularPartidoNormal,toggleAtributosPanel').split(',');
+  'simularPartidoNormal,toggleAtributosPanel,' +
+  // Rivalidad de jugador (rival.js) y carta de retiro (carta.js)
+  'iniciarDueloRivalidad,abrirModalCarta,descargarCarta').split(',');
 
 const FOR_ORIGINALES = ('cuenta-email,cuenta-pass,cuenta-privacidad,cuenta-apodo,input-nombre,' +
   'input-dorsal,select-idioma-perfil,btn-modo-oscuro-perfil,' +
   // +3 del bloque de calidad (cuadro al entrar + Configuración)
-  'calidad-no-preguntar,select-calidad,calidad-preguntar').split(',');
+  'calidad-no-preguntar,select-calidad,calidad-preguntar,' +
+  // +1 del selector de foto de la carta de retiro
+  'carta-foto').split(',');
 
-const TOTAL_DATA_I18N = 198; // 186 + 12 del selector de calidad (cuadro al entrar + Configuración)
+// 198 + 9 del duelo de rivalidad + 5 de la carta de retiro.
+const TOTAL_DATA_I18N = 212;
 
 // ---------- Sandbox con React en stub y htm real de vendor/ ----------
 let raiz = null;
@@ -115,7 +128,8 @@ assert.equal(typeof sandbox.htm, 'function', 'vendor/htm.umd.js debe exponer htm
 
 const ORDEN = ['nucleo', 'fx', 'chrome', 'inicio', 'inicio-cancha', 'inicio-modos', 'inicio-apoyo',
   'juego-tarjeta', 'vista-carrera', 'vista-carrera2', 'vista-extra', 'vista-progreso', 'resumen',
-  'modales-1', 'modales-2', 'modales-3', 'modales-4', 'modales-5', 'modales-6', 'modales-7', 'montar'];
+  'modales-1', 'modales-2', 'modales-3', 'modales-4', 'modales-5', 'modales-6', 'modales-7',
+  'modales-8', 'modales-9', 'montar'];
 for (const nombre of ORDEN) {
   vm.runInContext(leer('react/' + nombre + '.js'), sandbox, { filename: 'react/' + nombre + '.js' });
 }
@@ -195,8 +209,9 @@ for (const m of fuentesReact.matchAll(/onClick=\$\{\(\)\s*=>\s*([A-Za-z_$][\w$]*
 assert.deepEqual([...handlers].sort(), [...HANDLERS_ORIGINALES].sort(),
   'handlers onClick distintos de los onclick originales');
 const base = ['data.js', 'progression.js', 'event-outcomes.js', 'minigame-camiseta.js', 'app.js',
-  'features.js', 'camiseta.js', 'touch-controls.js', 'supabase-config.js', 'cuenta-api.js',
-  'ranking-online.js', 'cuenta-ui.js', 'duelo.js', 'coop.js', 'ui.js', 'pwa.js'].map(leer).join('\n');
+  'features.js', 'camiseta.js', 'rival.js', 'carta.js', 'touch-controls.js', 'supabase-config.js',
+  'cuenta-api.js', 'ranking-online.js', 'cuenta-ui.js', 'duelo.js', 'coop.js', 'ui.js',
+  'pwa.js'].map(leer).join('\n');
 for (const h of handlers) {
   assert.match(base, new RegExp('function\\s+' + h + '\\s*\\('), 'handler sin definir en la base: ' + h);
 }

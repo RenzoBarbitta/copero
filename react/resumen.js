@@ -33,7 +33,10 @@
               <tbody id="tabla-resumen-body"></tbody>
             </table>
           </div>
-          <button className="btn btn-warning fw-bold px-4" onClick=${() => reiniciarCarrera()} data-i18n="jugarDeNuevo">Jugar de Nuevo</button>
+          <div className="d-flex flex-wrap gap-2 justify-content-center">
+            <button id="btn-crear-carta" type="button" className="btn btn-warning fw-bold px-4 hidden" onClick=${() => abrirModalCarta()} data-i18n="cartaCrearBoton">🃏 Crear mi carta</button>
+            <button className="btn btn-outline-warning fw-bold px-4" onClick=${() => reiniciarCarrera()} data-i18n="jugarDeNuevo">Jugar de Nuevo</button>
+          </div>
         </div>
       </div>`;
   }

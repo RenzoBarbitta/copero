@@ -432,6 +432,14 @@ const PERSONAJES = {
   GLOBAL: ["Coutinho", "Iniesta", "Neneu", "Agstn", "Pipita"]
 };
 
+// 4. PERSONAJES DE RIVALIDADES
+const RIVALIDADES_PERSONAJES = {
+  DEL: ["Gonza431", "SidaBolso", "Orsini", "Pyojo", "Flowy", "God", "Nano_deaa", "Nico Piedra", "Charly", "Valem", "GonzaMJ", "Fan", "Mclovin", "Dona", "Wel", "Wellio", "Toledo", "Nika", "Magno", "Drei", "Papitas", "Fran", "Popa", "Nittox", "Polar", "Batata", "Mike", "Atr", "Reah", "19", "Gena"],
+  CM: ["Dnt", "Caseros", "Ivans", "Marabola", "Bati", "Barney", "Pisa", "021", "Valiel", "Rafah", "Puskas", "Osabio", "Agstn", "Coutinho", "Iniesta", "Neneu", "Yfirst", "Santizs", "Lazin", "Luca136", "Joaquin", "Colidios", "Fefe", "Shob", "Papitas", "Nachusito", "Melox", "Pma", "Noz"],
+  DEF: ["Cerbe", "Musa", "Fuyi", "Kolt", "Thomy", "Bekku", "Joel", "Skchester", "Trompita", "Sepi", "Wizen", "Justin", "Luckz", "Cz", "Pipita", "Bandido", "Shok", "Cg", "Patapim", "Rozen", "Tms", "Mcn", "Patapim", "Palermo", "Only", "Luku", "Drako"],
+  GK: ["Raiko", "Khruel", "Fonta", "Molleja", "Pulgar", "Gbz", "Carlos Maria", "Alisson", "Aubrey", "Noeb", "ChatGPT", "Cochilarg", "Picture", "Makima", "Tache"],
+}
+
 // ============ PERSONALIDADES PARA REDES SOCIALES ============
 // Cada personaje tiene una personalidad que define su estilo de declaraciones
 const PERSONAJES_REDES = {
@@ -692,7 +700,9 @@ const TEXTOS_UI = {
     btnEntendido: "Entendido", btnRechazar: "Rechazar", btnAceptar: "Aceptar", btnContinuar: "Continuar", btnCerrar: "Cerrar", btnEntendido2: "¡Entendido!",
     mercadoTitulo: "Mercado de Pases", penalTitulo: "⚽ ¡FINAL DRAMÁTICA!", penalTexto: "El partido está empatado. Tienes en tus pies el penal para definir el título.",
     minijuegoIndicacion: "Seguí la indicación de este minijuego:", tiempoRestante: "Tiempo restante:", dardosTitulo: "🎯 Dardos con los pibes", dardosIndicacion: "Tocá TIRAR en el momento justo: el indicador va de afuera hacia el centro y vuelve. Centro = más puntos.", dardosBoton: "🎯 ¡TIRAR!", ssTitulo: "🔍 REVISIÓN EN VIVO (SS)", ssTexto: "Revisando carpetas y archivos sospechosos...",
-    rolDesbloqueado: "🔓 ROL DESBLOQUEADO", avisoMinijuego: "Ya jugaste el minijuego de esta temporada. Solo se puede jugar 1 minijuego por temporada, además del entrenamiento por atributos. Avanzá a la próxima temporada para jugar otro."
+    rolDesbloqueado: "🔓 ROL DESBLOQUEADO", avisoMinijuego: "Ya jugaste el minijuego de esta temporada. Solo se puede jugar 1 minijuego por temporada, además del entrenamiento por atributos. Avanzá a la próxima temporada para jugar otro.",
+    // Las claves de rivalidad (rival.js) y de la carta de retiro (carta.js)
+    // viven en el bloque 6c, más abajo.
   },
   en: {
     titulo: "PSO CAREER", nombreJugador: "Player Name:", placeholderNombre: "Ex: Caseros", posCancha: "📍 Position on the pitch", tuCasaca: "👕 Your shirt", dorsal: "🔢 Shirt number",
@@ -786,6 +796,18 @@ Object.assign(TEXTOS_UI.es, {
   btnJugarTorneo: "Jugar torneo",
   torneoIntro: "El {torneo} está en marcha: vas a jugarlo con tu selección desde la tarjeta Internacional. Coordinás cada partido (jugás o simulás) y el resto se define en el torneo.",
   torneoComoJugar: "¿Cómo jugás tu próximo partido del {torneo}?",
+  torneoTiroInstruccion: "Vos pateás los goles de tu selección: elegí un rincón y el arquero se tira a uno de los tres. Si elegís el mismo lado, te para. Con más OVR, más goles.",
+  torneoTiroChance: "Tiro {n} de {total}",
+  torneoTiroGol: "¡GOOOL!",
+  torneoTiroAtajado: "¡Atajó el arquero!",
+  torneoTiroIzquierda: "Izquierda",
+  torneoTiroCentro: "Al centro",
+  torneoTiroDerecha: "Derecha",
+  torneoPenalesTitulo: "⚽ Tanda de penales",
+  torneoPenalesInstruccion: "Empate en eliminatorias: se define pateando. Cinco chances cada uno y, si siguen igual, muerte súbita.",
+  torneoPenalesGanas: "¡Ganamos la tanda!",
+  torneoPenalesPerdidas: "Eliminados en la tanda",
+  torneoEmpateVaAPenales: "⚠ Si empatás, se define en la tanda de penales.",
   torneoJugar: "Jugar (interactivo)",
   torneoSimular: "Simular",
   torneoResultado: "{seleccion} {pa} - {pb} {rival}. Marcaste {goles} gol(es).",
@@ -797,10 +819,14 @@ Object.assign(TEXTOS_UI.es, {
   torneoFaseCuartos: "Cuartos de final",
   torneoFaseSemis: "Semifinal",
   torneoFaseFinal: "Final",
+  torneoFaseAmistoso: "Amistoso",
   torneoMundial: "Mundial",
   torneoCopaAmerica: "Copa América",
-  torneoEuro: "Eurocopa",
-  torneoFinalissima: "Finalissima",
+    torneoEuro: "Eurocopa",
+    torneoFinalissima: "Finalissima",
+  torneoAmistoso: "Amistoso",
+  torneoAmistosoIntro: "Amistoso de selección: un partido suelto para no perder el ritmo entre torneos.",
+  torneoAmistosoListo: "Terminó el amistoso",
   nacionalidadAyuda: "Elegí tu selección: si rendís, podés ser convocado a los torneos internacionales.",
   rankColSeleccion: "🇺🇳 Selección",
   confAFC: "AFC", confCAF: "CAF", confCONCACAF: "Concacaf", confCONMEBOL: "CONMEBOL", confOFC: "OFC", confUEFA: "UEFA"
@@ -848,6 +874,18 @@ Object.assign(TEXTOS_UI.en, {
   btnJugarTorneo: "Play tournament",
   torneoIntro: "The {torneo} is on: you will play it with your national team from the International card. You run each match (play or simulate) and the rest plays out in the tournament.",
   torneoComoJugar: "How do you play your next {torneo} match?",
+  torneoTiroInstruccion: "You take your national team's shots: pick a corner and the keeper dives to one of the three. Pick the same side and it's saved. More OVR, more goals.",
+  torneoTiroChance: "Shot {n} of {total}",
+  torneoTiroGol: "GOOOAL!",
+  torneoTiroAtajado: "Saved by the keeper!",
+  torneoTiroIzquierda: "Left",
+  torneoTiroCentro: "Middle",
+  torneoTiroDerecha: "Right",
+  torneoPenalesTitulo: "⚽ Penalty shootout",
+  torneoPenalesInstruccion: "Knockout tie: it is settled on penalties. Five shots each and, if still level, sudden death.",
+  torneoPenalesGanas: "We won the shootout!",
+  torneoPenalesPerdidas: "Out on penalties",
+  torneoEmpateVaAPenales: "⚠ If you draw, it goes to a penalty shootout.",
   torneoJugar: "Play (interactive)",
   torneoSimular: "Simulate",
   torneoResultado: "{seleccion} {pa} - {pb} {rival}. You scored {goles} goal(s).",
@@ -859,10 +897,14 @@ Object.assign(TEXTOS_UI.en, {
   torneoFaseCuartos: "Quarter-finals",
   torneoFaseSemis: "Semi-final",
   torneoFaseFinal: "Final",
+  torneoFaseAmistoso: "Friendly",
   torneoMundial: "World Cup",
   torneoCopaAmerica: "Copa America",
   torneoEuro: "European Championship",
   torneoFinalissima: "Finalissima",
+  torneoAmistoso: "Friendly",
+  torneoAmistosoIntro: "International friendly: a one-off match to keep the rhythm between tournaments.",
+  torneoAmistosoListo: "Friendly over",
   nacionalidadAyuda: "Pick your national team: perform well and you can earn international call-ups.",
   rankColSeleccion: "🇺🇳 Team",
   confAFC: "AFC", confCAF: "CAF", confCONCACAF: "CONCACAF", confCONMEBOL: "CONMEBOL", confOFC: "OFC", confUEFA: "UEFA"
@@ -910,6 +952,18 @@ Object.assign(TEXTOS_UI.pt, {
   btnJugarTorneo: "Jogar torneio",
   torneoIntro: "O {torneo} começou: você vai jogá-lo com sua seleção pelo cartão Internacional. Você conduz cada partida (joga ou simula) e o resto se resolve no torneio.",
   torneoComoJugar: "Como você joga a próxima partida do {torneo}?",
+  torneoTiroInstruccion: "Você cobra os gols da sua seleção: escolha um canto e o goleiro se joga para um dos três. Escolher o mesmo lado é gol contra. Mais OVR, mais gols.",
+  torneoTiroChance: "Cobrança {n} de {total}",
+  torneoTiroGol: "GOOOL!",
+  torneoTiroAtajado: "O goleiro defendeu!",
+  torneoTiroIzquierda: "Esquerda",
+  torneoTiroCentro: "Centro",
+  torneoTiroDerecha: "Direita",
+  torneoPenalesTitulo: "⚽ Disputa de pênaltis",
+  torneoPenalesInstruccion: "Empate no mata-mata: se decide nos pênaltis. Cinco cobranças para cada lado e, se continuar igual, morte súbita.",
+  torneoPenalesGanas: "Ganhamos nos pênaltis!",
+  torneoPenalesPerdidas: "Eliminado nos pênaltis",
+  torneoEmpateVaAPenales: "⚠ Se empatar, decide a disputa de pênaltis.",
   torneoJugar: "Jogar (interativo)",
   torneoSimular: "Simular",
   torneoResultado: "{seleccion} {pa} - {pb} {rival}. Você marcou {goles} gol(ns).",
@@ -921,10 +975,14 @@ Object.assign(TEXTOS_UI.pt, {
   torneoFaseCuartos: "Quartas de final",
   torneoFaseSemis: "Semifinal",
   torneoFaseFinal: "Final",
+  torneoFaseAmistoso: "Amistoso",
   torneoMundial: "Mundial",
   torneoCopaAmerica: "Copa América",
   torneoEuro: "Eurocopa",
   torneoFinalissima: "Finalissima",
+  torneoAmistoso: "Amistoso",
+  torneoAmistosoIntro: "Amistoso da seleção: um jogo solto para não perder o ritmo entre torneios.",
+  torneoAmistosoListo: "Amistoso encerrado",
   nacionalidadAyuda: "Escolha sua seleção: se render, você pode ser convocado para os torneios internacionais.",
   rankColSeleccion: "🇺🇳 Seleção",
   confAFC: "AFC", confCAF: "CAF", confCONCACAF: "Concacaf", confCONMEBOL: "CONMEBOL", confOFC: "OFC", confUEFA: "UEFA"
@@ -966,6 +1024,119 @@ Object.assign(TEXTOS_UI.pt, {
   calidadNoPreguntar: "Não perguntar de novo (muda em Configurações)",
   calidadEtiqueta: "🎚️ Qualidade visual",
   calidadPreguntar: "🎬 Perguntar a qualidade ao entrar"
+});
+
+// 6c. RIVALIDAD DE JUGADOR (rival.js) Y CARTA DE RETIRO (carta.js)
+Object.assign(TEXTOS_UI.es, {
+  rivalidadTitulo: "🆚 Tu Rival",
+  rivalidadPresentado: "Tu rival de {posicion} es {rival} ({club}), OVR {media}. Cada temporada evoluciona: estate atento.",
+  rivalidadSinRival: "Todavía no tenés rival. Iniciá una carrera para que aparezca.",
+  rivalidadSuMedia: "Su OVR",
+  rivalidadIntensidad: "Intensidad",
+  rivalidadHistorial: "Duelos: {ganados} ganados · {empatados} empatados · {perdidos} perdidos",
+  rivalidadDueloBoton: "⚔️ DUELO DE RIVALIDAD",
+  rivalidadDueloUsado: "Ya lo desafiaste esta temporada",
+  rivalidadDueloYaUsado: "Ya jugaste el duelo de rivalidad de esta temporada. El próximo te espera la próxima temporada.",
+  rivalidadDueloTitulo: "⚔️ Duelo de Rivalidad",
+  rivalidadDueloInstruccion: "Frená el cursor en el centro: 3 chances, el centro vale 100 puntos.",
+  rivalidadDisparar: "⚔️ ¡DUELAR!",
+  rivalidadMarcador: "Chance {chance}/{total} · Puntos: {puntos}",
+  rivalidadObjetivo: "Necesitás {valor} puntos para ganarle.",
+  rivalidadTurno: "{puntos} puntos",
+  rivalidadVictoria: "¡Le ganaste!",
+  rivalidadEmpate: "Empataron",
+  rivalidadDerrota: "Perdiste el duelo",
+  rivalidadResultadoDuelo: "La rivalidad con {nombre} quedó en intensidad {intensidad}/10.",
+  rivalidadGoles: "G",
+  rivalidadAsistencias: "A",
+  rivalidadTitulosCorto: "🏆",
+  cartaTitulo: "🃏 Tu carta de retiro",
+  cartaCrearBoton: "🃏 Crear mi carta",
+  cartaAyuda: "Subí tu foto o elegí un avatar del juego. Después descargá la carta en PNG.",
+  cartaSubirFoto: "📷 Subir foto",
+  cartaAvatares: "🎨 Avatares del juego",
+  cartaDescargar: "⬇️ Descargar carta (PNG)",
+  cartaEstadisticas: "Carrera",
+  cartaErrorTipo: "Ese archivo no es una imagen. Elegí una foto (JPG o PNG).",
+  cartaErrorDescarga: "No se pudo generar la descarga de la carta.",
+  cartaRarezaElite: "Élite",
+  cartaRarezaOro: "Oro",
+  cartaRarezaPlata: "Plata",
+  cartaRarezaBronce: "Bronce"
+});
+Object.assign(TEXTOS_UI.en, {
+  rivalidadTitulo: "🆚 Your Rival",
+  rivalidadPresentado: "Your {posicion} rival is {rival} ({club}), OVR {media}. He evolves every season: keep an eye on him.",
+  rivalidadSinRival: "You don't have a rival yet. Start a career for one to show up.",
+  rivalidadSuMedia: "His OVR",
+  rivalidadIntensidad: "Intensity",
+  rivalidadHistorial: "Duels: {ganados} won · {empatados} drawn · {perdidos} lost",
+  rivalidadDueloBoton: "⚔️ RIVAL DUEL",
+  rivalidadDueloUsado: "You already challenged him this season",
+  rivalidadDueloYaUsado: "You already played this season's rival duel. The next one waits for the next season.",
+  rivalidadDueloTitulo: "⚔️ Rival Duel",
+  rivalidadDueloInstruccion: "Stop the cursor at the center: 3 chances, the center is worth 100 points.",
+  rivalidadDisparar: "⚔️ DUEL!",
+  rivalidadMarcador: "Chance {chance}/{total} · Points: {puntos}",
+  rivalidadObjetivo: "You need {valor} points to beat him.",
+  rivalidadTurno: "{puntos} points",
+  rivalidadVictoria: "You won!",
+  rivalidadEmpate: "Draw",
+  rivalidadDerrota: "You lost the duel",
+  rivalidadResultadoDuelo: "The rivalry with {nombre} is now at intensity {intensidad}/10.",
+  rivalidadGoles: "G",
+  rivalidadAsistencias: "A",
+  rivalidadTitulosCorto: "🏆",
+  cartaTitulo: "🃏 Your retirement card",
+  cartaCrearBoton: "🃏 Create my card",
+  cartaAyuda: "Upload your photo or pick a game avatar. Then download the card as PNG.",
+  cartaSubirFoto: "📷 Upload photo",
+  cartaAvatares: "🎨 Game avatars",
+  cartaDescargar: "⬇️ Download card (PNG)",
+  cartaEstadisticas: "Career",
+  cartaErrorTipo: "That file is not an image. Pick a photo (JPG or PNG).",
+  cartaErrorDescarga: "The card could not be downloaded.",
+  cartaRarezaElite: "Elite",
+  cartaRarezaOro: "Gold",
+  cartaRarezaPlata: "Silver",
+  cartaRarezaBronce: "Bronze"
+});
+Object.assign(TEXTOS_UI.pt, {
+  rivalidadTitulo: "🆚 Seu rival",
+  rivalidadPresentado: "Seu rival de {posicion} é {rival} ({club}), OVR {media}. Ele evolui a cada temporada: fique de olho.",
+  rivalidadSinRival: "Você ainda não tem rival. Comece uma carreira para ele aparecer.",
+  rivalidadSuMedia: "OVR dele",
+  rivalidadIntensidad: "Intensidade",
+  rivalidadHistorial: "Duelos: {ganados} ganhos · {empatados} empatados · {perdidos} perdidos",
+  rivalidadDueloBoton: "⚔️ DUELO DE RIVALIDADE",
+  rivalidadDueloUsado: "Você já o desafiou nesta temporada",
+  rivalidadDueloYaUsado: "Você já jogou o duelo de rivalidade desta temporada. O próximo espera na próxima temporada.",
+  rivalidadDueloTitulo: "⚔️ Duelo de Rivalidade",
+  rivalidadDueloInstruccion: "Pare o cursor no centro: 3 chances, o centro vale 100 pontos.",
+  rivalidadDisparar: "⚔️ DUELAR!",
+  rivalidadMarcador: "Chance {chance}/{total} · Pontos: {puntos}",
+  rivalidadObjetivo: "Você precisa de {valor} pontos para vencê-lo.",
+  rivalidadTurno: "{puntos} pontos",
+  rivalidadVictoria: "Você venceu!",
+  rivalidadEmpate: "Empate",
+  rivalidadDerrota: "Você perdeu o duelo",
+  rivalidadResultadoDuelo: "A rivalidade com {nombre} ficou na intensidade {intensidad}/10.",
+  rivalidadGoles: "G",
+  rivalidadAsistencias: "A",
+  rivalidadTitulosCorto: "🏆",
+  cartaTitulo: "🃏 Sua carta de aposentadoria",
+  cartaCrearBoton: "🃏 Criar minha carta",
+  cartaAyuda: "Envie sua foto ou escolha um avatar do jogo. Depois baixe a carta em PNG.",
+  cartaSubirFoto: "📷 Enviar foto",
+  cartaAvatares: "🎨 Avatares do jogo",
+  cartaDescargar: "⬇️ Baixar carta (PNG)",
+  cartaEstadisticas: "Carreira",
+  cartaErrorTipo: "Esse arquivo não é uma imagem. Escolha uma foto (JPG ou PNG).",
+  cartaErrorDescarga: "Não foi possível baixar a carta.",
+  cartaRarezaElite: "Elite",
+  cartaRarezaOro: "Ouro",
+  cartaRarezaPlata: "Prata",
+  cartaRarezaBronce: "Bronze"
 });
 
 // 6. CONFIGURACION GLOBAL (balance del juego centralizado)
@@ -1166,6 +1337,73 @@ TANDA_PENALES: 3,
     FORTALEZA_MINIMA: 5
   },
 
+  // ============ CARTA DE RETIRO (carta.js) ============
+  // Carta tipo FIFAUC que se genera al terminar la carrera.
+  // Se dibuja en un canvas y se descarga como PNG.
+  CARTA: {
+    ANCHO: 1000,
+    ALTO: 1400,
+    // Rangos de rareza por OVR final (de mayor a menor).
+    RAREZAS: [
+      { id: "elite", desde: 92, clave: "cartaRarezaElite" },
+      { id: "oro", desde: 84, clave: "cartaRarezaOro" },
+      { id: "plata", desde: 74, clave: "cartaRarezaPlata" },
+      { id: "bronce", desde: 0, clave: "cartaRarezaBronce" }
+    ],
+    // Paletas de cada rareza: fondo, marco, brillo y color del OVR.
+    PALETAS: {
+      elite: { fondo: ["#1a0033", "#4b0082", "#c9a227"], marco: "#f7e08a", brillo: "rgba(255,235,150,0.55)", ovr: "#f7e08a" },
+      oro: { fondo: ["#3b2400", "#a06a00", "#ffd76a"], marco: "#ffd76a", brillo: "rgba(255,215,106,0.45)", ovr: "#ffe9a8" },
+      plata: { fondo: ["#2b3138", "#7c8794", "#d9e1e8"], marco: "#d9e1e8", brillo: "rgba(217,225,232,0.35)", ovr: "#eef3f7" },
+      bronce: { fondo: ["#3a1f0d", "#8a5a2b", "#d9a066"], marco: "#d9a066", brillo: "rgba(217,160,102,0.32)", ovr: "#f0cfa8" }
+    },
+    // Avatares incluidos en el juego (imagenes/): escudos de club y
+    // badges de rol. Se ofrecen junto a la foto subida.
+    AVATARES: [
+      { id: "inmortal", src: "imagenes/inmortal.png", etiqueta: "Inmortal" },
+      { id: "master", src: "imagenes/master.png", etiqueta: "Master" },
+      { id: "normal", src: "imagenes/normal.png", etiqueta: "Normal" }
+    ]
+  },
+
+  // ============ RIVALIDAD DE JUGADOR (rival.js) ============
+  // Cada carrera sortea un rival real de PSO de la MISMA posición
+  // (catálogo RIVALIDADES_PERSONAJES). Evoluciona solo, temporada a
+  // temporada, y se puede desafiar 1 vez por temporada.
+  RIVALIDAD: {
+    // Rango de OVR con el que puede arrancar el rival.
+    OVR_MIN_INICIAL: 58,
+    OVR_MAX_INICIAL: 82,
+    // Umbral de edad a partir del cual el rival empieza a caer.
+    EDAD_DECLIVE: 31,
+    // Intensidad inicial (1-10) y límites de la rivalidad.
+    INTENSIDAD_INICIAL: 2,
+    INTENSIDAD_MIN: 1,
+    INTENSIDAD_MAX: 10,
+    // La rivalidad se enfría sola si no lo desafiás.
+    DECAIMIENTO_SIN_DUELO: 1,
+    // Probabilidad de que el rival se mude de club por temporada.
+    PROB_CAMBIO_CLUB: 0.35,
+    // Chances por duelo de rivalidad (barra de timing).
+    DUELO_CHANCES: 3,
+    // Puntos del rival: base + intensidad + brecha de OVR a favor suyo.
+    DUELO_OBJETIVO_BASE: 120,
+    DUELO_OBJETIVO_POR_INTENSIDAD: 6,
+    DUELO_OBJETIVO_POR_GAP_OVR: 2,
+    DUELO_OBJETIVO_MIN: 60,
+    DUELO_OBJETIVO_MAX: 270,
+    // Margen para que el resultado cuente como empate.
+    DUELO_MARGEN_EMPATE: 15,
+    // Premios del duelo.
+    OVR_VICTORIA: 1,
+    MORAL_VICTORIA: 8,
+    MORAL_EMPATE: 3,
+    MORAL_DERROTA: -4,
+    INTENSIDAD_VICTORIA: 2,
+    INTENSIDAD_EMPATE: 1,
+    INTENSIDAD_DERROTA: -1
+  },
+
   // ============ SISTEMA DE PROGRESION (atributos -> OVR) ============
   // ENTRENAMIENTO = el jugador elige el atributo y ve su progreso.
   // EVENTO = el juego decide como progresa y el usuario solo ve MEDIA.
@@ -1227,18 +1465,22 @@ TANDA_PENALES: 3,
   SELECCION: {
     UMBRAL_CONVOCATORIA: 70,
     UMBRAL_CAPITAN: 84,
-    // Campeonatos internacionales (ciclo de 4 temporadas):
+// Campeonatos internacionales (ciclo de 4 temporadas, igual que en la
+    // realidad: la Copa América / Eurocopa y el Mundial son cada 4 años):
+    //   resto 0 -> amistoso
     //   resto 1 -> continental (Copa América / Eurocopa)
-    //   resto 2 -> Finalissima (solo si salió campeón continental) + descanso
+    //   resto 2 -> Finalissima (solo si salis campeon continental) o amistoso
     //   resto 3 -> Mundial
-    //   resto 0 -> descanso / clasificatorias
     CICLO: 4,
     ANIO_CONTINENTAL: 1,
     ANIO_FINALISSIMA: 2,
     ANIO_MUNDIAL: 3,
     MUNDIAL_EQUIPOS: 32,
     CONTINENTAL_EQUIPOS: 16,
-    GRUPOS: 4
+    CONTINENTAL_GRUPOS: 4,
+    GRUPOS: 4,
+    // Amistoso de la temporada de descanso: no tiene fase ni cuadro.
+    AMISTOSO_MIN_RIVAL: 60
   }
 });
 
@@ -1403,7 +1645,12 @@ function simularFechaFifa(jugador) {
 //  15. CAMPEONATOS INTERNACIONALES (lógica pura y testeable)
 // ============================================================
 // ¿Qué torneo corresponde a la temporada según la confederación?
-// Ciclo de 4 temporadas: continental, Finalissima, Mundial, descanso.
+// Ciclo de 4 temporadas (la Copa América y la Eurocopa son de 4 años,
+// el Mundial también, así que NADA se repite cada 2):
+//   resto 0 -> AMISTOSO (temporada de descanso con un partido suelto)
+//   resto 1 -> continental (Copa América / Eurocopa)
+//   resto 2 -> Finalissima (solo si salís campeón continental) o amistoso
+//   resto 3 -> Mundial
 function torneoDeTemporada(temporada, confederacion) {
   const c = CONFIG.SELECCION || {};
   const ciclo = c.CICLO || 4;
@@ -1411,14 +1658,22 @@ function torneoDeTemporada(temporada, confederacion) {
   if (resto === (c.ANIO_CONTINENTAL || 1)) {
     if (confederacion === "CONMEBOL") return { tipo: "copaAmerica", anio: resto };
     if (confederacion === "UEFA") return { tipo: "euro", anio: resto };
-    return null;
+    return { tipo: "amistoso", anio: resto };
   }
   if (resto === (c.ANIO_MUNDIAL || 3)) return { tipo: "mundial", anio: resto };
   if (resto === (c.ANIO_FINALISSIMA || 2) &&
-      (confederacion === "CONMEBOL" || confederacion === "UEFA")) {
+      (confederacion === "CONMEBOL" || confederacion === "UEFA") &&
+      esCampeonContinentalActual()) {
     return { tipo: "finalissima", anio: resto };
   }
-  return null;
+  return { tipo: "amistoso", anio: resto };
+}
+
+// La Finalissima solo se juega el año siguiente a ganar el continental:
+// el jugador tiene que ser campeón continental vigente.
+function esCampeonContinentalActual() {
+  if (typeof jugador === "undefined" || !jugador) return false;
+  return jugador.tituloContinental === "copaAmerica" || jugador.tituloContinental === "euro";
 }
 
 // Equipos que participan de un torneo. La selección del jugador siempre

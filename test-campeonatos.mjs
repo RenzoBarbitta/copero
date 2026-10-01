@@ -2,7 +2,9 @@
 // test-campeonatos.mjs - Campeonatos internacionales (data.js)
 // Valida la lógica pura:
 //   - torneoDeTemporada: ciclo 4 temporadas por confederación
-//     (resto 1 continental, resto 2 Finalissima, resto 3 Mundial).
+//     (resto 1 continental, resto 2 Finalissima, resto 3 Mundial) y
+//     AMISTOSO en el resto de temporadas (descanso, y el año de la
+//     Finalissima si no sos campeón continental).
 //   - participantesDeTorneo: 32 mundial, 16 continental, invitación
 //     CONCACAF en la Copa América y presencia forzada de la selección.
 //   - armarGruposEquipos: grupos de a 4 con serpiente por ranking.
@@ -40,19 +42,61 @@ assert.deepEqual(runJSON('torneoDeTemporada(1, "CONMEBOL")'), { tipo: 'copaAmeri
   'temporada 1 CONMEBOL => Copa América');
 assert.deepEqual(runJSON('torneoDeTemporada(1, "UEFA")'), { tipo: 'euro', anio: 1 },
   'temporada 1 UEFA => Eurocopa');
-assert.equal(run('torneoDeTemporada(1, "CAF")'), null,
-  'temporada 1 CAF no tiene continental');
-assert.deepEqual(runJSON('torneoDeTemporada(2, "CONMEBOL")'), { tipo: 'finalissima', anio: 2 },
-  'temporada 2 => Finalissima');
-assert.equal(run('torneoDeTemporada(2, "CAF")'), null, 'CAF no juega Finalissima');
+// Las confederaciones sin continental propio (CAF, AFC...) no tienen torneo
+// grande ese año:欢喜 tienen un amistoso.
+assert.deepEqual(runJSON('torneoDeTemporada(1, "CAF")'), { tipo: 'amistoso', anio: 1 },
+  'temporada 1 CAF => amistoso (no tiene continental)');
+assert.deepEqual(runJSON('torneoDeTemporada(1, "AFC")'), { tipo: 'amistoso', anio: 1 },
+  'temporada 1 AFC => amistoso');
+
+// La Finalissima solo aparece si sos campeón continental vigente. Sin título
+// es un amistoso (antes el test la pedía siempre: era un torneo fantasma).
+assert.deepEqual(runJSON('torneoDeTemporada(2, "CONMEBOL")'), { tipo: 'amistoso', anio: 2 },
+  'temporada 2 sin ser campeón continental => amistoso, NO Finalissima');
+assert.deepEqual(runJSON('torneoDeTemporada(2, "UEFA")'), { tipo: 'amistoso', anio: 2 },
+  'temporada 2 UEFA sin título continental => amistoso');
+assert.deepEqual(runJSON('torneoDeTemporada(2, "CAF")'), { tipo: 'amistoso', anio: 2 },
+  'CAF nunca juega Finalissima');
 assert.deepEqual(runJSON('torneoDeTemporada(3, "CONMEBOL")'), { tipo: 'mundial', anio: 3 },
   'temporada 3 => Mundial');
-assert.equal(run('torneoDeTemporada(4, "CONMEBOL")'), null, 'temporada 4 => descanso');
+assert.deepEqual(runJSON('torneoDeTemporada(3, "CAF")'), { tipo: 'mundial', anio: 3 },
+  'el Mundial es para todas las confederaciones');
+assert.deepEqual(runJSON('torneoDeTemporada(4, "CONMEBOL")'), { tipo: 'amistoso', anio: 0 },
+  'temporada 4 => amistoso (descanso)');
 assert.equal(runJSON('torneoDeTemporada(5, "CONMEBOL")').tipo, 'copaAmerica',
   'ciclo se repite cada 4 temporadas');
 assert.equal(JSON.stringify(run('torneoDeTemporada(0, "CONMEBOL")')),
   JSON.stringify(run('torneoDeTemporada(4, "CONMEBOL")')),
-  'temporada 0 equivale a descanso (mod 4)');
+  'temporada 0 equivale a la 4 (mod 4)');
+
+// Con título continental vigente, la temporada 2 sí es Finalissima.
+vm.runInContext('jugador = { tituloContinental: "copaAmerica" };', contexto);
+assert.deepEqual(runJSON('torneoDeTemporada(2, "CONMEBOL")'), { tipo: 'finalissima', anio: 2 },
+  'campeón continental + temporada 2 => Finalissima');
+vm.runInContext('jugador = { tituloContinental: "euro" };', contexto);
+assert.deepEqual(runJSON('torneoDeTemporada(2, "UEFA")'), { tipo: 'finalissima', anio: 2 },
+  'campeón de la Eurocopa + temporada 2 => Finalissima');
+vm.runInContext('delete globalThis.jugador;', contexto);
+
+// El Mundial NUNCA puede caer dos temporadas seguidas, y hay exactamente un
+// Mundial cada 4 temporadas (por confederación).
+for (const conf of ['CONMEBOL', 'UEFA', 'CAF', 'AFC', 'CONCACAF', 'OFC']) {
+  const tipos = [];
+  for (let temp = 0; temp < 16; temp++) tipos.push(runJSON('torneoDeTemporada(' + temp + ', "' + conf + '")').tipo);
+  const mundiales = tipos.filter(x => x === 'mundial').length;
+  assert.equal(mundiales, 4, conf + ': 4 Mundiales en 16 temporadas, no ' + mundiales);
+  // Ningún Mundial puede caer en dos temporadas seguidas: entre uno y el
+  // siguiente siempre hay al menos un torneo o amistoso en el medio.
+  for (let temp = 0; temp < 15; temp++) {
+    const seguidos = tipos[temp] === 'mundial' && tipos[temp + 1] === 'mundial';
+    assert.ok(!seguidos, conf + ': Mundial en las temporadas ' + temp + ' y ' + (temp + 1) + ' seguidas');
+  }
+  // La Copa América sí tiene que aparecer para CONMEBOL.
+  if (conf === 'CONMEBOL') {
+    assert.equal(tipos.filter(x => x === 'copaAmerica').length, 4,
+      'CONMEBOL: Copa América cada 4 temporadas (resto 1)');
+  }
+}
 
 // ---------- participantesDeTorneo ----------
 assert.equal(run('participantesDeTorneo("mundial", "CONMEBOL", "URU").length'), 32,

@@ -26,6 +26,7 @@ para la comunidad **PSO** (PlayStation Online, Uruguay/Argentina/Brasil).
 ┌─ CAPA BASE (SIN CAMBIOS) ─────────────────────────────────────┐
 │ data.js · progression.js · event-outcomes.js · app.js        │
 │ features.js · camiseta.js · minigame-camiseta.js             │
+│ rival.js · carta.js                                         │
 │ touch-controls.js · supabase-config.js · cuenta-api.js       │
 │ ranking-online.js · cuenta-ui.js · duelo.js · ui.js · pwa.js  │
 │ → lógica de juego + DOM por id (getElementById/innerHTML)     │
@@ -94,6 +95,8 @@ algunas APIs requieren `http://localhost` o HTTPS.
 | Archivo | Rol |
 |---|---|
 | `index.html` | Shell: head (fuentes, Bootstrap CDN, CSS) + `#aplicacion` + orden de scripts |
+| `rival.js` | Rival de jugador (envuelve `iniciarCarrera`/`continuarCarrera`/`simularTemporada`/`actualizarInterfaz`) y Duelo de Rivalidad |
+| `carta.js` | Carta de retiro PNG (envuelve `finalizarCarrera`/`actualizarInterfaz`) |
 | `styles.css` | Estilos base históricos |
 | `theme.css` | Tema oscuro "carrera futbolística" (cargado después de styles) |
 | `fx.css` / `fx-detalle.css` | **Capa React de animaciones** (siempre después de theme.css; solo agregan) |
@@ -119,7 +122,8 @@ algunas APIs requieren `http://localhost` o HTTPS.
 | `inicio-modos.js` | Otros modos (Leal, Duelo) + fila de utilidades (Ranking/Slots/idiomas/tema) |
 | `inicio-apoyo.js` | Cards de apoyo/donación |
 | `juego-tarjeta.js` | Tarjeta del jugador (OVR, moral, atributos) y `#app-ruta` |
-| `vista-carrera.js` / `vista-carrera2.js` | Dashboard: próximo partido VS, evento social, resumen, redes |
+| `vista-carrera.js` / `vista-carrera2.js` | Dashboard: próximo partido VS, evento social, resumen, redes. Al pie, `TarjetaSeleccion` + `TarjetaRival` (`rival.js`) en la misma fila |
+| `modales-8.js` / `modales-9.js` | `ModalRivalidad` (Duelo de Rivalidad) y `ModalCarta` (carta de retiro) |
 | `vista-extra.js` | Vistas Entrenamiento y Comunidad (tabs pills) |
 | `vista-progreso.js` | Vista Progreso (stats/evolución/temporadas/logros) |
 | `resumen.js` | Pantalla de retiro / resumen final |
@@ -145,7 +149,7 @@ node test-privacidad.mjs      # registro/privacidad
 
 | Test | Cubre |
 |---|---|
-| `test-react-ui.mjs` | **Espejo visual**: render del árbol React en sandbox → 204 ids, 198 data-i18n, 26 handlers, forms/estados |
+| `test-react-ui.mjs` | **Espejo visual**: render del árbol React en sandbox → 232 ids, 212 data-i18n, 29 handlers, forms/estados |
 | `test-traduccion-pt.mjs` | Claves `data-i18n` (lee `index.html` + `react/*.js`) |
 | `test-privacidad.mjs` | Casilla sin marcar, enlaces, precache de la política (lee `index.html` + `react/*.js`) |
 | `test-camiseta` | Selector de casaca/dorsal y SVG |
@@ -153,7 +157,10 @@ node test-privacidad.mjs      # registro/privacidad
 | `test-progresion`, `test-declive-veterano`, `test-ofertas`, `test-partidos-random`, `test-logros`, `test-redes-sociales` | Mecánicas puras |
 | `test-modo-leal` | **Modo Leal** (`features.js`): el arranque respeta la selección elegida, genera los atributos iniciales (OVR 65/75) y sincroniza la división con el club sorteado |
 | `test-sancion-loro` | **Sanción de Loro** (`app.js` + `data.js`): la sanción va contra el jugador, no contra el equipo, así que un sancionado en Primera no puede renovar ahí (solo fichar en Segunda); el Modo Leal no la esquiva y el relleno de ofertas nunca cruza de división |
-| `test-torneo-clasificacion` | **Fase de grupos** (`app.js` + `data.js`): ganar los 3 de grupos clasifica, la ronda eliminatoria no elimina al jugador por marcador sin registrar, y la ronda se nombra por cantidad de equipos (8 equipos = octavos, no cuartos) |
+| `test-torneo-clasificacion` | **Fase de grupos y cuadro** (`app.js` + `data.js`): ganar los 3 de grupos clasifica, el marcador de la ronda se registra en `estado.ronda`, `planRondasEliminatorias` **siempre termina en final** (ganar la semifinal NO da el título), un empate en eliminatorias va a tanda de penales (nunca se decide por azar) y el amistoso no elimina ni da trofeo |
+| `test-campeonatos` | Calendario: ciclo de 4 temporadas (resto 1 continental, resto 2 Finalissima **solo si sos campeón continental**, resto 3 Mundial) y **amistoso** en el resto; ningún Mundial seguido |
+| `test-rivalidades` | **`rival.js`**: el rival sale de `RIVALIDADES_PERSONAJES` de la posición del usuario (nunca `PERSONAJES`), evoluciona por temporada (edad, OVR, club, títulos, goles, asistencias), el duelo usa su propio contador y se juega 1 vez por temporada con premios correctos |
+| `test-carta` | **`carta.js`**: rareza por OVR, 6 atributos de la posición, totales de carrera, avatares del juego, descarga PNG y botón solo al terminar la carrera |
 | `test-selecciones` | Catálogo de 211 selecciones y banderas |
 | `test-seguridad-live` | Audita RLS contra Supabase real (requiere red; 1 punto preexistente pendiente: SQL 005/006) |
 
@@ -192,7 +199,9 @@ Primera no existe como opción. Cubierto por `test-sancion-loro.mjs`.
 - `sw.js`: navegación y mismo origen **network-first**; Bootstrap CDN
   cache-first; Supabase excluido.
 - Al modificar o agregar archivos del juego: **subir `CACHE_NOMBRE`**
-  (hoy `pso-carrera-v55`) y agregar archivos nuevos a `ARCHIVOS_BASE`.
+  (hoy `pso-carrera-v56`) y agregar archivos nuevos a `ARCHIVOS_BASE`
+  (`rival.js`, `carta.js`, `react/modales-8.js`, `react/modales-9.js` y los
+  avatares de la carta ya están).
 
 ## 7. Deploy
 
@@ -215,6 +224,19 @@ día hace falta y nunca dentro del deploy.
 - En `react/*` usar caracteres UTF-8 literales (React no decode entidades).
 - Si se agrega un `id` estructural al markup React, sumarlo a las listas de
   `test-react-ui.mjs`.
+- Un `id` nuevo en un `.mjs` de test debe estar **en la lista de `data-i18n`
+  esperadas** de `index.html` o `react/*.js` (si no, el test falla por id
+  duplicado o por traducción faltante).
+- Elimatorias de selecciones: `planRondasEliminatorias()` genera SIEMPRE la
+  final; `equipoAvanzado(m)` devuelve `null` si hay empate sin `m.penales`, así
+  que **un empate nunca se resuelve al azar**: o se juega la tanda (minijuego del
+  jugador) o se simula con `tandaSimulada()` (cruces del usuario).
+- **La tanda del jugador es asíncrona**: `registrarResultadoTorneo()` guarda el
+  1-1, abre `jugarTandaPenales()`, deja `estado.tandaPendiente = true` y
+  **vuelve sin sacar el pendiente** (si no, cerraba la ronda y eliminaba de un
+  empate). Recién `decisionPenal()` → `cerrarTandaTorneoDelJugador()` registra el
+  partido una sola vez, aplica `cerrarPartidoTorneo()` y sigue con
+  `continuarTorneoSeleccion()` + `mostrarTrasPartidoTorneo()`.
 - Flujo de trabajo acordado: verificar en local y **no hacer commit/push**
   sin coordinar (preview local primero).
 

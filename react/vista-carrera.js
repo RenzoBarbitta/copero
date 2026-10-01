@@ -90,6 +90,52 @@
       </div>`;
   }
 
+  // ------------------------------------------------------------
+  //  TU RIVAL (rivalidad de jugador)
+  //  rival.js sortea un pibe de PSO de la misma posición y lo
+  //  hace evolucionar solo. La tarjeta muestra su club, OVR,
+  //  historial de duelos e intensidad; el botón lanza el DUELO
+  //  DE RIVALIDAD (una vez por temporada).
+  // ------------------------------------------------------------
+  function TarjetaRival() {
+    return html`
+      <div className="col-12 col-md-6 col-xl-4 d-flex">
+        <div className="card card-custom rival-card w-100 d-flex flex-column" id="rival-card">
+          <div className="d-flex justify-content-between align-items-center">
+            <span className="vs-etiqueta" data-i18n="rivalidadTitulo">🆚 Tu Rival</span>
+            <span className="badge bg-danger" id="rival-posicion">—</span>
+          </div>
+          <div className="rival-cuerpo">
+            <div className="rival-escudo" id="rival-escudo"><span className="sin-img">?</span></div>
+            <div className="rival-datos">
+              <div className="rival-nombre" id="rival-nombre">—</div>
+              <div className="rival-club small text-secondary" id="rival-club">—</div>
+              <div className="rival-media-linea">
+                <span className="small text-secondary" data-i18n="rivalidadSuMedia">Su OVR</span>
+                <strong className="rival-media" id="rival-media">—</strong>
+              </div>
+            </div>
+          </div>
+          <div className="rival-stats" id="rival-stats">—</div>
+          <div className="rival-intensidad">
+            <div className="d-flex justify-content-between small text-secondary">
+              <span data-i18n="rivalidadIntensidad">Intensidad</span>
+              <span id="rival-intensidad-texto">—</span>
+            </div>
+            <div className="rival-intensidad-barra">
+              <div id="rival-intensidad-barra" className="rival-intensidad-relleno"></div>
+            </div>
+          </div>
+          <div className="rival-historial small text-secondary" id="rival-historial">—</div>
+          <div className="mt-auto pt-3">
+            <button id="btn-duelo-rivalidad" type="button" className="btn btn-danger fw-bold w-100" onClick=${() => iniciarDueloRivalidad()}>
+              <span data-i18n="rivalidadDueloBoton">⚔️ DUELO DE RIVALIDAD</span>
+            </button>
+          </div>
+        </div>
+      </div>`;
+  }
+
   function VistaCarrera() {
     return html`
       <section id="vista-carrera" className="cp-vista">
@@ -98,12 +144,18 @@
           <${EventoSocial}/>
           <${CR.ResumenTemporada}/>
           <${CR.ColumnaRedes}/>
-          <${TarjetaSeleccion}/>
+          <div className="col-12">
+            <div className="row g-3">
+              <${TarjetaSeleccion}/>
+              <${TarjetaRival}/>
+            </div>
+          </div>
         </div>
       </section>`;
   }
 
   CR.TarjetaVS = TarjetaVS;
   CR.TarjetaSeleccion = TarjetaSeleccion;
+  CR.TarjetaRival = TarjetaRival;
   CR.VistaCarrera = VistaCarrera;
 })(window.CR);

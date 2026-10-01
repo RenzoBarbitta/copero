@@ -60,6 +60,8 @@
         <${CR.ModalEntrenamientoAtributos}/>
         <${CR.ModalMinijuegoCamiseta}/>
         <${CR.ModalDardos}/>
+        <${CR.ModalRivalidad}/>
+        <${CR.ModalCarta}/>
         <${CR.ModalConfiguracion}/>
       </${Fragment}>`;
   }

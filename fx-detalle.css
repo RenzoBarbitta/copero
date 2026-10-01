@@ -249,6 +249,163 @@ summary { cursor: pointer; }
 }
 
 /* ============================================================
+   RIVALIDAD DE JUGADOR (rival.js)
+   Tarjeta "Tu Rival" del dashboard y modal del duelo.
+   ============================================================ */
+.rival-card { transition: transform .3s ease, box-shadow .3s ease; }
+.rival-card:hover { transform: translateY(-3px); }
+
+.rival-cuerpo {
+  display: flex;
+  align-items: center;
+  gap: .9rem;
+  margin: .9rem 0 .6rem;
+}
+.rival-escudo {
+  width: 62px;
+  height: 62px;
+  flex: 0 0 62px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(0,0,0,.35);
+  border: 2px solid rgba(255,255,255,.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rival-escudo img { width: 100%; height: 100%; object-fit: contain; }
+.rival-datos { min-width: 0; }
+.rival-nombre {
+  font-weight: 700;
+  font-size: 1.05rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rival-club {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rival-media-linea {
+  display: flex;
+  align-items: baseline;
+  gap: .4rem;
+  margin-top: .2rem;
+}
+.rival-media {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--bs-danger, #dc3545);
+  line-height: 1;
+}
+
+/* Intensidad 1-10: la barra se llena con el ancho que fija rival.js */
+.rival-intensidad-barra {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(0,0,0,.35);
+  overflow: hidden;
+  margin-top: .25rem;
+}
+.rival-intensidad-relleno {
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ffc107, #dc3545);
+  transition: width .45s cubic-bezier(.22,1,.36,1);
+}
+.rival-historial { margin-top: .5rem; }
+
+/* Números del rival: goles, asistencias y títulos */
+.rival-stats {
+  display: flex;
+  gap: .9rem;
+  flex-wrap: wrap;
+  margin-top: .15rem;
+}
+.rival-stat { white-space: nowrap; }
+.rival-stat b { color: var(--texto-1, #fff); }
+
+/* Sin rival todavía (antes de iniciar la carrera). */
+.rival-card.vacio-rival .rival-cuerpo { opacity: .6; }
+.rival-card.vacio-rival .rival-nombre { font-size: .95rem; }
+
+/* Barra de timing del DUELO DE RIVALIDAD */
+#rivalidad-barra {
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+  height: 34px;
+  margin: 0 auto;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2b2f36, #4b5563);
+  border: 2px solid rgba(255,255,255,.2);
+  overflow: hidden;
+}
+/* Zona buena: el centro vale 100 puntos. */
+#rivalidad-barra .rivalidad-zona {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 40%;
+  width: 20%;
+  background: linear-gradient(90deg,
+    rgba(40,167,69,.25), rgba(40,167,69,.75), rgba(40,167,69,.25));
+}
+#rivalidad-cursor {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  left: 0;
+  width: 6px;
+  margin-left: -3px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 0 12px rgba(255,255,255,.9);
+}
+
+/* ============================================================
+   CARTA DE RETIRO (carta.js)
+   ============================================================ */
+.carta-preview {
+  display: flex;
+  justify-content: center;
+}
+/* El canvas es 1000x1400: se escala al ancho disponible sin
+   perder proporción (mismo aspecto que la descarga PNG). */
+#carta-canvas {
+  width: 100%;
+  max-width: 380px;
+  height: auto;
+  border-radius: 18px;
+  box-shadow: 0 18px 44px rgba(0,0,0,.5);
+  animation: fx-carta-entra .55s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes fx-carta-entra {
+  0%   { opacity: 0; transform: scale(.94) rotateY(14deg); }
+  100% { opacity: 1; transform: scale(1) rotateY(0); }
+}
+
+/* Galería de avatares incluidos en el juego */
+.carta-avatares { display: flex; flex-wrap: wrap; gap: .5rem; }
+.carta-avatar {
+  width: 52px;
+  height: 52px;
+  padding: 4px;
+  border-radius: 12px;
+  border: 2px solid rgba(255,255,255,.2);
+  background: rgba(0,0,0,.3);
+  transition: transform .2s ease, border-color .2s ease;
+}
+.carta-avatar img { width: 100%; height: 100%; object-fit: contain; }
+.carta-avatar:hover { transform: translateY(-2px); }
+.carta-avatar.activo {
+  border-color: var(--bs-warning, #ffc107);
+  box-shadow: 0 0 0 3px rgba(255,193,7,.25);
+}
+
+/* ============================================================
    MINIJUEGOS — contenedores reales son IDs:
    #contenedorMinijuegoCamiseta y #contenedorDardos
    ============================================================ */
@@ -654,4 +811,10 @@ html.calidad-baja body.app-juego #sidebar {
 html.calidad-baja .calidad-caja { animation: none !important; }
 html.calidad-baja .calidad-opcion:hover,
 html.calidad-baja .calidad-opcion:focus-visible { transform: none !important; }
+
+/* 7) Rivalidad y carta: sin hover ni entrada en 3D (el canvas y la
+      barra del duelo se ven igual; solo deja de moverse). */
+html.calidad-baja .rival-card:hover { transform: none !important; }
+html.calidad-baja #carta-canvas { animation: none !important; }
+html.calidad-baja .carta-avatar:hover { transform: none !important; }
 

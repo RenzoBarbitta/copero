@@ -21,7 +21,7 @@
 //  cache de golpe, pero no es necesario para ver las novedades.
 // ============================================================
 
-const CACHE_NOMBRE = "pso-carrera-v55";
+const CACHE_NOMBRE = "pso-carrera-v56";
 
 const ARCHIVOS_BASE = [
   "./",
@@ -36,6 +36,8 @@ const ARCHIVOS_BASE = [
   "./duelo.js",
   "./coop.js",
   "./camiseta.js",
+  "./rival.js",
+  "./carta.js",
   "./touch-controls.js",
   "./ranking-online.js",
   "./supabase-config.js",
@@ -71,6 +73,8 @@ const ARCHIVOS_BASE = [
   "./react/modales-5.js",
   "./react/modales-6.js",
   "./react/modales-7.js",
+  "./react/modales-8.js",
+  "./react/modales-9.js",
   "./react/montar.js",
   "./manifest.webmanifest",
   "./imagenes/logo-web.png",
@@ -80,7 +84,11 @@ const ARCHIVOS_BASE = [
   "./imagenes/icon-512.png",
   "./imagenes/icon-512-maskable.png",
   "./imagenes/icon-180.png",
-  "./imagenes/banner-web.png"
+  "./imagenes/banner-web.png",
+  // Avatares de la carta de retiro (carta.js → CONFIG.CARTA.AVATARES)
+  "./imagenes/inmortal.png",
+  "./imagenes/master.png",
+  "./imagenes/normal.png"
 ];
 
 self.addEventListener("install", (evento) => {

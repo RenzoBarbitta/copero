@@ -1589,7 +1589,10 @@ function evaluarFechaFifa(partidosClubJugados) {
 // ============================================================
 function nombreTorneo(tipo) {
   const lim = String(tipo || "").toLowerCase();
-  const claves = { mundial: "torneoMundial", copaAmerica: "torneoCopaAmerica", euro: "torneoEuro", finalissima: "torneoFinalissima" };
+  const claves = {
+    mundial: "torneoMundial", copaAmerica: "torneoCopaAmerica", euro: "torneoEuro",
+    finalissima: "torneoFinalissima", amistoso: "torneoAmistoso"
+  };
   return typeof t === "function" ? t(claves[lim] || "torneoMundial") : (lim || "");
 }
 
@@ -1609,11 +1612,14 @@ function prepararTorneoSeleccionTemporada() {
   if (info.tipo === "finalissima" && !jugador.tituloContinental) return null;
   const creado = crearTorneoSeleccion(info.tipo);
   if (creado) {
-    mostrarNotificacion(t("fechaFifaTitulo"),
+    mostrarNotificacion(creado.tipo === "amistoso" ? t("torneoAmistoso") : t("fechaFifaTitulo"),
       "<div class='text-center mb-2'>" + banderaImg(jugador.nacionalidad, "ranking-bandera mx-auto") + "</div>" +
-      "<p class='text-center fw-bold mb-1'>" + nombreTorneo(creado.tipo) + "</p>" +
+      "<p class='text-center fw-bold mb-1'>" + nombreTorneo(creado.tipo) +
+        (creado.tipo === "amistoso" ? " vs " + (seleccionPorCodigo(creado.pendientes[0].b) || { nombre: "" }).nombre : "") + "</p>" +
       "<p class='small text-secondary text-center mb-0'>" +
-      t("torneoIntro").replace("{torneo}", nombreTorneo(creado.tipo)) + "</p>");
+        (creado.tipo === "amistoso"
+          ? t("torneoAmistosoIntro")
+          : t("torneoIntro").replace("{torneo}", nombreTorneo(creado.tipo))) + "</p>");
   }
   if (typeof actualizarInterfaz === "function") actualizarInterfaz();
   if (typeof guardarPartida === "function") guardarPartida();
@@ -1632,8 +1638,59 @@ function rivalFinalissima() {
   return candidatos.length ? candidatos[0][0] : null;
 }
 
+// Rival de un amistoso: otra selección de fuerza parecida y de la misma
+// confederación (o de otra, si la tuya es muy chica). Solo importa que no
+// sea la del jugador.
+function rivalAmistoso() {
+  const s = seleccionPorCodigo(jugador.nacionalidad);
+  if (!s) return null;
+  const mias = SELECCIONES.filter(function (f) { return f[0] !== jugador.nacionalidad; });
+  const misma = mias.filter(function (f) { return f[3] === s.confederacion; });
+  const base = s.fuerza || s[4] || 70;
+  const pool = (misma.length ? misma : mias).filter(function (f) {
+    const dif = Math.abs((f.fuerza || f[4]) - base);
+    return dif <= (CONFIG.SELECCION.AMISTOSO_MIN_RIVAL || 60) * 0.15;
+  });
+  const lista = pool.length ? pool : (misma.length ? misma : mias);
+  if (!lista.length) return null;
+  return lista[Math.floor(Math.random() * lista.length)][0];
+}
+
+// Amistoso de la temporada sin torneo: un partido suelto, sin grupos ni
+// cuadro eliminatorio. No da título, pero suma partidos y goles.
+function crearAmistosoSeleccion() {
+  const s = seleccionPorCodigo(jugador.nacionalidad);
+  if (!s) return null;
+  const rival = rivalAmistoso();
+  if (!rival) return null;
+  const estado = {
+    tipo: "amistoso",
+    confederacion: s.confederacion,
+    seleccion: jugador.nacionalidad,
+    grupoJugador: null,
+    fase: "amistoso",
+    faseNombre: "torneoFaseAmistoso",
+    grupos: null,
+    pendientes: [{ a: jugador.nacionalidad, b: rival }],
+    resultados: [],
+    ronda: [{ a: jugador.nacionalidad, b: rival, ga: null, gb: null }],
+    rondas: ["final"],
+    vivos: [jugador.nacionalidad, rival],
+    vivo: true,
+    campeon: false,
+    terminado: false,
+    tandaPendiente: false,
+    tandaMarcador: null,
+    ganados: 0,
+    jugados: 0
+  };
+  jugador.internacional = estado;
+  return estado;
+}
+
 function crearTorneoSeleccion(tipo) {
   const confed = seleccionPorCodigo(jugador.nacionalidad).confederacion;
+  if (tipo === "amistoso") return crearAmistosoSeleccion();
   if (tipo === "finalissima") {
     const rival = rivalFinalissima();
     if (!rival) return null;
@@ -1647,10 +1704,13 @@ function crearTorneoSeleccion(tipo) {
       pendientes: [{ a: jugador.nacionalidad, b: rival }],
       resultados: [],
       ronda: [{ a: jugador.nacionalidad, b: rival, ga: null, gb: null }],
+      rondas: [],
       vivos: [jugador.nacionalidad, rival],
       vivo: true,
       campeon: false,
       terminado: false,
+      tandaPendiente: false,
+      tandaMarcador: null,
       ganados: 0,
       jugados: 0
     };
@@ -1678,6 +1738,8 @@ function crearTorneoSeleccion(tipo) {
     vivo: true,
     campeon: false,
     terminado: false,
+    tandaPendiente: false,
+    tandaMarcador: null,
     ganados: 0,
     jugados: 0
   };
@@ -1719,7 +1781,18 @@ function tablarClasificadosTorneo() {
   return clasificados;
 }
 
-function registrarResultadoTorneo(ga, gb, golesJugador) {
+// ¿La fase actual es una eliminatoria? Solo ahí hay empate con penal
+// (en grupos y en amistoso un empate es un empate y nada más).
+function esFaseEliminatoria(estado) {
+  if (!estado || estado.tipo === "amistoso") return false;
+  return estado.fase === "octavos" || estado.fase === "cuartos"
+    || estado.fase === "semis" || estado.fase === "final";
+}
+
+// Un empate en eliminatorias NO elimina a nadie: se define en la tanda de
+// penales. Primero se guarda el resultado de los 90 minutos (m.ga/m.gb) y
+// el desempate va aparte (m.penales), así la UI sigue mostrando el empate.
+function registrarResultadoTorneo(ga, gb, golesJugador, jugado) {
   const estado = jugador.internacional;
   const p = siguientePendienteTorneo();
   if (!estado || !p) return;
@@ -1741,33 +1814,162 @@ function registrarResultadoTorneo(ga, gb, golesJugador) {
   (estado.ronda || []).forEach(function (m) {
     if (mismoPartido(m)) { m.ga = ga; m.gb = gb; }
   });
+  // El empate se define por penal. Si el cruce es del jugador, la tanda la
+  // juega el minijuego de pateo y el partido QUEDA ABIERTO: el pendiente no se
+  // saca hasta que termine (si no, se cerraba la ronda y lo eliminaba de un
+  // empate). Si es otro cruce, la tanda va simulada.
+  const cruzaElJugador = (p.a === jugador.nacionalidad || p.b === jugador.nacionalidad);
+  const empateEliminatorio = esFaseEliminatoria(estado) && ga === gb;
+  estado.penales = null;
+  if (empateEliminatorio && cruzaElJugador) {
+    estado.tandaMarcador = { ga: ga, gb: gb, golesJugador: golesJugador, jugado: jugado || null };
+    resolverPenalesTorneo(true);
+    if (estado.tandaPendiente) return;   // el jugador todavía está pateando
+  } else if (empateEliminatorio) {
+    const m = buscarCruceTorneo(estado, p);
+    if (m) m.penales = tandaSimulada();
+  }
+  estado.penales = estado.tandaResultado || null;
+  estado.tandaResultado = null;
+  cerrarPartidoTorneo(p, ga, gb, golesJugador);
+}
+
+// Cierra el partido ya registrations: saca el pendiente, suma MORAL, goles y
+// determina si el jugador pasó de ronda. Se llama DESPUÉS de resolver la tanda,
+// por eso está separado del guardado del marcador.
+function cerrarPartidoTorneo(p, ga, gb, golesJugador) {
+  const estado = jugador.internacional;
+  if (!estado || !p) return;
+  const cruzaElJugador = (p.a === jugador.nacionalidad || p.b === jugador.nacionalidad);
+  const eliminatoria = esFaseEliminatoria(estado);
+  // OJO: se calcula ANTES de sacar el partido de pendientes, porque
+  // avanzaElJugadorEnRonda() vuelve a leer el pendiente actual.
+  const ganeYo = cruzaElJugador
+    ? (eliminatoria ? avanzaElJugadorEnRonda(estado)
+      : (p.a === jugador.nacionalidad ? ga > gb : gb > ga))
+    : false;
   estado.pendientes.shift();
   estado.jugados++;
-  const ganeYo = p.a === jugador.nacionalidad ? ga > gb : gb > ga;
   if (ganeYo) estado.ganados++;
   if (golesJugador > 0) jugador.golesSeleccion = (jugador.golesSeleccion || 0) + golesJugador;
+  // Ir a penal en eliminatorias no se siente como una derrota: la moral no baja.
+  const empateTecnico = eliminatoria && ga === gb;
+  const deltaMoral = ganeYo ? 3 : (!empateTecnico && cruzaElJugador && ga !== gb ? -2 : 0);
   jugador.moral = Math.max(CONFIG.MORAL_MIN, Math.min(CONFIG.MORAL_MAX,
-    (jugador.moral || 0) + (ganeYo ? 3 : ga === gb ? 0 : -2)));
+    (jugador.moral || 0) + deltaMoral));
+}
+
+// Fila de estado.ronda que corresponde al partido pendiente actual.
+function buscarCruceTorneo(estado, p) {
+  if (!estado || !p) return null;
+  return (estado.ronda || []).find(function (r) {
+    return (r.a === p.a && r.b === p.b) || (r.a === p.b && r.b === p.a);
+  });
+}
+
+// Cierra la tanda que estaba jugando el usuario y continúa el torneo. Lo llama
+// decisionPenal() cuando ya no hay chances: recién ahí el partido se registra.
+function cerrarTandaTorneoDelJugador() {
+  const estado = jugador.internacional;
+  const tanda = estadoTandaPenales;
+  if (!estado || !tanda || !estado.tandaPendiente) return false;
+  const marc = estado.tandaMarcador || { ga: 0, gb: 0, golesJugador: 0 };
+  estado.tandaPendiente = false;
+  estadoTandaPenales = null;
+  const p = siguientePendienteTorneo();
+  const m = buscarCruceTorneo(estado, p);
+  estado.tandaMarcador = null;
+  if (!m) return false;
+  const juegaPrimero = p.a === jugador.nacionalidad;
+  m.penales = { a: juegaPrimero ? tanda.mios : tanda.rival, b: juegaPrimero ? tanda.rival : tanda.mios };
+  estado.penales = { a: m.penales.a, b: m.penales.b };
+  estado.tandaResultado = tanda;
+  cerrarPartidoTorneo(p, marc.ga, marc.gb, marc.golesJugador);
+  estado.penales = estado.tandaResultado || null;
+  estado.tandaResultado = null;
+  continuarTorneoSeleccion();
+  if (marc.jugado) mostrarTrasPartidoTorneo(marc.jugado);
+  return true;
+}
+
+// ¿El jugador ganó este cruce de la ronda (contando la tanda si hubo empate)?
+function avanzaElJugadorEnRonda(estado) {
+  const p = siguientePendienteTorneo();
+  if (!estado || !p) return false;
+  const cruza = (estado.ronda || []).find(function (m) {
+    return (m.a === p.a && m.b === p.b) || (m.a === p.b && m.b === p.a);
+  });
+  if (!cruza) return false;
+  const jugadorEsA = cruza.a === jugador.nacionalidad;
+  const ga = jugadorEsA ? cruza.ga : cruza.gb;
+  const gb = jugadorEsA ? cruza.gb : cruza.ga;
+  if (ga > gb) return true;
+  if (ga < gb) return false;
+  if (!cruza.penales) return false;
+  const mio = jugadorEsA ? cruza.penales.a : cruza.penales.b;
+  const suyo = jugadorEsA ? cruza.penales.b : cruza.penales.a;
+  return mio > suyo;
+}
+
+// Tanda de penales de un cruce empatado. Si el cruce es del jugador la
+// resuelve el minijuego de pateo; el resto va simulada.
+function resolverPenalesTorneo(cruzaElJugador) {
+  const estado = jugador.internacional;
+  if (!estado) return null;
+  const p = siguientePendienteTorneo();
+  const m = buscarCruceTorneo(estado, p);
+  if (!m) return null;
+  const juegaPrimero = p.a === jugador.nacionalidad;
+  if (cruzaElJugador) {
+    jugarTandaPenales(juegaPrimero);
+    const tanda = estadoTandaPenales;
+    if (!tanda) {
+      // El minijuego quedó abierto: cerrarTandaTorneoDelJugador() sigue.
+      estado.tandaPendiente = true;
+      return null;
+    }
+    estadoTandaPenales = null;
+    m.penales = { a: juegaPrimero ? tanda.mios : tanda.rival, b: juegaPrimero ? tanda.rival : tanda.mios };
+    estado.tandaResultado = tanda;
+    return m.penales;
+  }
+  m.penales = tandaSimulada();
+  return m.penales;
 }
 
 function equipoAvanzado(m) {
   if (m.ga == null || m.gb == null) return null;
   if (m.ga !== m.gb) return m.ga > m.gb ? m.a : m.b;
-  return (typeof rnd === "function" ? rnd() : Math.random()) < 0.5 ? m.a : m.b;
+  // Empate: define la tanda de penales (nunca una moneda al aire).
+  if (m.penales && m.penales.a != null && m.penales.b != null) {
+    return m.penales.a > m.penales.b ? m.a : m.b;
+  }
+  // Empate SIN tanda resuelta todavía: este cruce no puede avanzar a nadie.
+  return null;
 }
 
-// Nombre de la ronda que se juega segun cuantos equipos quedan. Con 16 equipos
-// (8 grupos x 2 clasifican) y con 8 (4 grupos x 2) la primera ronda eliminatoria
-// son octavos; antes se decidia por cantidad de grupos y los torneos
-// continentales de 8 equipos arrancaban en "cuartos".
-function nombreRondaPorCantidad(cant) {
-  if (cant >= 8) return "octavos";
-  if (cant === 4) return "cuartos";
-  if (cant === 2) return "semis";
-  return "final";
+// Plan de rondas eliminatorias a partir de cuántos equipos clasifican.
+// SIEMPRE termina en "final": con 4 clasificados se juega semifinal Y final,
+// porque ganar la semifinal NO da el título (como en la realidad).
+function planRondasEliminatorias(cant) {
+  let eq = Math.max(2, cant | 0);
+  const rondas = [];
+  while (eq > 2) {
+    if (eq === 16) rondas.push("octavos");
+    else if (eq === 8) rondas.push("cuartos");
+    else if (eq === 4) rondas.push("semis");
+    else rondas.push("ronda" + eq);
+    eq = Math.floor(eq / 2);
+  }
+  rondas.push("final");
+  return rondas;
 }
 
 function convertirVivosEnRonda(estado, vivos, nombreRonda) {
+  // Si no se pasa la ronda, se usa la próxima del plan guardado.
+  if (!nombreRonda && Array.isArray(estado.rondas) && estado.rondas.length) {
+    nombreRonda = estado.rondas[0];
+  }
   estado.ronda = [];
   estado.pendientes = [];
   estado.fase = nombreRonda;
@@ -1783,9 +1985,28 @@ function convertirVivosEnRonda(estado, vivos, nombreRonda) {
       estado.ronda.push({ a: a, b: b, ga: null, gb: null });
     } else {
       const r = simularPartidoSeleccion(a, b, null);
-      estado.ronda.push({ a: a, b: b, ga: r.golesA, gb: r.golesB });
+      const cruce = { a: a, b: b, ga: r.golesA, gb: r.golesB };
+      // Los cruces que no juegue el usuario también se deciden por penales
+      // si empatan, así nadie avanza por azar.
+      if (r && r.golesA === r.golesB) cruce.penales = tandaSimulada();
+      estado.ronda.push(cruce);
     }
   }
+}
+
+// Tanda de penales simulada: 5 tomas por lado, corte temprano y desempate
+// final para que siempre haya un ganador (nunca 0-0 ni moneda al aire).
+function tandaSimulada() {
+  let fa = 0, fb = 0;
+  for (let i = 0; i < 8; i++) {
+    fa += rnd() < 0.75 ? 1 : 0;
+    fb += rnd() < 0.75 ? 1 : 0;
+    if (i >= 4 && fa !== fb) break;
+    if (fa >= 3 && fb < 3) break;
+    if (fb >= 3 && fa < 3) break;
+  }
+  if (fa === fb) { if (rnd() < 0.5) fa++; else fb++; }
+  return { a: fa, b: fb };
 }
 
 // Transiciones de fase sin emitir notificaciones: prepara pendientes y
@@ -1804,10 +2025,16 @@ function continuarTorneoSeleccion() {
     }
     estado.vivos = clasificados;
     estado.avisoClasificado = true;
-    convertirVivosEnRonda(estado, clasificados, nombreRondaPorCantidad(clasificados.length));
+    estado.rondas = planRondasEliminatorias(clasificados.length);
+    convertirVivosEnRonda(estado, clasificados);
     return;
   }
   if (estado.pendientes.length > 0) return;
+  // Amistoso: era un partido suelto, se terminó.
+  if (estado.tipo === "amistoso") {
+    estado.terminado = true;
+    return;
+  }
   const avanzados = (estado.ronda || []).map(equipoAvanzado).filter(Boolean);
   const sigoVivo = avanzados.indexOf(jugador.nacionalidad) !== -1;
   if (!sigoVivo) {
@@ -1815,6 +2042,7 @@ function continuarTorneoSeleccion() {
     estado.terminado = true;
     return;
   }
+  // Queda un solo equipo: el cuadro ya jugó la final, es campeón.
   if (avanzados.length <= 1) {
     estado.vivo = true;
     estado.campeon = true;
@@ -1824,9 +2052,9 @@ function continuarTorneoSeleccion() {
     jugador.moral = Math.max(CONFIG.MORAL_MIN, Math.min(CONFIG.MORAL_MAX, (jugador.moral || 0) + 8));
     return;
   }
-  const prox = estado.fase === "octavos" ? "cuartos"
-    : estado.fase === "cuartos" ? "semis" : "final";
-  convertirVivosEnRonda(estado, avanzados, prox);
+  // Pasó de ronda (la última del plan era la final y ya se jugó).
+  estado.rondas = Array.isArray(estado.rondas) ? estado.rondas.slice(1) : [];
+  convertirVivosEnRonda(estado, avanzados);
 }
 
 function cerrarTorneoSeleccion() {
@@ -1840,6 +2068,19 @@ function cerrarTorneoSeleccion() {
   }
 }
 
+// El amistoso no da trofeo, pero cuenta partido y suma moral si ganaste.
+function cerrarAmistosoSeleccion() {
+  const estado = jugador.internacional;
+  if (!estado || estado.tipo !== "amistoso") return;
+  const mi = estado.ronda && estado.ronda[0];
+  if (!mi || mi.ga == null) return;
+  const jugadorEsA = mi.a === jugador.nacionalidad;
+  const ga = jugadorEsA ? mi.ga : mi.gb;
+  const gb = jugadorEsA ? mi.gb : mi.ga;
+  jugador.moral = Math.max(CONFIG.MORAL_MIN, Math.min(CONFIG.MORAL_MAX,
+    (jugador.moral || 0) + (ga > gb ? 2 : ga < gb ? -1 : 0)));
+}
+
 // Muestra en un único modal el resultado recién jugado y, si sigue vivo,
 // el desafío del próximo partido (jugar o simular).
 function mostrarTrasPartidoTorneo(jugado) {
@@ -1851,6 +2092,17 @@ function mostrarTrasPartidoTorneo(jugado) {
     cuerpo = "<div class='text-center fs-1 mb-2'>🏆</div>" +
       "<p class='text-center fw-bold mb-0'>" + t("torneoCampeon").replace("{torneo}", nombreTorneo(estado.tipo)) + "</p>" +
       "<p class='text-center small text-secondary mb-0'>🏆 Trofeo guardado</p>";
+  } else if (estado.terminado && estado.tipo === "amistoso") {
+    // Un amistoso no se gana ni se pierde como un torneo: no hay cuadro.
+    cuerpo = "<div class='text-center fs-1 mb-2'>🤝</div>" +
+      "<p class='text-center fw-bold mb-1'>" + t("torneoAmistosoListo") + "</p>" +
+      "<p class='text-center small text-secondary mb-0'>" +
+        t("torneoResultado")
+          .replace("{seleccion}", (jugado ? seleccionPorCodigo(jugado.a).nombre : ""))
+          .replace("{pa}", String(jugado ? jugado.ga : 0))
+          .replace("{pb}", String(jugado ? jugado.gb : 0))
+          .replace("{rival}", (jugado && seleccionPorCodigo(jugado.b) ? seleccionPorCodigo(jugado.b).nombre : ""))
+          .replace("{goles}", String(jugado ? (jugado.golesYo || 0) : 0)) + "</p>";
   } else if (estado.terminado) {
     cuerpo = "<p class='text-center mb-0'>" + t("torneoEliminado")
       .replace("{torneo}", nombreTorneo(estado.tipo))
@@ -1860,10 +2112,10 @@ function mostrarTrasPartidoTorneo(jugado) {
     const rival = sig ? seleccionPorCodigo(sig.b) : null;
     const faseTexto = estado.fase === "grupos"
       ? t("torneoFaseGrupos") + " · Grupo " + estado.grupoJugador
-      : nombreFaseTorneo(estado.faseNombre);
+      : estado.fase === "amistoso" ? t("torneoAmistoso") : nombreFaseTorneo(estado.faseNombre);
     const jugadorNombre = seleccionPorCodigo(jugador.nacionalidad).nombre;
     const rivalJugado = jugado ? seleccionPorCodigo(jugado.b) : null;
-    const resultScore = jugando ? jugado.ga + " - " + jugado.gb : "";
+    const resultScore = jugado ? (jugado.ga + " - " + jugado.gb) : "";
     // Al salir de grupos: decir que clasificaste y con qué récord, para que el
     // avance sea visible (antes solo se veia "Quedaste afuera...").
     const avisoClasificado = estado.avisoClasificado
@@ -1901,10 +2153,14 @@ function mostrarTrasPartidoTorneo(jugado) {
       "<p class='text-center mb-1'><strong>" + jugadorNombre + " vs " + (rival ? rival.nombre : sig.b) + "</strong></p>" +
       "<div class='d-grid gap-2 mt-2'>" +
       "<button class='btn btn-success fw-bold' onclick='ejecutarTrasCerrarInfo(jugarPartidoTorneoInteractivo);'>" + t("torneoJugar") + "</button>" +
-      "<button class='btn btn-secondary fw-bold' onclick='ejecutarTrasCerrarInfo(simularPartidoTorneo);'>" + t("torneoSimular") + "</button>" +
+      (esFaseEliminatoria(estado)
+        ? "<span class='small text-secondary d-block mt-1'>" + t("torneoEmpateVaAPenales") + "</span>"
+        : "") +
+      "<button class='btn btn-secondary fw-bold mt-2' onclick='ejecutarTrasCerrarInfo(simularPartidoTorneo);'>" + t("torneoSimular") + "</button>" +
       "</div>";
   }
   cerrarTorneoSeleccion();
+  cerrarAmistosoSeleccion();
   mostrarNotificacion(nombreTorneo(estado.tipo), cuerpo);
   if (typeof actualizarInterfaz === "function") actualizarInterfaz();
   if (typeof guardarPartida === "function") guardarPartida();
@@ -1947,87 +2203,108 @@ function simularPartidoTorneo() {
   mostrarTrasPartidoTorneo(jugado);
 }
 
-// Partido interactivo de selección: mini-juego de 6 jugadas con decisiones
-// Ataque / Medio / Defensa. Al terminar devuelve el marcador final.
-function jugarPartidoTorneoInteractivo() {
-  const p = siguientePendienteTorneo();
-  if (!p) return;
+// ============================================================
+//  PARTIDO INTERACTIVO DE SELECCIÓN: TIRO A PUERTA
+//  Antes era un piedra-papel-tijera de Ataque/Medio/Defensa. Ahora
+//  jugás los GOLES: elegís un rincón y el arquero se tira a uno de
+//  los tres. Si le atajás el mismo lado, te para la pelota.
+//  El OVR sube la precisión: un crack mete más goles.
+// ============================================================
+
+const ESQUINAS_TIRO = ["izquierda", "centro", "derecha"];
+
+// Precisión del tiro en función del OVR (0.55 a 0.95).
+function precisionTiroSeleccion() {
+  const media = mediaActual() || 60;
+  return Math.max(0.55, Math.min(0.95, 0.55 + (media - 60) / 100));
+}
+
+function iniciarTiroSeleccion(p) {
   const abierto = estadoPartidoEspecial && estadoPartidoEspecial.seleccionTorneo;
   if (abierto && abierto.pendiente === p) return;
-  const rival = seleccionPorCodigo(p.b);
-  const rivalNombre = rival ? rival.nombre : p.b;
   estadoPartidoEspecial = {
     seleccionTorneo: true,
+    tipo: "tiro",
     pendiente: p,
-    fase: "grupos",
-    jugada: 0,
-    maxJugadas: 6,
-    miPuntos: 0,
-    rivalPuntos: 0,
+    chances: 0,
+    maxChances: 5,
     miGoles: 0,
     rivalGoles: 0,
+    ultimoResultado: null,
     historial: []
   };
-  const cuerpo = "<div id='torneoMiniCuerpo'></div>";
+  const rival = seleccionPorCodigo(p.b);
   mostrarNotificacion(nombreTorneo(jugador.internacional.tipo),
     "<p class='text-center mb-1'><strong>" +
-    seleccionPorCodigo(p.a).nombre + " vs " + rivalNombre + "</strong></p>" +
+    seleccionPorCodigo(p.a).nombre + " vs " + (rival ? rival.nombre : p.b) + "</strong></p>" +
     "<p class='text-center small text-secondary mb-2'>" +
-    (jugador.internacional.fase === "grupos" ? t("torneoFaseGrupos") + " · Grupo " + jugador.internacional.grupoJugador : nombreFaseTorneo(jugador.internacional.faseNombre)) +
-    "</p>" + cuerpo);
-  pintarJugadaTorneo();
+    (jugador.internacional.fase === "grupos"
+      ? t("torneoFaseGrupos") + " · Grupo " + jugador.internacional.grupoJugador
+      : jugador.internacional.fase === "amistoso"
+        ? t("torneoAmistoso") : nombreFaseTorneo(jugador.internacional.faseNombre)) +
+    "</p>" + t("torneoTiroInstruccion") +
+    "<div id='torneoMiniCuerpo'></div>");
+  pintarTiroSeleccion();
 }
 
-function pintarJugadaTorneo() {
+// El arquero elige un rincón y el jugador decide el suyo. Si coinciden,
+// el arquero tapa; si no, depende de la precisión del OVR.
+function decisionTorneo(esquina) {
   const est = estadoPartidoEspecial;
-  const cont = document.getElementById("torneoMiniCuerpo");
-  if (!cont) return;
-  const del = Math.round(est.jugada / est.maxJugadas * 100);
-  cont.innerHTML =
-    "<div class='progress mb-2' style='height:8px'><div class='progress-bar' style='width:" + del + "%'></div></div>" +
-    "<div class='d-flex justify-content-around text-center mb-2'>" +
-    "<div><small class='d-block text-secondary'>" + seleccionPorCodigo(jugador.nacionalidad).nombre + "</small><span class='fs-4 fw-bold'>" + est.miGoles + "</span></div>" +
-    "<div><small class='d-block text-secondary'>" + seleccionPorCodigo(equipoRivalPendiente()).nombre + "</small><span class='fs-4 fw-bold'>" + est.rivalGoles + "</span></div>" +
-    "</div>" +
-    "<p class='text-center small mb-1'>Jugada " + (est.jugada + 1) + " de " + est.maxJugadas + "</p>" +
-    "<div class='d-grid gap-2'>" +
-    "<button class='btn btn-outline-primary' onclick='decisionTorneo(\"ataque\")'>⚔️ Ataque</button>" +
-    "<button class='btn btn-outline-secondary' onclick='decisionTorneo(\"medio\")'>⚖️ Medio</button>" +
-    "<button class='btn btn-outline-dark' onclick='decisionTorneo(\"defensa\")'>🛡️ Defensa</button>" +
-    "</div>";
-}
+  if (!est || est.tipo !== "tiro") return;
+  if (ESQUINAS_TIRO.indexOf(esquina) === -1) return;
+  const portero = ESQUINAS_TIRO[Math.floor(Math.random() * 3)];
+  const atajado = portero === esquina;
+  const gol = atajado ? false : Math.random() < precisionTiroSeleccion();
+  if (gol) est.miGoles++;
+  est.ultimoResultado = {
+    esquina: esquina,
+    portero: portero,
+    gol: gol
+  };
+  est.historial.push(est.ultimoResultado);
 
-function decisionTorneo(eleccion) {
-  const est = estadoPartidoEspecial;
-  if (!est) return;
-  const rivalEleccion = ["ataque", "medio", "defensa"][Math.floor(Math.random() * 3)];
-  // Piedra-papel-tijera: ataque vence a defensa, defensa a medio, medio a ataque.
-  let gana;
-  if (eleccion === rivalEleccion) gana = 0;
-  else if ((eleccion === "ataque" && rivalEleccion === "defensa") ||
-           (eleccion === "defensa" && rivalEleccion === "medio") ||
-           (eleccion === "medio" && rivalEleccion === "ataque")) gana = 1;
-  else gana = -1;
-  let resumen = "Empate / sin ventaja";
-  if (gana > 0) {
-    est.miPuntos++;
-    resumen = "¡Ganaste la jugada!";
-  } else if (gana < 0) {
-    est.rivalPuntos++;
-    resumen = "El rival se impuso en la jugada.";
-  }
-  est.historial.push({ yo: eleccion, rival: rivalEleccion, resultado: gana });
-  // La conversión depende de las jugadas ganadas y del OVR del jugador:
-  // un jugador fuerte concreta con más frecuencia cada ventaja ganada.
-  const bonusOvr = Math.max(0, (mediaActual() - 70)) / 200;
-  if (gana > 0 && Math.random() < Math.min(0.95, est.miPuntos / est.maxJugadas + bonusOvr)) est.miGoles++;
-  if (gana < 0 && Math.random() < (est.rivalPuntos / est.maxJugadas)) est.rivalGoles++;
-  est.jugada++;
-  if (est.jugada >= est.maxJugadas) {
+  // El rival también patea sus chances: tira contra tu equipo, y su acierto
+  // depende de la fuerza de SU selección contra tu OVR.
+  const rival = seleccionPorCodigo(est.pendiente.b);
+  const fuerzaRival = rival ? (rival.fuerza || rival[4] || 70) : 70;
+  const dificultad = Math.max(0.35, Math.min(0.85, 0.5 + (fuerzaRival - mediaActual()) / 120));
+  if (Math.random() < dificultad) est.rivalGoles++;
+
+  est.chances++;
+  if (est.chances >= est.maxChances) {
     terminarPartidoTorneoInteractivo();
     return;
   }
-  pintarJugadaTorneo();
+  pintarTiroSeleccion();
+}
+
+function pintarTiroSeleccion() {
+  const est = estadoPartidoEspecial;
+  const cont = document.getElementById("torneoMiniCuerpo");
+  if (!cont || !est) return;
+  const rivalNombre = seleccionPorCodigo(equipoRivalPendiente());
+  const ultimo = est.ultimoResultado;
+  const mensaje = ultimo
+    ? (ultimo.gol
+      ? "<div class='alert alert-success py-2 mb-2'>⚽ " + t("torneoTiroGol") + "</div>"
+      : "🧤 " + t("torneoTiroAtajado"))
+    : "";
+  cont.innerHTML =
+    "<div class='d-flex justify-content-around text-center mb-2'>" +
+    "<div><small class='d-block text-secondary'>" + seleccionPorCodigo(jugador.nacionalidad).nombre + "</small><span class='fs-4 fw-bold'>" + est.miGoles + "</span></div>" +
+    "<div><small class='d-block text-secondary'>" + (rivalNombre ? rivalNombre.nombre : "") + "</small><span class='fs-4 fw-bold'>" + est.rivalGoles + "</span></div>" +
+    "</div>" +
+    "<div class='progress mb-2' style='height:8px'><div class='progress-bar' style='width:" +
+    Math.round(est.chances / est.maxChances * 100) + "%'></div></div>" +
+    "<p class='text-center small mb-2'>" +
+      t("torneoTiroChance").replace("{n}", String(est.chances + 1)).replace("{total}", String(est.maxChances)) + "</p>" +
+    mensaje +
+    "<div class='d-grid gap-2'>" +
+    "<button class='btn btn-outline-primary' onclick='decisionTorneo(\"izquierda\")'>⬅️ " + t("torneoTiroIzquierda") + "</button>" +
+    "<button class='btn btn-outline-primary' onclick='decisionTorneo(\"centro\")'>⬆️ " + t("torneoTiroCentro") + "</button>" +
+    "<button class='btn btn-outline-primary' onclick='decisionTorneo(\"derecha\")'>➡️ " + t("torneoTiroDerecha") + "</button>" +
+    "</div>";
 }
 
 function terminarPartidoTorneoInteractivo() {
@@ -2036,9 +2313,120 @@ function terminarPartidoTorneoInteractivo() {
   const ga = est.miGoles, gb = est.rivalGoles;
   const jugado = { a: est.pendiente.a, b: est.pendiente.b, ga: ga, gb: gb, golesYo: ga };
   estadoPartidoEspecial = null;
-  registrarResultadoTorneo(ga, gb, ga); // el jugador anotó los goles del equipo
+  // El 4º argumento es el partido "jugado" que muestra el resumen después;
+  // si hay empate y toca tanda, el registro se difiere hasta que termine.
+  registrarResultadoTorneo(ga, gb, ga, jugado);
+  if (jugador.internacional && jugador.internacional.tandaPendiente) return;
   continuarTorneoSeleccion();
   mostrarTrasPartidoTorneo(jugado);
+}
+
+// Atajo que usa el botón "Jugar (interactivo)".
+function jugarPartidoTorneoInteractivo() {
+  const p = siguientePendienteTorneo();
+  if (!p) return;
+  iniciarTiroSeleccion(p);
+}
+
+// Tanda de penales: 5 chances cada uno (desempate si siguen empatados).
+// Es el mismo minijuego de tiro, así que no hay dos mecánicas distintas.
+// Cuando termina, el resultado queda en estadoTandaPenales para que
+// registrarResultadoTorneo lo lea sin consultar la pantalla.
+let estadoTandaPenales = null;
+
+function jugarTandaPenales(juegaPrimero) {
+  estadoTandaPenales = null;
+  estadoPartidoEspecial = {
+    tipo: "penales",
+    chances: 0,
+    maxChances: 5,
+    mios: 0,
+    rival: 0,
+    ultimoResultado: null,
+    juegaPrimero: juegaPrimero,
+    turno: "yo",
+    historial: []
+  };
+  mostrarNotificacion(t("torneoPenalesTitulo"),
+    "<p class='text-center small mb-2'>" + t("torneoPenalesInstruccion") + "</p>" +
+    "<div id='torneoMiniCuerpo'></div>");
+  // Si al rival le toca primero, patea antes de tu primer tiro.
+  if (!juegaPrimero && Math.random() < probabilidadPenalRival()) {
+    estadoPartidoEspecial.rival++;
+  }
+  pintarPenales();
+  return estadoTandaPenales;
+}
+
+function probabilidadPenalRival() {
+  const estado = jugador.internacional;
+  const rival = estado ? seleccionPorCodigo(siguientePendienteTorneo().b) : null;
+  const fuerzaRival = rival ? (rival.fuerza || rival[4] || 70) : 70;
+  return Math.max(0.55, Math.min(0.9, 0.75 + (fuerzaRival - mediaActual()) / 150));
+}
+
+function decisionPenal(esquina) {
+  const est = estadoPartidoEspecial;
+  if (!est || est.tipo !== "penales") return;
+  if (est.turno !== "yo") return;
+  if (ESQUINAS_TIRO.indexOf(esquina) === -1) return;
+  const portero = ESQUINAS_TIRO[Math.floor(Math.random() * 3)];
+  const gol = portero !== esquina && Math.random() < precisionTiroSeleccion();
+  if (gol) est.mios++;
+  est.ultimoResultado = { esquina: esquina, portero: portero, gol: gol };
+  est.historial.push(est.ultimoResultado);
+  // Patea el rival en la misma ronda.
+  if (Math.random() < probabilidadPenalRival()) est.rival++;
+  est.chances++;
+  if (est.chances >= est.maxChances) {
+    // Cinco chances cada uno. Si siguen empatados, muerte súbita: cada
+    // ronda suma un tiro para cada lado hasta que alguien se diferencie.
+    while (est.mios === est.rival && est.chances < 60) {
+      est.mios += Math.random() < precisionTiroSeleccion() ? 1 : 0;
+      est.rival += Math.random() < probabilidadPenalRival() ? 1 : 0;
+      est.chances++;
+    }
+    estadoTandaPenales = { mios: est.mios, rival: est.rival };
+    estadoPartidoEspecial = null;
+    mostrarNotificacion(t("torneoPenalesTitulo"),
+      "<p class='text-center fs-4 fw-bold mb-0'>" +
+      (est.mios > est.rival ? "✅ " + t("torneoPenalesGanas") : "❌ " + t("torneoPenalesPerdidas")) +
+      "</p><p class='text-center small text-secondary mb-0'>" +
+      est.mios + " - " + est.rival + "</p>");
+    if (typeof guardarPartida === "function") guardarPartida();
+    // La tanda era LA definición del cruce: recién acá se registra el partido
+    // y el torneo sigue (antes el empate ya había cerrado la ronda).
+    cerrarTandaTorneoDelJugador();
+    return;
+  }
+  pintarPenales();
+}
+
+function pintarPenales() {
+  const est = estadoPartidoEspecial;
+  const cont = document.getElementById("torneoMiniCuerpo");
+  if (!cont || !est) return;
+  est.turno = "yo";
+  const ultimo = est.ultimoResultado;
+  const mensaje = ultimo
+    ? (ultimo.gol ? "<div class='alert alert-success py-2 mb-2'>⚽ " + t("torneoTiroGol") + "</div>"
+      : "🧤 " + t("torneoTiroAtajado"))
+    : "";
+  cont.innerHTML =
+    "<div class='d-flex justify-content-around text-center mb-2'>" +
+    "<div><small class='d-block text-secondary'>" + seleccionPorCodigo(jugador.nacionalidad).nombre + "</small><span class='fs-4 fw-bold'>" + est.mios + "</span></div>" +
+    "<div><small class='d-block text-secondary'>Rival</small><span class='fs-4 fw-bold'>" + est.rival + "</span></div>" +
+    "</div>" +
+    "<div class='progress mb-2' style='height:8px'><div class='progress-bar' style='width:" +
+    Math.round(est.chances / est.maxChances * 100) + "%'></div></div>" +
+    "<p class='text-center small mb-2'>" +
+      t("torneoTiroChance").replace("{n}", String(est.chances + 1)).replace("{total}", String(est.maxChances)) + "</p>" +
+    mensaje +
+    "<div class='d-grid gap-2'>" +
+    "<button class='btn btn-outline-primary' onclick='decisionPenal(\"izquierda\")'>⬅️ " + t("torneoTiroIzquierda") + "</button>" +
+    "<button class='btn btn-outline-primary' onclick='decisionPenal(\"centro\")'>⬆️ " + t("torneoTiroCentro") + "</button>" +
+    "<button class='btn btn-outline-primary' onclick='decisionPenal(\"derecha\")'>➡️ " + t("torneoTiroDerecha") + "</button>" +
+    "</div>";
 }
 
 // Pinta la tarjeta Internacional de la vista Carrera con el estado de la
