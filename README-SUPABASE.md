@@ -30,6 +30,21 @@ pasa a usarlo solo, sin cambios de código. Orden correcto del release: ejecutar
 primero el 005 y recién después publicar el cliente, porque el 005 quita la
 escritura directa de la tabla (un cliente viejo dejaría de sincronizar).
 
+### Actualización (base real, posterior)
+
+La base real **sí tiene** el RPC endurecido: `copero_publicar_ranking` de 10
+argumentos (005/008) está instalado y `test-seguridad-live.mjs` da `TODO OK`
+(los ataques anónimos se rechazan). Pendientes documentados:
+
+- `006-duelos.sql`, `009-coop.sql`: a ejecutar si aún no están (dependen del
+  dashboard).
+- `010-limpieza-overload-ranking.sql`: **ya ejecutado** (2026-10-01). La base
+  había quedado con DOS sobrecargas de `copero_publicar_ranking` (una vieja de 7
+  argumentos, fuera del repo, + la de 10 de 008). PostgREST no podía elegir y
+  devolvía HTTP 300 `PGRST203` al publicar; el 010 borró la obsoleta y dejó una
+  sola firma. Es idempotente; si en otro entorno vuelve a pasar, se corre de
+  nuevo (requiere que 008 esté aplicado).
+
 ## Configurar el proyecto
 
 1. Abrir https://supabase.com/dashboard y seleccionar el proyecto

@@ -132,9 +132,12 @@ algunas APIs requieren `http://localhost` o HTTPS.
 
 ### `supabase/` — backend SQL
 
-Migraciones numeradas (`001-…` … `007-perfiles-rpc.sql`): tablas
+Migraciones numeradas (`001-…` … `010-limpieza-overload-ranking.sql`): tablas
 `copero_ranking`, `copero_profiles`, `copero_support`, `copero_duelos`,
-políticas RLS y RPC `copero_publicar_ranking`. Detalle en `README-SUPABASE.md`.
+`copero_selecciones`, `copero_coop_partidas`, políticas RLS y RPC
+`copero_publicar_ranking`. El `010` borra una sobrecarga vieja de 7 argumentos
+de ese RPC para que PostgREST no devuelva HTTP 300 `PGRST203` (es lo que hacía
+fallar `test-seguridad-live.mjs`). Detalle en `README-SUPABASE.md`.
 Los datos de Supabase **nunca** pasan por la caché del SW (excluidos por
 dominio y por `cache: no-store`).
 

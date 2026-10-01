@@ -74,6 +74,6 @@ console.log(fallos === 0
   ? "TODO OK: los ataques sin sesión fueron rechazados por la base."
   : ("HAY " + fallos + " PUNTOS A REVISAR"));
 console.log("Nota: para verificar los ataques CON sesión (OVR 99, títulos 999, ganar un duelo)");
-console.log("hay que ejecutar los SQL 005 y 006: mientras no estén, la escritura directa sigue");
-console.log("habilitada para el dueño de su propia fila de ranking (límite documentado en 002).");
+console.log("hacen falta credenciales reales. El RPC copero_publicar_ranking ya está instalado");
+console.log("y expone una sola firma (010), así que PostgREST resolvió el PGRST203.");
 process.exit(fallos === 0 ? 0 : 1);
